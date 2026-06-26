@@ -1,14 +1,12 @@
 #pragma once
 
 #include "ServiceRegistry.h"
+#include "core/connection/ExecutorProxy.h"
 #include "ui/MainWindow.h"
 
 #include <QApplication>
 #include <memory>
 #include <string>
-
-// Forward declaration — full definition lives in Application.cpp
-namespace OpenC3::App { struct ExecutorHolder; }
 
 namespace OpenC3::App {
 
@@ -38,10 +36,10 @@ private:
 
     [[nodiscard]] std::string resolveSettingsPath() const;
 
-    QApplication&                     qtApp_;
-    ServiceRegistry                   registry_;
-    std::shared_ptr<ExecutorHolder>   executorHolder_;
-    std::unique_ptr<UI::MainWindow>   mainWindow_;
+    QApplication&                              qtApp_;
+    ServiceRegistry                            registry_;
+    Core::Connection::ExecutorProxy            executorProxy_;
+    std::unique_ptr<UI::MainWindow>            mainWindow_;
 };
 
 } // namespace OpenC3::App

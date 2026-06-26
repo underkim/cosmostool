@@ -8,6 +8,10 @@ add_library(opencosmos_viewmodels STATIC
     docker/DockerViewModel.cpp
     doctor/DoctorViewModel.cpp
     settings/SettingsViewModel.cpp
+    plugin/PluginViewModel.cpp
+    cmdtlm/CmdTlmViewModel.cpp
+    packettools/PacketToolsViewModel.cpp
+    logviewer/LogViewerViewModel.cpp
 )
 
 target_include_directories(opencosmos_viewmodels

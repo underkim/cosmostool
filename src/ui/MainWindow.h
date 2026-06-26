@@ -4,6 +4,10 @@
 #include "viewmodels/docker/DockerViewModel.h"
 #include "viewmodels/doctor/DoctorViewModel.h"
 #include "viewmodels/settings/SettingsViewModel.h"
+#include "viewmodels/plugin/PluginViewModel.h"
+#include "viewmodels/cmdtlm/CmdTlmViewModel.h"
+#include "viewmodels/packettools/PacketToolsViewModel.h"
+#include "viewmodels/logviewer/LogViewerViewModel.h"
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -17,17 +21,20 @@ namespace OpenC3::UI {
 ///
 /// Implements a navigation rail (sidebar) + content area layout.
 /// Each module is a full-page view inside a QStackedWidget.
-/// The sidebar is a QListWidget acting as the navigation selector.
 class MainWindow final : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(
-        ViewModels::DashboardViewModel& dashboard,
-        ViewModels::DockerViewModel&    docker,
-        ViewModels::DoctorViewModel&    doctor,
-        ViewModels::SettingsViewModel&  settings,
-        QWidget*                        parent = nullptr);
+        ViewModels::DashboardViewModel&    dashboard,
+        ViewModels::DockerViewModel&       docker,
+        ViewModels::DoctorViewModel&       doctor,
+        ViewModels::SettingsViewModel&     settings,
+        ViewModels::PluginViewModel&       plugin,
+        ViewModels::CmdTlmViewModel&       cmdTlm,
+        ViewModels::PacketToolsViewModel&  packetTools,
+        ViewModels::LogViewerViewModel&    logViewer,
+        QWidget*                           parent = nullptr);
 
     ~MainWindow() override = default;
 
@@ -46,16 +53,19 @@ private:
     void setupViews();
     void connectSignals();
 
-    ViewModels::DashboardViewModel& dashboardVm_;
-    ViewModels::DockerViewModel&    dockerVm_;
-    ViewModels::DoctorViewModel&    doctorVm_;
-    ViewModels::SettingsViewModel&  settingsVm_;
+    ViewModels::DashboardViewModel&    dashboardVm_;
+    ViewModels::DockerViewModel&       dockerVm_;
+    ViewModels::DoctorViewModel&       doctorVm_;
+    ViewModels::SettingsViewModel&     settingsVm_;
+    ViewModels::PluginViewModel&       pluginVm_;
+    ViewModels::CmdTlmViewModel&       cmdTlmVm_;
+    ViewModels::PacketToolsViewModel&  packetToolsVm_;
+    ViewModels::LogViewerViewModel&    logViewerVm_;
 
     QWidget*        centralWidget_{nullptr};
     QListWidget*    navRail_{nullptr};
     QStackedWidget* contentStack_{nullptr};
 
-    // Status bar widgets
     QLabel* connectionLabel_{nullptr};
     QLabel* dockerLabel_{nullptr};
 };

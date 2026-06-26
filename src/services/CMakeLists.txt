@@ -8,6 +8,7 @@ add_library(opencosmos_services STATIC
     doctor/DoctorService.cpp
     plugin/PluginService.cpp
     settings/SettingsService.cpp
+    filesystem/RemoteFileService.cpp
 )
 
 target_include_directories(opencosmos_services

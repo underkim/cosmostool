@@ -1,7 +1,6 @@
 #include "Application.h"
 
 #include "core/logging/Logger.h"
-#include "core/connection/NullCommandExecutor.h"
 
 #include "services/settings/ISettingsService.h"
 #include "services/settings/SettingsService.h"
@@ -15,11 +14,17 @@
 #include "services/doctor/DoctorService.h"
 #include "services/plugin/IPluginService.h"
 #include "services/plugin/PluginService.h"
+#include "services/filesystem/IRemoteFileService.h"
+#include "services/filesystem/RemoteFileService.h"
 
 #include "viewmodels/dashboard/DashboardViewModel.h"
 #include "viewmodels/docker/DockerViewModel.h"
 #include "viewmodels/doctor/DoctorViewModel.h"
 #include "viewmodels/settings/SettingsViewModel.h"
+#include "viewmodels/plugin/PluginViewModel.h"
+#include "viewmodels/cmdtlm/CmdTlmViewModel.h"
+#include "viewmodels/packettools/PacketToolsViewModel.h"
+#include "viewmodels/logviewer/LogViewerViewModel.h"
 
 #include "ui/styles/ThemeManager.h"
 #include "ui/dialogs/ConnectionDialog.h"
@@ -29,26 +34,10 @@
 
 namespace OpenC3::App {
 
-// ── ExecutorHolder ─────────────────────────────────────────────────────────────
-// Provides a stable ICommandExecutor& to services throughout the session.
-// Initially backed by NullCommandExecutor; swapped to the real executor
-// after the user connects. Services hold a reference to ExecutorHolder's
-// inner ref, so they automatically use the live executor after connection.
-//
-// This is intentionally simple for Phase 2. Phase 3 will introduce a proper
-// ExecutorProxy with lock-free swap semantics.
-struct ExecutorHolder {
-    Core::Connection::NullCommandExecutor  nullExecutor;
-    Core::Connection::ICommandExecutor*    current{&nullExecutor};
-
-    Core::Connection::ICommandExecutor& get() noexcept { return *current; }
-};
-
 // ── Application ───────────────────────────────────────────────────────────────
 
 Application::Application(QApplication& qtApp)
     : qtApp_(qtApp)
-    , executorHolder_(std::make_shared<ExecutorHolder>())
 {
     initLogging();
     Logging::Logger::info("OpenC3 Developer Toolkit starting");
@@ -73,7 +62,7 @@ int Application::run()
 
     if (!profiles.empty()) {
         UI::Dialogs::ConnectionDialog dlg(settingsVm);
-        dlg.exec(); // non-blocking on reject; app continues either way
+        dlg.exec();
     }
 
     // ── Main window ───────────────────────────────────────────────────────────
@@ -81,7 +70,11 @@ int Application::run()
         *registry_.resolve<ViewModels::DashboardViewModel>(),
         *registry_.resolve<ViewModels::DockerViewModel>(),
         *registry_.resolve<ViewModels::DoctorViewModel>(),
-        settingsVm);
+        settingsVm,
+        *registry_.resolve<ViewModels::PluginViewModel>(),
+        *registry_.resolve<ViewModels::CmdTlmViewModel>(),
+        *registry_.resolve<ViewModels::PacketToolsViewModel>(),
+        *registry_.resolve<ViewModels::LogViewerViewModel>());
 
     mainWindow_->show();
     Logging::Logger::info("Main window shown — entering event loop");
@@ -119,35 +112,36 @@ void Application::registerServices()
     auto connection = std::make_shared<Services::ConnectionService>(*settings);
     registry_.registerInstance<Services::IConnectionService>(connection);
 
-    // Wire executor swap: when connected, point ExecutorHolder at the live executor
+    // Wire executor proxy: atomically swap to the live executor on connect,
+    // reset to the null executor on disconnect or error.
     connection->onStateChanged([this, conn = connection.get()](
         const Services::ConnectionEvent& ev)
     {
         if (ev.state == Services::ConnectionState::Connected) {
-            auto* ex = conn->executor();
-            if (ex) executorHolder_->current = ex;
-            Logging::Logger::info("[App] Executor swapped to live connection");
+            executorProxy_.swap(conn->executor());
+            Logging::Logger::info("[App] ExecutorProxy swapped to live connection");
         } else if (ev.state == Services::ConnectionState::Disconnected
                 || ev.state == Services::ConnectionState::Error) {
-            executorHolder_->current = &executorHolder_->nullExecutor;
-            Logging::Logger::info("[App] Executor reset to NullExecutor");
+            executorProxy_.reset();
+            Logging::Logger::info("[App] ExecutorProxy reset to NullExecutor");
         }
     });
 
-    // ── Domain services (all share the ExecutorHolder reference) ─────────────
-    auto& execRef = executorHolder_->get(); // stable reference via holder
-
-    auto dockerSvc = std::make_shared<Services::DockerService>(execRef);
+    // ── Domain services (all hold a stable ref to ExecutorProxy) ─────────────
+    auto dockerSvc = std::make_shared<Services::DockerService>(executorProxy_);
     registry_.registerInstance<Services::IDockerService>(dockerSvc);
 
-    auto systemSvc = std::make_shared<Services::SystemService>(execRef);
+    auto systemSvc = std::make_shared<Services::SystemService>(executorProxy_);
     registry_.registerInstance<Services::ISystemService>(systemSvc);
 
-    auto doctorSvc = std::make_shared<Services::DoctorService>(execRef);
+    auto doctorSvc = std::make_shared<Services::DoctorService>(executorProxy_);
     registry_.registerInstance<Services::IDoctorService>(doctorSvc);
 
-    auto pluginSvc = std::make_shared<Services::PluginService>(execRef);
+    auto pluginSvc = std::make_shared<Services::PluginService>(executorProxy_);
     registry_.registerInstance<Services::IPluginService>(pluginSvc);
+
+    auto fsSvc = std::make_shared<Services::RemoteFileService>(executorProxy_);
+    registry_.registerInstance<Services::IRemoteFileService>(fsSvc);
 
     Logging::Logger::info("[App] All services registered");
 }
@@ -159,6 +153,8 @@ void Application::registerViewModels()
     auto system     = registry_.resolve<Services::ISystemService>();
     auto doctor     = registry_.resolve<Services::IDoctorService>();
     auto settings   = registry_.resolve<Services::ISettingsService>();
+    auto plugin     = registry_.resolve<Services::IPluginService>();
+    auto fs         = registry_.resolve<Services::IRemoteFileService>();
 
     auto dashVm = std::make_shared<ViewModels::DashboardViewModel>(
         *connection, *docker, *system);
@@ -173,6 +169,21 @@ void Application::registerViewModels()
     auto settingsVm = std::make_shared<ViewModels::SettingsViewModel>(
         *settings, *connection);
     registry_.registerInstance<ViewModels::SettingsViewModel>(settingsVm);
+
+    auto pluginVm = std::make_shared<ViewModels::PluginViewModel>(*plugin);
+    registry_.registerInstance<ViewModels::PluginViewModel>(pluginVm);
+
+    auto cmdTlmVm = std::make_shared<ViewModels::CmdTlmViewModel>(
+        *connection, *fs);
+    registry_.registerInstance<ViewModels::CmdTlmViewModel>(cmdTlmVm);
+
+    auto packetToolsVm = std::make_shared<ViewModels::PacketToolsViewModel>(
+        *connection, *fs);
+    registry_.registerInstance<ViewModels::PacketToolsViewModel>(packetToolsVm);
+
+    auto logViewerVm = std::make_shared<ViewModels::LogViewerViewModel>(
+        *connection, *fs);
+    registry_.registerInstance<ViewModels::LogViewerViewModel>(logViewerVm);
 
     Logging::Logger::info("[App] All ViewModels registered");
 }
