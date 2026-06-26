@@ -1,0 +1,60 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# ── Line width ─────────────────────────────────────────────────────────────────
+ColumnLimit: 90
+
+# ── Indentation ────────────────────────────────────────────────────────────────
+IndentWidth:          4
+TabWidth:             4
+UseTab:               Never
+ContinuationIndentWidth: 4
+
+# ── Braces ─────────────────────────────────────────────────────────────────────
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# ── Includes ───────────────────────────────────────────────────────────────────
+SortIncludes:       CaseInsensitive
+IncludeBlocks:      Regroup
+IncludeCategories:
+  - Regex:    '^"(core|models|services|viewmodels|ui|app|utils)/'
+    Priority: 1
+  - Regex:    '^<Q'
+    Priority: 2
+  - Regex:    '^<(spdlog|nlohmann|libssh2)'
+    Priority: 3
+  - Regex:    '^<'
+    Priority: 4
+
+# ── Namespaces ─────────────────────────────────────────────────────────────────
+NamespaceIndentation: None
+CompactNamespaces:    false
+
+# ── Alignment ──────────────────────────────────────────────────────────────────
+AlignAfterOpenBracket:  Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+AlignOperands:         true
+
+# ── Pointers and references ─────────────────────────────────────────────────────
+PointerAlignment:   Left
+ReferenceAlignment: Left
+
+# ── Constructors ───────────────────────────────────────────────────────────────
+ConstructorInitializerIndentWidth: 4
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+
+# ── Penalties ──────────────────────────────────────────────────────────────────
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+
+# ── Other ──────────────────────────────────────────────────────────────────────
+SpaceBeforeParens:   ControlStatements
+SpaceAfterCStyleCast: false
+Cpp11BracedListStyle: true
+Standard:            c++20

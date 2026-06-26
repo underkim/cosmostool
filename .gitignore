@@ -1,0 +1,56 @@
+# ── Build artefacts ────────────────────────────────────────────────────────────
+build/
+build-*/
+cmake-build-*/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake
+!cmake/*.cmake
+
+# ── Compiled output ────────────────────────────────────────────────────────────
+*.exe
+*.dll
+*.lib
+*.a
+*.o
+*.obj
+*.pdb
+
+# ── Qt generated files ─────────────────────────────────────────────────────────
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+*.qmlc
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.vscode/
+.vs/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+*.vcxproj.user
+*.ncb
+*.opendb
+
+# ── FetchContent / vcpkg cache ─────────────────────────────────────────────────
+_deps/
+vcpkg_installed/
+
+# ── CMake user presets (Qt 경로 등 로컬 설정, 커밋하지 않음) ───────────────────
+CMakeUserPresets.json
+
+# ── Logs and settings ─────────────────────────────────────────────────────────
+logs/
+*.log
+settings.json
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.DS_Store
+Thumbs.db
+.clangd/
+compile_commands.json

@@ -1,0 +1,46 @@
+---
+# ── clang-tidy configuration ───────────────────────────────────────────────────
+
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  bugprone-*,
+  misc-*,
+  -modernize-use-trailing-return-type,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -misc-non-private-member-variables-in-classes,
+  -readability-identifier-length
+
+WarningsAsErrors: >
+  bugprone-*,
+  cppcoreguidelines-avoid-non-const-global-variables,
+  cppcoreguidelines-slicing,
+  modernize-use-nullptr,
+  performance-move-const-arg
+
+HeaderFilterRegex: '^(src|tests)/'
+
+CheckOptions:
+  - key:   readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key:   readability-identifier-naming.StructCase
+    value: CamelCase
+  - key:   readability-identifier-naming.FunctionCase
+    value: camelCase
+  - key:   readability-identifier-naming.VariableCase
+    value: camelCase
+  - key:   readability-identifier-naming.PrivateMemberSuffix
+    value: '_'
+  - key:   readability-identifier-naming.NamespaceCase
+    value: CamelCase
+  - key:   modernize-use-default-member-init.UseAssignment
+    value: true
+  - key:   cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true

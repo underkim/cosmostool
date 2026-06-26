@@ -1,0 +1,32 @@
+# ── UI Library ────────────────────────────────────────────────────────────────
+# Qt Widgets layer. No business logic; binds to ViewModels only.
+
+add_library(opencosmos_ui STATIC
+    MainWindow.cpp
+    widgets/StatusBadge.cpp
+    widgets/LogWidget.cpp
+    widgets/MetricCard.cpp
+    views/DashboardView.cpp
+    views/DockerView.cpp
+    views/DoctorView.cpp
+    views/PluginView.cpp
+    views/SettingsView.cpp
+    dialogs/ConnectionDialog.cpp
+    dialogs/AboutDialog.cpp
+    styles/ThemeManager.cpp
+)
+
+target_include_directories(opencosmos_ui
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/.."
+)
+
+target_link_libraries(opencosmos_ui
+    PUBLIC
+        opencosmos_viewmodels
+        Qt6::Widgets
+        Qt6::Network
+)
+
+target_set_warnings(opencosmos_ui)
+enable_static_analysis(opencosmos_ui)
