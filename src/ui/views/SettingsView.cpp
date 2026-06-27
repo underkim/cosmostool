@@ -9,6 +9,8 @@
 #include <QFont>
 #include <QUuid>
 #include <QMessageBox>
+#include <QProcess>
+#include <QFileDialog>
 
 namespace OpenC3::UI::Views {
 
@@ -20,7 +22,10 @@ SettingsView::SettingsView(
     setupUi();
     bindViewModel();
     vm_.loadProfiles();
+    refreshWslDistros(); // populate WSL combo on startup
 }
+
+// ── UI Construction ───────────────────────────────────────────────────────────
 
 void SettingsView::setupUi()
 {
@@ -39,10 +44,10 @@ void SettingsView::setupUi()
     statusLabel_->setObjectName("SubLabel");
     root->addWidget(statusLabel_);
 
-    // ── Content splitter ──────────────────────────────────────────────────────
+    // ── Splitter: list | form ─────────────────────────────────────────────────
     auto* splitter = new QSplitter(Qt::Horizontal, this);
 
-    // Left: profile list + buttons
+    // ── Left pane — profile list ──────────────────────────────────────────────
     auto* leftPane   = new QWidget(splitter);
     auto* leftLayout = new QVBoxLayout(leftPane);
     leftLayout->setContentsMargins(0, 0, 0, 0);
@@ -52,52 +57,130 @@ void SettingsView::setupUi()
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto* listBtns = new QHBoxLayout;
-    addBtn_         = new QPushButton("+ Add", leftPane);
-    deleteBtn_      = new QPushButton("− Delete", leftPane);
+    addBtn_    = new QPushButton("+ Add",    leftPane);
+    deleteBtn_ = new QPushButton("− Delete", leftPane);
     listBtns->addWidget(addBtn_);
     listBtns->addWidget(deleteBtn_);
 
     auto* connBtns  = new QHBoxLayout;
-    connectBtn_    = new QPushButton("Connect", leftPane);
+    connectBtn_    = new QPushButton("Connect",    leftPane);
     disconnectBtn_ = new QPushButton("Disconnect", leftPane);
     connectBtn_->setObjectName("PrimaryButton");
     connBtns->addWidget(connectBtn_);
     connBtns->addWidget(disconnectBtn_);
 
-    leftLayout->addWidget(new QLabel("Connection Profiles:"));
+    leftLayout->addWidget(new QLabel("Connection Profiles:", leftPane));
     leftLayout->addWidget(profileList_);
     leftLayout->addLayout(listBtns);
     leftLayout->addLayout(connBtns);
 
-    // Right: profile form
+    // ── Right pane — profile form ─────────────────────────────────────────────
     auto* formGroup  = new QGroupBox("Profile Settings", splitter);
     auto* formLayout = new QFormLayout(formGroup);
     formLayout->setRowWrapPolicy(QFormLayout::DontWrapRows);
     formLayout->setLabelAlignment(Qt::AlignRight);
+    formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
-    nameEdit_        = new QLineEdit(formGroup);
-    modeCombo_       = new QComboBox(formGroup);
+    // Common fields
+    nameEdit_  = new QLineEdit(formGroup);
+    modeCombo_ = new QComboBox(formGroup);
     modeCombo_->addItems({"WSL", "SSH"});
-    wslDistroEdit_   = new QLineEdit(formGroup);
-    wslDistroEdit_->setPlaceholderText("Ubuntu");
-    hostEdit_        = new QLineEdit(formGroup);
-    portEdit_        = new QLineEdit("22", formGroup);
-    usernameEdit_    = new QLineEdit(formGroup);
-    authMethodCombo_ = new QComboBox(formGroup);
-    authMethodCombo_->addItems({"Public Key", "Password"});
-    keyPathEdit_     = new QLineEdit(formGroup);
-    keyPathEdit_->setPlaceholderText("~/.ssh/id_rsa");
-    saveProfileBtn_  = new QPushButton("Save Profile", formGroup);
-    saveProfileBtn_->setObjectName("PrimaryButton");
-
     formLayout->addRow("Name:", nameEdit_);
     formLayout->addRow("Mode:", modeCombo_);
-    formLayout->addRow("WSL Distro:", wslDistroEdit_);
-    formLayout->addRow("SSH Host:", hostEdit_);
-    formLayout->addRow("SSH Port:", portEdit_);
-    formLayout->addRow("Username:", usernameEdit_);
-    formLayout->addRow("Auth Method:", authMethodCombo_);
-    formLayout->addRow("Key Path:", keyPathEdit_);
+
+    // ── Mode-specific stack ───────────────────────────────────────────────────
+    modeStack_ = new QStackedWidget(formGroup);
+
+    // Page 0 — WSL
+    auto* wslPage   = new QWidget(modeStack_);
+    auto* wslLayout = new QFormLayout(wslPage);
+    wslLayout->setContentsMargins(0, 8, 0, 0);
+    wslLayout->setLabelAlignment(Qt::AlignRight);
+    wslLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+
+    wslDistroCombo_ = new QComboBox(wslPage);
+    wslRefreshBtn_  = new QPushButton("↻", wslPage);
+    wslRefreshBtn_->setFixedWidth(28);
+    wslRefreshBtn_->setToolTip("Refresh WSL distribution list");
+
+    auto* wslDistroRow = new QHBoxLayout;
+    wslDistroRow->addWidget(wslDistroCombo_);
+    wslDistroRow->addWidget(wslRefreshBtn_);
+    wslLayout->addRow("WSL Distro:", wslDistroRow);
+
+    auto* wslHint = new QLabel(
+        "<small style='color:#858585'>"
+        "Windows에 설치된 WSL 배포판이 자동으로 나타납니다.<br>"
+        "목록이 비어 있으면 ↻ 버튼을 누르거나 "
+        "<code>wsl --install Ubuntu</code>로 설치하세요."
+        "</small>", wslPage);
+    wslHint->setWordWrap(true);
+    wslHint->setTextFormat(Qt::RichText);
+    wslLayout->addRow("", wslHint);
+
+    modeStack_->addWidget(wslPage); // index 0
+
+    // Page 1 — SSH
+    auto* sshPage   = new QWidget(modeStack_);
+    auto* sshLayout = new QFormLayout(sshPage);
+    sshLayout->setContentsMargins(0, 8, 0, 0);
+    sshLayout->setLabelAlignment(Qt::AlignRight);
+    sshLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+
+    hostEdit_       = new QLineEdit(sshPage);
+    hostEdit_->setPlaceholderText("192.168.1.100 또는 hostname");
+    portEdit_       = new QLineEdit("22", sshPage);
+    portEdit_->setFixedWidth(80);
+    usernameEdit_   = new QLineEdit(sshPage);
+    usernameEdit_->setPlaceholderText("cosmos");
+    authMethodCombo_ = new QComboBox(sshPage);
+    authMethodCombo_->addItems({"Public Key", "Password"});
+    keyPathEdit_    = new QLineEdit(sshPage);
+    keyPathEdit_->setPlaceholderText("C:\\Users\\me\\.ssh\\id_rsa");
+
+    auto* keyRow    = new QHBoxLayout;
+    auto* browseKey = new QPushButton("…", sshPage);
+    browseKey->setFixedWidth(28);
+    browseKey->setToolTip("개인 키 파일 선택");
+    keyRow->addWidget(keyPathEdit_);
+    keyRow->addWidget(browseKey);
+
+    sshLayout->addRow("SSH Host:",    hostEdit_);
+    sshLayout->addRow("SSH Port:",    portEdit_);
+    sshLayout->addRow("Username:",    usernameEdit_);
+    sshLayout->addRow("Auth Method:", authMethodCombo_);
+    sshLayout->addRow("Key Path:",    keyRow);
+
+    // Key browse button
+    connect(browseKey, &QPushButton::clicked, this, [this] {
+        const QString path = QFileDialog::getOpenFileName(
+            this, "개인 키 파일 선택",
+            QDir::homePath() + "/.ssh",
+            "Key files (*.pem *.key id_rsa id_ed25519 *);;All files (*)");
+        if (!path.isEmpty())
+            keyPathEdit_->setText(QDir::toNativeSeparators(path));
+    });
+
+    // Show/hide key path row based on auth method
+    auto updateKeyRow = [this, sshLayout, browseKey](int idx) {
+        const bool isPubKey = (idx == 0);
+        keyPathEdit_->setVisible(isPubKey);
+        browseKey->setVisible(isPubKey);
+        // Hide label too — find the row
+        auto* lbl = sshLayout->labelForField(keyPathEdit_->parentWidget()
+                        ? static_cast<QWidget*>(keyPathEdit_) : nullptr);
+        if (lbl) lbl->setVisible(isPubKey);
+    };
+    connect(authMethodCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, updateKeyRow);
+
+    modeStack_->addWidget(sshPage); // index 1
+
+    formLayout->addRow(modeStack_);
+
+    // Save button
+    saveProfileBtn_ = new QPushButton("Save Profile", formGroup);
+    saveProfileBtn_->setObjectName("PrimaryButton");
     formLayout->addRow(saveProfileBtn_);
 
     splitter->addWidget(leftPane);
@@ -106,15 +189,23 @@ void SettingsView::setupUi()
     root->addWidget(splitter);
 }
 
+// ── Signals ───────────────────────────────────────────────────────────────────
+
 void SettingsView::bindViewModel()
 {
-    connect(addBtn_, &QPushButton::clicked, this, &SettingsView::onAddProfile);
-    connect(deleteBtn_, &QPushButton::clicked, this, &SettingsView::onDeleteProfile);
-    connect(connectBtn_, &QPushButton::clicked, this, &SettingsView::onConnectClicked);
-    connect(disconnectBtn_, &QPushButton::clicked, this, &SettingsView::onDisconnectClicked);
+    connect(addBtn_,         &QPushButton::clicked, this, &SettingsView::onAddProfile);
+    connect(deleteBtn_,      &QPushButton::clicked, this, &SettingsView::onDeleteProfile);
+    connect(connectBtn_,     &QPushButton::clicked, this, &SettingsView::onConnectClicked);
+    connect(disconnectBtn_,  &QPushButton::clicked, this, &SettingsView::onDisconnectClicked);
     connect(saveProfileBtn_, &QPushButton::clicked, this, [this] {
         vm_.saveProfile(collectProfileForm());
     });
+
+    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &SettingsView::onModeChanged);
+
+    connect(wslRefreshBtn_, &QPushButton::clicked,
+            this, &SettingsView::refreshWslDistros);
 
     connect(profileList_, &QListView::activated,
             this, &SettingsView::onProfileSelected);
@@ -126,6 +217,56 @@ void SettingsView::bindViewModel()
             this, [this](const QString& state) {
                 statusLabel_->setText("Status: " + state);
             });
+
+    // initial stack page
+    modeStack_->setCurrentIndex(0);
+}
+
+// ── Slots ─────────────────────────────────────────────────────────────────────
+
+void SettingsView::onModeChanged(int modeIndex)
+{
+    modeStack_->setCurrentIndex(modeIndex); // 0=WSL, 1=SSH
+}
+
+void SettingsView::refreshWslDistros()
+{
+    const QString current = wslDistroCombo_->currentText();
+    wslDistroCombo_->clear();
+
+    QProcess proc;
+    proc.start("wsl.exe", {"--list", "--quiet"});
+    if (!proc.waitForFinished(5000)) {
+        wslDistroCombo_->addItem("Ubuntu");
+        return;
+    }
+
+    // wsl.exe --list outputs UTF-16 LE
+    const QByteArray raw = proc.readAllStandardOutput();
+    QString text;
+    if (raw.size() >= 2) {
+        text = QString::fromUtf16(
+            reinterpret_cast<const char16_t*>(raw.constData()),
+            static_cast<qsizetype>(raw.size()) / 2);
+    }
+
+    // Filter: remove empty lines, Docker internal distros
+    static const QStringList kSkip = {"docker-desktop", "docker-desktop-data"};
+    for (const QString& raw_line : text.split('\n')) {
+        const QString name = raw_line.trimmed()
+                                 .remove(QChar('\r'))
+                                 .remove(QChar('\0'));
+        if (name.isEmpty() || kSkip.contains(name, Qt::CaseInsensitive))
+            continue;
+        wslDistroCombo_->addItem(name);
+    }
+
+    if (wslDistroCombo_->count() == 0)
+        wslDistroCombo_->addItem("Ubuntu"); // fallback
+
+    // Restore previous selection if still present
+    const int idx = wslDistroCombo_->findText(current);
+    if (idx >= 0) wslDistroCombo_->setCurrentIndex(idx);
 }
 
 void SettingsView::onAddProfile()
@@ -168,13 +309,30 @@ void SettingsView::onProfileSelected(const QModelIndex& idx)
     if (p) populateProfileForm(*p);
 }
 
+// ── Form helpers ──────────────────────────────────────────────────────────────
+
 void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
 {
     nameEdit_->setText(QString::fromStdString(p.name));
-    modeCombo_->setCurrentIndex(static_cast<int>(p.mode));
-    wslDistroEdit_->setText(QString::fromStdString(p.wslDistribution));
+
+    const int modeIdx = static_cast<int>(p.mode);
+    modeCombo_->setCurrentIndex(modeIdx);
+    modeStack_->setCurrentIndex(modeIdx);
+
+    // WSL fields
+    const QString distro = QString::fromStdString(p.wslDistribution);
+    const int di = wslDistroCombo_->findText(distro);
+    if (di >= 0)
+        wslDistroCombo_->setCurrentIndex(di);
+    else if (!distro.isEmpty()) {
+        // Saved distro not in list — add it temporarily
+        wslDistroCombo_->addItem(distro);
+        wslDistroCombo_->setCurrentText(distro);
+    }
+
+    // SSH fields
     hostEdit_->setText(QString::fromStdString(p.host));
-    portEdit_->setText(QString::number(p.port));
+    portEdit_->setText(QString::number(p.port > 0 ? p.port : 22));
     usernameEdit_->setText(QString::fromStdString(p.username));
     authMethodCombo_->setCurrentIndex(static_cast<int>(p.authMethod));
     keyPathEdit_->setText(QString::fromStdString(p.privateKeyPath));
@@ -183,23 +341,26 @@ void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
 Models::ConnectionProfile SettingsView::collectProfileForm() const
 {
     Models::ConnectionProfile p;
+
     const auto idx = profileList_->currentIndex();
-    if (idx.isValid()) {
-        const QString id =
-            vm_.profileModel()->data(idx, Qt::UserRole).toString();
-        p.id = id.toStdString();
-    }
+    if (idx.isValid())
+        p.id = vm_.profileModel()->data(idx, Qt::UserRole).toString().toStdString();
     if (p.id.empty())
         p.id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
 
-    p.name            = nameEdit_->text().toStdString();
-    p.mode            = static_cast<Models::ConnectionMode>(modeCombo_->currentIndex());
-    p.wslDistribution = wslDistroEdit_->text().toStdString();
-    p.host            = hostEdit_->text().toStdString();
-    p.port            = portEdit_->text().toInt();
-    p.username        = usernameEdit_->text().toStdString();
-    p.authMethod      = static_cast<Models::AuthMethod>(authMethodCombo_->currentIndex());
-    p.privateKeyPath  = keyPathEdit_->text().toStdString();
+    p.name = nameEdit_->text().toStdString();
+    p.mode = static_cast<Models::ConnectionMode>(modeCombo_->currentIndex());
+
+    // WSL
+    p.wslDistribution = wslDistroCombo_->currentText().toStdString();
+
+    // SSH
+    p.host           = hostEdit_->text().toStdString();
+    p.port           = portEdit_->text().toInt();
+    p.username       = usernameEdit_->text().toStdString();
+    p.authMethod     = static_cast<Models::AuthMethod>(authMethodCombo_->currentIndex());
+    p.privateKeyPath = keyPathEdit_->text().toStdString();
+
     return p;
 }
 

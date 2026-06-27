@@ -26,6 +26,8 @@ private slots:
     void onConnectClicked();
     void onDisconnectClicked();
     void onProfileSelected(const QModelIndex& idx);
+    void onModeChanged(int modeIndex);
+    void refreshWslDistros();
 
 private:
     void setupUi();
@@ -35,24 +37,33 @@ private:
 
     ViewModels::SettingsViewModel& vm_;
 
+    // Left pane — profile list
     QListView*   profileList_{nullptr};
     QPushButton* addBtn_{nullptr};
     QPushButton* deleteBtn_{nullptr};
     QPushButton* connectBtn_{nullptr};
     QPushButton* disconnectBtn_{nullptr};
+    QLabel*      statusLabel_{nullptr};
 
-    // Profile form
-    QLineEdit*   nameEdit_{nullptr};
-    QComboBox*   modeCombo_{nullptr};
-    QLineEdit*   wslDistroEdit_{nullptr};
+    // Right pane — common fields
+    QLineEdit*      nameEdit_{nullptr};
+    QComboBox*      modeCombo_{nullptr};
+
+    // Mode-specific panel (stacked)
+    QStackedWidget* modeStack_{nullptr};
+
+    // WSL page (index 0)
+    QComboBox*   wslDistroCombo_{nullptr};
+    QPushButton* wslRefreshBtn_{nullptr};
+
+    // SSH page (index 1)
     QLineEdit*   hostEdit_{nullptr};
     QLineEdit*   portEdit_{nullptr};
     QLineEdit*   usernameEdit_{nullptr};
     QComboBox*   authMethodCombo_{nullptr};
     QLineEdit*   keyPathEdit_{nullptr};
-    QPushButton* saveProfileBtn_{nullptr};
 
-    QLabel* statusLabel_{nullptr};
+    QPushButton* saveProfileBtn_{nullptr};
 };
 
 } // namespace OpenC3::UI::Views
