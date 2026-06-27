@@ -12,6 +12,7 @@ add_library(opencosmos_viewmodels STATIC
     cmdtlm/CmdTlmViewModel.cpp
     packettools/PacketToolsViewModel.cpp
     logviewer/LogViewerViewModel.cpp
+    infra/InfraViewModel.cpp
 )
 
 target_include_directories(opencosmos_viewmodels

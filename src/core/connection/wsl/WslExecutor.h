@@ -3,6 +3,7 @@
 #include "core/connection/ICommandExecutor.h"
 #include "core/connection/ConnectionConfig.h"
 
+#include <functional>
 #include <string>
 
 namespace OpenC3::Core::Connection {
@@ -54,8 +55,11 @@ public:
         const std::string& remotePath) override;
 
 private:
-    [[nodiscard]] std::string buildWslCommand(const std::string& command) const;
+    [[nodiscard]] std::string    buildWslCommand(const std::string& command) const;
     [[nodiscard]] ExecutorResult runProcess(const std::string& fullCommand);
+    [[nodiscard]] ExecutorResult runProcessStreaming(
+        const std::string&                      fullCommand,
+        std::function<void(const std::string&)> onOutput);
 
     ConnectionConfig config_;
     bool             connected_{false};

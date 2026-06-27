@@ -96,8 +96,11 @@ ContainerTableModel::containerAt(int row) const noexcept
 // ── DockerViewModel ───────────────────────────────────────────────────────────
 
 DockerViewModel::DockerViewModel(
-    Services::IDockerService& docker, QObject* parent)
+    Services::IConnectionService& connection,
+    Services::IDockerService&     docker,
+    QObject*                      parent)
     : ViewModelBase(parent)
+    , connection_(connection)
     , docker_(docker)
     , containerModel_(new ContainerTableModel(this))
 {
@@ -119,6 +122,8 @@ QString DockerViewModel::dockerVersion() const noexcept
 
 void DockerViewModel::refresh()
 {
+    if (connection_.state() != Services::ConnectionState::Connected) return;
+
     setLoading(true);
 
     auto* watcher = new QFutureWatcher<void>(this);

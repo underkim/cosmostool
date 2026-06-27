@@ -27,6 +27,12 @@ bool RemoteFileService::fileExists(const std::string& remotePath)
     return executor_.fileExists(remotePath);
 }
 
+std::string RemoteFileService::executeCommand(const std::string& command)
+{
+    auto result = executor_.execute(command);
+    return result ? result.stdOut : std::string{};
+}
+
 void RemoteFileService::streamCommand(
     const std::string&                      command,
     std::function<void(const std::string&)> onLine)

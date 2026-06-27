@@ -22,6 +22,9 @@ public:
 
     [[nodiscard]] virtual bool fileExists(const std::string& remotePath) = 0;
 
+    /// Execute a one-shot command and return stdout (empty string on failure).
+    [[nodiscard]] virtual std::string executeCommand(const std::string& command) = 0;
+
     /// Stream a command's stdout line-by-line (e.g. "tail -f logfile").
     /// Returns when the command finishes or is interrupted.
     virtual void streamCommand(

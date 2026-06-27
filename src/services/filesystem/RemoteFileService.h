@@ -17,7 +17,8 @@ public:
     [[nodiscard]] bool writeFile(const std::string& remotePath,
                                   const std::string& content) override;
 
-    [[nodiscard]] bool fileExists(const std::string& remotePath) override;
+    [[nodiscard]] bool        fileExists     (const std::string& remotePath) override;
+    [[nodiscard]] std::string executeCommand (const std::string& command)    override;
 
     void streamCommand(const std::string&                      command,
                        std::function<void(const std::string&)> onLine) override;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "viewmodels/base/ViewModelBase.h"
+#include "services/connection/IConnectionService.h"
 #include "services/docker/IDockerService.h"
 #include "models/DockerContainer.h"
 
@@ -42,8 +43,9 @@ class DockerViewModel final : public ViewModelBase {
 
 public:
     explicit DockerViewModel(
-        Services::IDockerService& docker,
-        QObject*                  parent = nullptr);
+        Services::IConnectionService& connection,
+        Services::IDockerService&     docker,
+        QObject*                      parent = nullptr);
 
     [[nodiscard]] ContainerTableModel* containerModel() const noexcept;
     [[nodiscard]] QString              dockerVersion()  const noexcept;
@@ -62,10 +64,11 @@ signals:
     void containerActionCompleted(const QString& nameOrId, bool success);
 
 private:
-    Services::IDockerService& docker_;
-    ContainerTableModel*      containerModel_{nullptr};
-    QTimer*                   refreshTimer_{nullptr};
-    QString                   dockerVersion_;
+    Services::IConnectionService& connection_;
+    Services::IDockerService&     docker_;
+    ContainerTableModel*          containerModel_{nullptr};
+    QTimer*                       refreshTimer_{nullptr};
+    QString                       dockerVersion_;
 };
 
 } // namespace OpenC3::ViewModels

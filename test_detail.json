@@ -1,0 +1,396 @@
+{
+  "tests": 33,
+  "failures": 0,
+  "disabled": 0,
+  "errors": 0,
+  "timestamp": "2026-06-27T08:00:41Z",
+  "time": "0.014s",
+  "name": "AllTests",
+  "testsuites": [
+    {
+      "name": "ExecutorResult",
+      "tests": 5,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-06-27T08:00:41Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "OkFactorySetsTrueAndOutput",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\ExecutorResultTest.cpp",
+          "line": 6,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "ExecutorResult"
+        },
+        {
+          "name": "FailFactorySetsFalseAndError",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\ExecutorResultTest.cpp",
+          "line": 16,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "ExecutorResult"
+        },
+        {
+          "name": "FromProcessZeroExitIsSuccess",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\ExecutorResultTest.cpp",
+          "line": 25,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "ExecutorResult"
+        },
+        {
+          "name": "FromProcessNonZeroExitIsFail",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\ExecutorResultTest.cpp",
+          "line": 32,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "ExecutorResult"
+        },
+        {
+          "name": "BoolOperatorReflectsSuccess",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\ExecutorResultTest.cpp",
+          "line": 40,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "ExecutorResult"
+        }
+      ]
+    },
+    {
+      "name": "EventBus",
+      "tests": 5,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-06-27T08:00:41Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "SubscriberReceivesPublishedEvent",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\EventBusTest.cpp",
+          "line": 14,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "EventBus"
+        },
+        {
+          "name": "MultipleSubscribersAllReceive",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\EventBusTest.cpp",
+          "line": 27,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "EventBus"
+        },
+        {
+          "name": "DifferentEventTypesDoNotCross",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\EventBusTest.cpp",
+          "line": 40,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "EventBus"
+        },
+        {
+          "name": "ClearRemovesAllHandlers",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\EventBusTest.cpp",
+          "line": 54,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "EventBus"
+        },
+        {
+          "name": "NoHandlerPublishDoesNotCrash",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\core\\EventBusTest.cpp",
+          "line": 64,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "EventBus"
+        }
+      ]
+    },
+    {
+      "name": "DockerServiceTest",
+      "tests": 7,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-06-27T08:00:41Z",
+      "time": "0.001s",
+      "testsuite": [
+        {
+          "name": "IsDockerRunningReturnsTrueOnSuccess",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 19,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DockerServiceTest"
+        },
+        {
+          "name": "IsDockerRunningReturnsFalseOnFailure",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 27,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DockerServiceTest"
+        },
+        {
+          "name": "ListContainersReturnsEmptyOnExecutorFailure",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 35,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0.001s",
+          "classname": "DockerServiceTest"
+        },
+        {
+          "name": "StartContainerDelegatesToExecutor",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 44,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DockerServiceTest"
+        },
+        {
+          "name": "StopContainerDelegatesToExecutor",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 52,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DockerServiceTest"
+        },
+        {
+          "name": "RemoveContainerWithForceFlagPassesFlag",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 60,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DockerServiceTest"
+        },
+        {
+          "name": "GetLogsReturnsOutputOnSuccess",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DockerServiceTest.cpp",
+          "line": 68,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DockerServiceTest"
+        }
+      ]
+    },
+    {
+      "name": "DoctorServiceTest",
+      "tests": 6,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-06-27T08:00:41Z",
+      "time": "0s",
+      "testsuite": [
+        {
+          "name": "DockerInstalledPassWhenFound",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DoctorServiceTest.cpp",
+          "line": 21,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DoctorServiceTest"
+        },
+        {
+          "name": "DockerInstalledFailWhenNotFound",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DoctorServiceTest.cpp",
+          "line": 31,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DoctorServiceTest"
+        },
+        {
+          "name": "CpuUsagePassWhenBelow80Percent",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DoctorServiceTest.cpp",
+          "line": 41,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DoctorServiceTest"
+        },
+        {
+          "name": "CpuUsageFailWhenAbove95Percent",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DoctorServiceTest.cpp",
+          "line": 50,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DoctorServiceTest"
+        },
+        {
+          "name": "RunAllReturnsSameCountAsChecks",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DoctorServiceTest.cpp",
+          "line": 59,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DoctorServiceTest"
+        },
+        {
+          "name": "UnknownCheckIdReturnsFail",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\DoctorServiceTest.cpp",
+          "line": 69,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "DoctorServiceTest"
+        }
+      ]
+    },
+    {
+      "name": "SettingsServiceTest",
+      "tests": 10,
+      "failures": 0,
+      "disabled": 0,
+      "errors": 0,
+      "timestamp": "2026-06-27T08:00:41Z",
+      "time": "0.01s",
+      "testsuite": [
+        {
+          "name": "InitiallyHasNoProfiles",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 31,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "SavedProfileIsRetrievable",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 36,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "ProfileByIdReturnsCorrectProfile",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 44,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "ProfileByIdReturnsNulloptForMissing",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 53,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "DeleteProfileRemovesIt",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 59,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "SetDefaultProfileMarksCorrectProfile",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 66,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0.001s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "StringSettingRoundTrips",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 77,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "IntSettingRoundTrips",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 83,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "BoolSettingRoundTrips",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 89,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0s",
+          "classname": "SettingsServiceTest"
+        },
+        {
+          "name": "PersistenceAcrossReload",
+          "file": "C:\\Users\\rlaeh\\Desktop\\cosmostool\\cosmostool\\tests\\unit\\services\\SettingsServiceTest.cpp",
+          "line": 95,
+          "status": "RUN",
+          "result": "COMPLETED",
+          "timestamp": "2026-06-27T08:00:41Z",
+          "time": "0.005s",
+          "classname": "SettingsServiceTest"
+        }
+      ]
+    }
+  ]
+}

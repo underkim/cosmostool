@@ -13,10 +13,12 @@ add_library(opencosmos_ui STATIC
     views/SettingsView.cpp
     views/CmdTlmView.cpp
     views/PacketToolsView.cpp
+    views/InfraView.cpp
     views/LogViewerView.cpp
     dialogs/ConnectionDialog.cpp
     dialogs/AboutDialog.cpp
     dialogs/UserGuideDialog.cpp
+    dialogs/PluginScaffoldDialog.cpp
     styles/ThemeManager.cpp
 )
 

@@ -4,6 +4,7 @@
 #include "views/DoctorView.h"
 #include "views/SettingsView.h"
 #include "views/PluginView.h"
+#include "views/InfraView.h"
 #include "views/CmdTlmView.h"
 #include "views/PacketToolsView.h"
 #include "views/LogViewerView.h"
@@ -25,6 +26,7 @@ namespace OpenC3::UI {
 MainWindow::MainWindow(
     ViewModels::DashboardViewModel&    dashboard,
     ViewModels::DockerViewModel&       docker,
+    ViewModels::InfraViewModel&        infra,
     ViewModels::DoctorViewModel&       doctor,
     ViewModels::SettingsViewModel&     settings,
     ViewModels::PluginViewModel&       plugin,
@@ -35,6 +37,7 @@ MainWindow::MainWindow(
     : QMainWindow(parent)
     , dashboardVm_(dashboard)
     , dockerVm_(docker)
+    , infraVm_(infra)
     , doctorVm_(doctor)
     , settingsVm_(settings)
     , pluginVm_(plugin)
@@ -94,14 +97,19 @@ void MainWindow::setupNavigation()
         navRail_->addItem(item);
     };
 
-    addItem("📊", "Dashboard");
-    addItem("🐳", "Docker");
-    addItem("🩺", "Doctor");
-    addItem("🧩", "Plugins");
-    addItem("📝", "CMD / TLM");
-    addItem("📦", "Packet Tools");
-    addItem("📋", "Log Viewer");
-    addItem("⚙️",  "Settings");
+    // ── 운영 ──────────────────────────────────────────────────────────────────
+    addItem("📊", "Dashboard");    // 0
+    addItem("🐳", "Docker");       // 1
+    // ── 인프라 관리 ───────────────────────────────────────────────────────────
+    addItem("🔧", "Infra");        // 2
+    addItem("🩺", "Doctor");       // 3
+    // ── 개발 도구 ─────────────────────────────────────────────────────────────
+    addItem("🧩", "Plugins");      // 4
+    addItem("📝", "CMD / TLM");    // 5
+    addItem("📦", "Packet Tools"); // 6
+    addItem("📋", "Log Viewer");   // 7
+    // ── 설정 ──────────────────────────────────────────────────────────────────
+    addItem("⚙️",  "Settings");    // 8
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -112,14 +120,15 @@ void MainWindow::setupNavigation()
 
 void MainWindow::setupViews()
 {
-    contentStack_->addWidget(new Views::DashboardView(dashboardVm_,   this));  // 0
-    contentStack_->addWidget(new Views::DockerView(dockerVm_,         this));  // 1
-    contentStack_->addWidget(new Views::DoctorView(doctorVm_,         this));  // 2
-    contentStack_->addWidget(new Views::PluginView(pluginVm_,         this));  // 3
-    contentStack_->addWidget(new Views::CmdTlmView(cmdTlmVm_,         this));  // 4
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_,this)); // 5
-    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_,   this));  // 6
-    contentStack_->addWidget(new Views::SettingsView(settingsVm_,     this));  // 7
+    contentStack_->addWidget(new Views::DashboardView(dashboardVm_,    this)); // 0
+    contentStack_->addWidget(new Views::DockerView(dockerVm_,          this)); // 1
+    contentStack_->addWidget(new Views::InfraView(infraVm_,            this)); // 2
+    contentStack_->addWidget(new Views::DoctorView(doctorVm_,          this)); // 3
+    contentStack_->addWidget(new Views::PluginView(pluginVm_, infraVm_, this)); // 4
+    contentStack_->addWidget(new Views::CmdTlmView(cmdTlmVm_,          this)); // 5
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 6
+    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_,    this)); // 7
+    contentStack_->addWidget(new Views::SettingsView(settingsVm_,      this)); // 8
 }
 
 void MainWindow::setupMenuBar()
@@ -135,9 +144,9 @@ void MainWindow::setupMenuBar()
     refreshAction->setShortcut(QKeySequence::Refresh);
     connect(refreshAction, &QAction::triggered, this, [this] {
         const int idx = contentStack_->currentIndex();
-        if (idx == 0) dashboardVm_.refresh();
+        if      (idx == 0) dashboardVm_.refresh();
         else if (idx == 1) dockerVm_.refresh();
-        else if (idx == 3) pluginVm_.refresh();
+        else if (idx == 4) pluginVm_.refresh();
     });
     viewMenu->addAction(refreshAction);
 

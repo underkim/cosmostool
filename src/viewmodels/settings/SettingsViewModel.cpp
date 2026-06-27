@@ -57,18 +57,19 @@ SettingsViewModel::SettingsViewModel(
     , connection_(connection)
     , profileModel_(new ProfileListModel(this))
 {
+    // Callback fires on the worker thread — marshal signal emission to the GUI thread.
     connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
-        QString stateStr;
+        QString s;
         switch (ev.state) {
-            case Services::ConnectionState::Connected:    stateStr = "Connected";    break;
-            case Services::ConnectionState::Connecting:   stateStr = "Connecting";   break;
-            case Services::ConnectionState::Disconnected: stateStr = "Disconnected"; break;
+            case Services::ConnectionState::Connected:    s = "Connected";    break;
+            case Services::ConnectionState::Connecting:   s = "Connecting";   break;
+            case Services::ConnectionState::Disconnected: s = "Disconnected"; break;
             case Services::ConnectionState::Error:
-                stateStr = "Error: " +
-                    QString::fromStdString(ev.errorMessage);
-                break;
+                s = "Error: " + QString::fromStdString(ev.errorMessage); break;
         }
-        emit connectionStateChanged(stateStr);
+        QMetaObject::invokeMethod(this, [this, s] {
+            emit connectionStateChanged(s);
+        }, Qt::QueuedConnection);
     });
 }
 

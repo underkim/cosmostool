@@ -25,6 +25,7 @@
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
 #include "viewmodels/packettools/PacketToolsViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
+#include "viewmodels/infra/InfraViewModel.h"
 
 #include "ui/styles/ThemeManager.h"
 #include "ui/dialogs/ConnectionDialog.h"
@@ -69,6 +70,7 @@ int Application::run()
     mainWindow_ = std::make_unique<UI::MainWindow>(
         *registry_.resolve<ViewModels::DashboardViewModel>(),
         *registry_.resolve<ViewModels::DockerViewModel>(),
+        *registry_.resolve<ViewModels::InfraViewModel>(),
         *registry_.resolve<ViewModels::DoctorViewModel>(),
         settingsVm,
         *registry_.resolve<ViewModels::PluginViewModel>(),
@@ -160,7 +162,7 @@ void Application::registerViewModels()
         *connection, *docker, *system);
     registry_.registerInstance<ViewModels::DashboardViewModel>(dashVm);
 
-    auto dockerVm = std::make_shared<ViewModels::DockerViewModel>(*docker);
+    auto dockerVm = std::make_shared<ViewModels::DockerViewModel>(*connection, *docker);
     registry_.registerInstance<ViewModels::DockerViewModel>(dockerVm);
 
     auto doctorVm = std::make_shared<ViewModels::DoctorViewModel>(*doctor);
@@ -184,6 +186,10 @@ void Application::registerViewModels()
     auto logViewerVm = std::make_shared<ViewModels::LogViewerViewModel>(
         *connection, *fs);
     registry_.registerInstance<ViewModels::LogViewerViewModel>(logViewerVm);
+
+    auto infraVm = std::make_shared<ViewModels::InfraViewModel>(
+        *connection, *fs);
+    registry_.registerInstance<ViewModels::InfraViewModel>(infraVm);
 
     Logging::Logger::info("[App] All ViewModels registered");
 }

@@ -8,6 +8,7 @@
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
 #include "viewmodels/packettools/PacketToolsViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
+#include "viewmodels/infra/InfraViewModel.h"
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -28,6 +29,7 @@ public:
     explicit MainWindow(
         ViewModels::DashboardViewModel&    dashboard,
         ViewModels::DockerViewModel&       docker,
+        ViewModels::InfraViewModel&        infra,
         ViewModels::DoctorViewModel&       doctor,
         ViewModels::SettingsViewModel&     settings,
         ViewModels::PluginViewModel&       plugin,
@@ -55,6 +57,7 @@ private:
 
     ViewModels::DashboardViewModel&    dashboardVm_;
     ViewModels::DockerViewModel&       dockerVm_;
+    ViewModels::InfraViewModel&        infraVm_;
     ViewModels::DoctorViewModel&       doctorVm_;
     ViewModels::SettingsViewModel&     settingsVm_;
     ViewModels::PluginViewModel&       pluginVm_;

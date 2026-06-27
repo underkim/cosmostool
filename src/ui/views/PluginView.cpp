@@ -1,4 +1,5 @@
 #include "PluginView.h"
+#include "ui/dialogs/PluginScaffoldDialog.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -12,9 +13,13 @@
 
 namespace OpenC3::UI::Views {
 
-PluginView::PluginView(ViewModels::PluginViewModel& vm, QWidget* parent)
+PluginView::PluginView(
+    ViewModels::PluginViewModel& vm,
+    ViewModels::InfraViewModel&  infraVm,
+    QWidget*                     parent)
     : QWidget(parent)
     , vm_(vm)
+    , infraVm_(infraVm)
 {
     setupUi();
     bindViewModel();
@@ -34,10 +39,12 @@ void PluginView::setupUi()
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
     auto* toolbar = new QHBoxLayout;
-    refreshBtn_  = new QPushButton("↻  Refresh",  this);
-    installBtn_  = new QPushButton("⬇  Install",  this);
-    removeBtn_   = new QPushButton("✕  Remove",   this);
-    validateBtn_ = new QPushButton("✔  Validate", this);
+    refreshBtn_  = new QPushButton("↻  Refresh",   this);
+    installBtn_  = new QPushButton("⬇  Install",   this);
+    removeBtn_   = new QPushButton("✕  Remove",    this);
+    validateBtn_ = new QPushButton("✔  Validate",  this);
+    scaffoldBtn_ = new QPushButton("🔨  Scaffold",  this);
+    scaffoldBtn_->setToolTip("새 OpenC3 플러그인 구조를 원격에 자동 생성합니다");
     progressBar_ = new QProgressBar(this);
     progressBar_->setRange(0, 0);
     progressBar_->setVisible(false);
@@ -50,6 +57,8 @@ void PluginView::setupUi()
     toolbar->addWidget(installBtn_);
     toolbar->addWidget(removeBtn_);
     toolbar->addWidget(validateBtn_);
+    toolbar->addSpacing(16);
+    toolbar->addWidget(scaffoldBtn_);
     toolbar->addStretch();
     toolbar->addWidget(progressBar_);
     root->addLayout(toolbar);
@@ -91,6 +100,7 @@ void PluginView::bindViewModel()
     connect(installBtn_,  &QPushButton::clicked, this, &PluginView::onInstallClicked);
     connect(removeBtn_,   &QPushButton::clicked, this, &PluginView::onRemoveClicked);
     connect(validateBtn_, &QPushButton::clicked, this, &PluginView::onValidateClicked);
+    connect(scaffoldBtn_, &QPushButton::clicked, this, &PluginView::onScaffoldClicked);
 
     connect(tableView_->selectionModel(),
             &QItemSelectionModel::selectionChanged,
@@ -144,6 +154,15 @@ void PluginView::onRemoveClicked()
             "Remove plugin: " + name + "?",
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         vm_.remove(name);
+}
+
+void PluginView::onScaffoldClicked()
+{
+    auto* dlg = new Dialogs::PluginScaffoldDialog(infraVm_, this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->exec();
+    // After scaffold, refresh plugin list
+    vm_.refresh();
 }
 
 void PluginView::onValidateClicked()
