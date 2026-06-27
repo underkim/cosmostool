@@ -1,6 +1,7 @@
 #pragma once
 
 #include "viewmodels/base/ViewModelBase.h"
+#include "viewmodels/cmdtlm/CmdTlmParser.h"
 #include "services/connection/IConnectionService.h"
 #include "services/filesystem/IRemoteFileService.h"
 
@@ -12,8 +13,8 @@ namespace OpenC3::ViewModels {
 class CmdTlmViewModel final : public ViewModelBase {
     Q_OBJECT
 
-    Q_PROPERTY(bool    isConnected  READ isConnected  NOTIFY connectionChanged)
-    Q_PROPERTY(bool    isBusy       READ isBusy       NOTIFY busyChanged)
+    Q_PROPERTY(bool    isConnected   READ isConnected   NOTIFY connectionChanged)
+    Q_PROPERTY(bool    isBusy        READ isBusy        NOTIFY busyChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
 
 public:
@@ -26,10 +27,17 @@ public:
     [[nodiscard]] bool    isBusy()        const noexcept;
     [[nodiscard]] QString statusMessage() const noexcept;
 
+    // Default browse path derived from connection's cosmos root
+    [[nodiscard]] QString defaultCmdTlmPath() const;
+
 public slots:
     void listDirectory(const QString& remotePath);
     void openFile(const QString& remotePath);
     void saveFile(const QString& remotePath, const QString& content);
+
+    // Parse the given content and emit fileParsed() with the result.
+    // Call this whenever the editor content changes or on-demand validation.
+    void parseContent(const QString& content, const QString& filePath);
 
 signals:
     void connectionChanged();
@@ -38,6 +46,7 @@ signals:
     void directoryListed(const QStringList& entries, const QString& path);
     void fileOpened(const QString& path, const QString& content);
     void fileSaved(const QString& path, bool success);
+    void fileParsed(const CmdTlmParseResult& result, const QString& filePath);
 
 private:
     void setBusy(bool busy);

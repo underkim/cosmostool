@@ -34,6 +34,7 @@ private:
     void bindViewModel();
     void populateProfileForm(const Models::ConnectionProfile& p);
     Models::ConnectionProfile collectProfileForm() const;
+    void updateConnectionButtons(const QString& state);
 
     ViewModels::SettingsViewModel& vm_;
 
@@ -56,11 +57,15 @@ private:
     QComboBox*   wslDistroCombo_{nullptr};
     QPushButton* wslRefreshBtn_{nullptr};
 
+    // Common field (shown for both WSL and SSH)
+    QLineEdit*   cosmosRootPathEdit_{nullptr};
+
     // SSH page (index 1)
     QLineEdit*   hostEdit_{nullptr};
     QLineEdit*   portEdit_{nullptr};
     QLineEdit*   usernameEdit_{nullptr};
     QComboBox*   authMethodCombo_{nullptr};
+    QLineEdit*   passwordEdit_{nullptr};
     QLineEdit*   keyPathEdit_{nullptr};
 
     QPushButton* saveProfileBtn_{nullptr};

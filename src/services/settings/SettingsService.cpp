@@ -151,15 +151,16 @@ json SettingsService::profileToJson(const Models::ConnectionProfile& p) const
         {"name",            p.name},
         {"mode",            static_cast<int>(p.mode)},
         {"isDefault",       p.isDefault},
+        {"cosmosRootPath",  p.cosmosRootPath},
         {"wslDistribution", p.wslDistribution},
         {"host",            p.host},
         {"port",            p.port},
         {"username",        p.username},
         {"authMethod",      static_cast<int>(p.authMethod)},
+        {"password",        p.password},
         {"privateKeyPath",  p.privateKeyPath},
         {"connectTimeoutMs",p.connectTimeoutMs},
         {"commandTimeoutMs",p.commandTimeoutMs}
-        // password / passphrase omitted — encrypt before storing
     };
 }
 
@@ -171,11 +172,13 @@ SettingsService::profileFromJson(const json& j) const
     p.name            = j.value("name", "");
     p.mode            = static_cast<Models::ConnectionMode>(j.value("mode", 0));
     p.isDefault       = j.value("isDefault", false);
+    p.cosmosRootPath  = j.value("cosmosRootPath", "/cosmos");
     p.wslDistribution = j.value("wslDistribution", "Ubuntu");
     p.host            = j.value("host", "");
     p.port            = j.value("port", 22);
     p.username        = j.value("username", "");
     p.authMethod      = static_cast<Models::AuthMethod>(j.value("authMethod", 0));
+    p.password        = j.value("password", "");
     p.privateKeyPath  = j.value("privateKeyPath", "");
     p.connectTimeoutMs= j.value("connectTimeoutMs", 10000);
     p.commandTimeoutMs= j.value("commandTimeoutMs", 30000);

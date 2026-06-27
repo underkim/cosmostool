@@ -2,6 +2,7 @@
 
 #include "viewmodels/base/ViewModelBase.h"
 #include "services/plugin/IPluginService.h"
+#include "services/connection/IConnectionService.h"
 #include "models/Plugin.h"
 
 #include <QAbstractTableModel>
@@ -39,8 +40,9 @@ class PluginViewModel final : public ViewModelBase {
 
 public:
     explicit PluginViewModel(
-        Services::IPluginService& plugin,
-        QObject*                  parent = nullptr);
+        Services::IPluginService&     plugin,
+        Services::IConnectionService& connection,
+        QObject*                      parent = nullptr);
 
     [[nodiscard]] PluginTableModel* pluginModel()    const noexcept;
     [[nodiscard]] bool              isBusy()         const noexcept;
@@ -63,8 +65,9 @@ private:
     void setBusy(bool busy);
     void setStatus(const QString& msg);
 
-    Services::IPluginService& plugin_;
-    PluginTableModel*         tableModel_{nullptr};
+    Services::IPluginService&     plugin_;
+    Services::IConnectionService& connection_;
+    PluginTableModel*             tableModel_{nullptr};
     bool                      busy_{false};
     QString                   statusMessage_;
 };

@@ -1,5 +1,7 @@
 #include "CmdTlmViewModel.h"
+#include "CmdTlmParser.h"
 #include "core/logging/Logger.h"
+#include "services/connection/IConnectionService.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QMetaObject>
@@ -22,14 +24,19 @@ CmdTlmViewModel::CmdTlmViewModel(
     });
 }
 
-bool CmdTlmViewModel::isConnected() const noexcept
+bool    CmdTlmViewModel::isConnected()   const noexcept
 {
     return connection_.state() == Services::ConnectionState::Connected;
 }
 
-bool CmdTlmViewModel::isBusy() const noexcept { return busy_; }
-
+bool    CmdTlmViewModel::isBusy()        const noexcept { return busy_; }
 QString CmdTlmViewModel::statusMessage() const noexcept { return status_; }
+
+QString CmdTlmViewModel::defaultCmdTlmPath() const
+{
+    const std::string root = connection_.cosmosRootPath();
+    return QString::fromStdString(root) + "/targets";
+}
 
 void CmdTlmViewModel::setBusy(bool busy)
 {
@@ -44,6 +51,8 @@ void CmdTlmViewModel::setStatus(const QString& msg)
     emit statusMessageChanged();
 }
 
+// ── listDirectory ─────────────────────────────────────────────────────────────
+
 void CmdTlmViewModel::listDirectory(const QString& remotePath)
 {
     if (busy_) return;
@@ -53,17 +62,20 @@ void CmdTlmViewModel::listDirectory(const QString& remotePath)
 
     (void)QtConcurrent::run([this, path] {
         auto entries = fs_.listDirectory(path);
-        QMetaObject::invokeMethod(this, [this, entries = std::move(entries), qpath = QString::fromStdString(path)] () mutable {
+        QMetaObject::invokeMethod(this, [this, entries = std::move(entries),
+                                          qpath = QString::fromStdString(path)]() mutable {
             QStringList list;
             list.reserve(static_cast<qsizetype>(entries.size()));
             for (const auto& e : entries)
                 list << QString::fromStdString(e);
             emit directoryListed(list, qpath);
             setBusy(false);
-            setStatus(QString("Listed %1 entries").arg(list.size()));
+            setStatus(QString("Found %1 entries").arg(list.size()));
         }, Qt::QueuedConnection);
     });
 }
+
+// ── openFile ──────────────────────────────────────────────────────────────────
 
 void CmdTlmViewModel::openFile(const QString& remotePath)
 {
@@ -74,13 +86,20 @@ void CmdTlmViewModel::openFile(const QString& remotePath)
 
     (void)QtConcurrent::run([this, path] {
         const std::string content = fs_.readFile(path);
-        QMetaObject::invokeMethod(this, [this, content, qpath = QString::fromStdString(path)] {
-            emit fileOpened(qpath, QString::fromStdString(content));
-            setBusy(false);
-            setStatus("Loaded " + qpath);
-        }, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this,
+            [this, content, qpath = QString::fromStdString(path)] {
+                const QString qcontent = QString::fromStdString(content);
+                emit fileOpened(qpath, qcontent);
+                setBusy(false);
+                setStatus("Loaded " + qpath);
+                // Auto-parse if it looks like a cmd_tlm file
+                if (qpath.endsWith(".txt", Qt::CaseInsensitive))
+                    parseContent(qcontent, qpath);
+            }, Qt::QueuedConnection);
     });
 }
+
+// ── saveFile ──────────────────────────────────────────────────────────────────
 
 void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content)
 {
@@ -98,6 +117,19 @@ void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content
             setStatus(ok ? "Saved: " + qpath : "Save failed.");
         }, Qt::QueuedConnection);
     });
+}
+
+// ── parseContent ──────────────────────────────────────────────────────────────
+
+void CmdTlmViewModel::parseContent(const QString& content, const QString& filePath)
+{
+    // Parse is fast (in-process, no I/O), run on GUI thread to avoid emit races.
+    const CmdTlmParseResult result = CmdTlmParser::parse(content);
+    const int e = result.errorCount();
+    const int w = result.warningCount();
+    setStatus(QString("Parsed: %1 blocks, %2 error(s), %3 warning(s)")
+                  .arg(result.blocks.size()).arg(e).arg(w));
+    emit fileParsed(result, filePath);
 }
 
 } // namespace OpenC3::ViewModels

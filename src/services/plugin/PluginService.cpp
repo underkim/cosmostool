@@ -10,13 +10,11 @@ PluginService::PluginService(Core::Connection::ICommandExecutor& executor)
     : executor_(executor)
 {}
 
-std::vector<Models::Plugin> PluginService::listInstalled()
+std::vector<Models::Plugin> PluginService::listInstalled(const std::string& cosmosRoot)
 {
-    // OpenC3 stores installed plugin records in its Redis/Minio state.
-    // We query via the openc3cli tool if available, otherwise fall back to
-    // listing gem files in the plugins directory.
+    const std::string pluginsDir = cosmosRoot + "/plugins";
     auto r = executor_.execute(
-        "find /cosmos/plugins -name '*.gem' -type f 2>/dev/null");
+        "find '" + pluginsDir + "' -name '*.gem' -type f 2>/dev/null");
 
     std::vector<Models::Plugin> plugins;
     if (!r) return plugins;
@@ -26,7 +24,6 @@ std::vector<Models::Plugin> PluginService::listInstalled()
     while (std::getline(stream, line)) {
         if (line.empty()) continue;
         Models::Plugin p;
-        // Extract name from gem filename: name-version.gem
         const std::size_t slash = line.rfind('/');
         const std::string filename = (slash != std::string::npos)
             ? line.substr(slash + 1) : line;
@@ -61,29 +58,31 @@ PluginService::validate(const std::string& localPluginPath)
     return result;
 }
 
-bool PluginService::install(const std::string& gemFilePath)
+bool PluginService::install(
+    const std::string& gemFilePath, const std::string& cosmosRoot)
 {
     Logging::Logger::info("[PluginService] Installing plugin: {}", gemFilePath);
-    // Full implementation will use openc3cli or curl to the COSMOS API
     auto r = executor_.execute(
-        "cp '" + gemFilePath + "' /cosmos/plugins/ 2>&1");
+        "cp '" + gemFilePath + "' '" + cosmosRoot + "/plugins/' 2>&1");
     return static_cast<bool>(r);
 }
 
-bool PluginService::remove(const std::string& pluginName)
+bool PluginService::remove(
+    const std::string& pluginName, const std::string& cosmosRoot)
 {
     Logging::Logger::info("[PluginService] Removing plugin: {}", pluginName);
     auto r = executor_.execute(
-        "rm -f /cosmos/plugins/" + pluginName + ".gem 2>&1");
+        "rm -f '" + cosmosRoot + "/plugins/" + pluginName + ".gem' 2>&1");
     return static_cast<bool>(r);
 }
 
 bool PluginService::backup(
     const std::string& pluginName,
-    const std::string& localBackupPath)
+    const std::string& localBackupPath,
+    const std::string& cosmosRoot)
 {
     return executor_.downloadFile(
-        "/cosmos/plugins/" + pluginName + ".gem", localBackupPath);
+        cosmosRoot + "/plugins/" + pluginName + ".gem", localBackupPath);
 }
 
 } // namespace OpenC3::Services

@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace OpenC3::Services {
@@ -19,6 +20,7 @@ public:
     [[nodiscard]] ConnectionState state() const noexcept override;
 
     [[nodiscard]] const Models::ConnectionProfile* activeProfile() const noexcept override;
+    [[nodiscard]] std::string cosmosRootPath() const noexcept override;
 
     void onStateChanged(std::function<void(const ConnectionEvent&)> cb) override;
 
@@ -32,7 +34,7 @@ private:
     ISettingsService&                                 settings_;
     std::unique_ptr<Core::Connection::ICommandExecutor> executor_;
     ConnectionState                                   state_{ConnectionState::Disconnected};
-    Models::ConnectionProfile const*                  activeProfile_{nullptr};
+    std::optional<Models::ConnectionProfile>          activeProfile_;
 
     std::vector<std::function<void(const ConnectionEvent&)>> stateCallbacks_;
 };

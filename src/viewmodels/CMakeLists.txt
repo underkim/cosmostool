@@ -9,7 +9,9 @@ add_library(opencosmos_viewmodels STATIC
     doctor/DoctorViewModel.cpp
     settings/SettingsViewModel.cpp
     plugin/PluginViewModel.cpp
+    plugin/PluginTemplateEngine.cpp
     cmdtlm/CmdTlmViewModel.cpp
+    cmdtlm/CmdTlmParser.cpp
     packettools/PacketToolsViewModel.cpp
     logviewer/LogViewerViewModel.cpp
     infra/InfraViewModel.cpp

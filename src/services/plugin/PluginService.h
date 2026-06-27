@@ -9,17 +9,24 @@ class PluginService final : public IPluginService {
 public:
     explicit PluginService(Core::Connection::ICommandExecutor& executor);
 
-    [[nodiscard]] std::vector<Models::Plugin> listInstalled() override;
+    [[nodiscard]] std::vector<Models::Plugin>
+        listInstalled(const std::string& cosmosRoot) override;
 
     [[nodiscard]] Models::PluginValidationResult
         validate(const std::string& localPluginPath) override;
 
-    [[nodiscard]] bool install(const std::string& gemFilePath) override;
-    [[nodiscard]] bool remove(const std::string& pluginName)   override;
+    [[nodiscard]] bool install(
+        const std::string& gemFilePath,
+        const std::string& cosmosRoot) override;
+
+    [[nodiscard]] bool remove(
+        const std::string& pluginName,
+        const std::string& cosmosRoot) override;
 
     [[nodiscard]] bool backup(
         const std::string& pluginName,
-        const std::string& localBackupPath) override;
+        const std::string& localBackupPath,
+        const std::string& cosmosRoot) override;
 
 private:
     Core::Connection::ICommandExecutor& executor_;

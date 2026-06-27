@@ -2,16 +2,12 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QFormLayout>
 #include <QGroupBox>
 #include <QFont>
-#include <QFileDialog>
 #include <QMessageBox>
 #include <QHeaderView>
-#include <QScrollBar>
-#include <QDir>
-#include <QFile>
-#include <QDateTime>
+#include <QApplication>
+#include <QClipboard>
 
 namespace OpenC3::UI::Views {
 
@@ -41,9 +37,9 @@ void InfraView::setupUi()
     root->addWidget(statusLabel_);
 
     tabs_ = new QTabWidget(this);
-    tabs_->addTab(buildEnvTab(),     "🔐 .env 편집");
-    tabs_->addTab(buildComposeTab(), "🐙 compose.yaml");
-    tabs_->addTab(buildPatchTab(),   "🩹 Patch 생성");
+    tabs_->addTab(buildEnvTab(),            "🔐 .env 편집");
+    tabs_->addTab(buildComposeTab(),        "🐙 compose.yaml");
+    tabs_->addTab(buildVolumeOverrideTab(), "🐳 볼륨 오버라이드");
     root->addWidget(tabs_);
 }
 
@@ -56,7 +52,7 @@ QWidget* InfraView::buildEnvTab()
 
     // ── Path bar ──────────────────────────────────────────────────────────────
     auto* pathBar = new QHBoxLayout;
-    envPathEdit_ = new QLineEdit(ViewModels::InfraViewModel::kDefaultEnvPath, page);
+    envPathEdit_ = new QLineEdit(vm_.defaultEnvPath(), page);
     envPathEdit_->setPlaceholderText("/cosmos/.env");
     envLoadBtn_  = new QPushButton("Load", page);
     envSaveBtn_  = new QPushButton("Save", page);
@@ -112,7 +108,7 @@ QWidget* InfraView::buildComposeTab()
 
     // ── Path bar ──────────────────────────────────────────────────────────────
     auto* pathBar = new QHBoxLayout;
-    composePath_    = new QLineEdit(ViewModels::InfraViewModel::kDefaultComposePath, page);
+    composePath_    = new QLineEdit(vm_.defaultComposePath(), page);
     composeLoadBtn_ = new QPushButton("Load", page);
     composeSaveBtn_ = new QPushButton("Save", page);
     composeSaveBtn_->setObjectName("PrimaryButton");
@@ -127,7 +123,7 @@ QWidget* InfraView::buildComposeTab()
     QFont f; f.setFamily("Consolas"); f.setPointSize(10);
     composeEdit_->setFont(f);
     composeEdit_->setPlaceholderText(
-        "# compose.yaml が読み込まれていません\n"
+        "# compose.yaml 이 로드되지 않았습니다\n"
         "# 원격 파일 경로를 입력하고 Load를 눌러주세요");
     layout->addWidget(composeEdit_, 1);
 
@@ -142,54 +138,112 @@ QWidget* InfraView::buildComposeTab()
     return page;
 }
 
-QWidget* InfraView::buildPatchTab()
+QWidget* InfraView::buildVolumeOverrideTab()
 {
     auto* page   = new QWidget;
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(8, 8, 8, 8);
     layout->setSpacing(8);
 
-    // ── Controls ──────────────────────────────────────────────────────────────
-    auto* ctrlBar = new QHBoxLayout;
-    patchSourceCombo_ = new QComboBox(page);
-    patchSourceCombo_->addItems({".env", "compose.yaml"});
-    patchGenBtn_  = new QPushButton("🔍 Diff 생성", page);
-    patchSaveBtn_ = new QPushButton("💾 .patch 저장", page);
-    patchSaveBtn_->setObjectName("PrimaryButton");
-    ctrlBar->addWidget(new QLabel("대상 파일:", page));
-    ctrlBar->addWidget(patchSourceCombo_);
-    ctrlBar->addSpacing(8);
-    ctrlBar->addWidget(patchGenBtn_);
-    ctrlBar->addWidget(patchSaveBtn_);
-    ctrlBar->addStretch();
-    layout->addLayout(ctrlBar);
+    // ── 설명 ─────────────────────────────────────────────────────────────────
+    auto* desc = new QLabel(
+        "<small style='color:#858585'>"
+        "Docker 이미지 내부의 파일을 추출 → 편집 → 호스트에 저장하고, "
+        "compose.yaml의 <code>volumes:</code> 항목을 생성합니다. "
+        "이미지를 재빌드하지 않고 컨테이너 파일을 오버라이드할 수 있습니다."
+        "</small>", page);
+    desc->setWordWrap(true);
+    desc->setTextFormat(Qt::RichText);
+    layout->addWidget(desc);
 
-    // ── Diff viewer ───────────────────────────────────────────────────────────
-    patchEdit_ = new QTextEdit(page);
-    QFont f; f.setFamily("Consolas"); f.setPointSize(9);
-    patchEdit_->setFont(f);
-    patchEdit_->setReadOnly(true);
-    patchEdit_->setPlaceholderText(
-        "Load 탭에서 파일을 먼저 불러온 뒤 수정하고\n"
-        "'Diff 생성'을 눌러 패치를 확인하세요.\n\n"
-        "생성된 패치는 unified diff 형식(.patch)으로 저장할 수 있습니다.\n"
-        "COSMOS 업데이트 후 설정을 재적용할 때 사용합니다:\n"
-        "  patch -p1 < my_changes.patch");
-    layout->addWidget(patchEdit_, 1);
+    // ── Step 1: 컨테이너 선택 + 파일 추출 ────────────────────────────────────
+    auto* step1Group  = new QGroupBox("① 컨테이너 파일 추출", page);
+    auto* step1Layout = new QVBoxLayout(step1Group);
 
-    // ── Legend ────────────────────────────────────────────────────────────────
-    auto* legend = new QHBoxLayout;
-    auto mkDot = [&](const QString& color, const QString& label) {
-        auto* lbl = new QLabel(
-            "<span style='color:" + color + "'>■</span> " + label);
-        lbl->setTextFormat(Qt::RichText);
-        legend->addWidget(lbl);
-    };
-    mkDot("#4ec94e", "추가(+)");
-    mkDot("#f1444c", "삭제(-)");
-    mkDot("#858585", "컨텍스트");
-    legend->addStretch();
-    layout->addLayout(legend);
+    auto* containerBar = new QHBoxLayout;
+    containerCombo_     = new QComboBox(step1Group);
+    containerCombo_->setMinimumWidth(220);
+    containerCombo_->setPlaceholderText("컨테이너 선택…");
+    containerRefreshBtn_ = new QPushButton("↻", step1Group);
+    containerRefreshBtn_->setFixedWidth(32);
+    containerRefreshBtn_->setToolTip("실행 중인 컨테이너 목록 새로고침");
+    containerBar->addWidget(new QLabel("컨테이너:", step1Group));
+    containerBar->addWidget(containerCombo_, 1);
+    containerBar->addWidget(containerRefreshBtn_);
+    step1Layout->addLayout(containerBar);
+
+    auto* fileBar = new QHBoxLayout;
+    containerFilePathEdit_ = new QLineEdit(step1Group);
+    containerFilePathEdit_->setPlaceholderText("/cosmos/config/system.txt");
+    containerFilePathEdit_->setFont(QFont("Consolas", 10));
+    extractBtn_ = new QPushButton("⬇ 추출", step1Group);
+    extractBtn_->setToolTip("docker exec <container> cat <file>로 파일 내용을 가져옵니다");
+    fileBar->addWidget(new QLabel("파일 경로:", step1Group));
+    fileBar->addWidget(containerFilePathEdit_, 1);
+    fileBar->addWidget(extractBtn_);
+    step1Layout->addLayout(fileBar);
+
+    containerFileEdit_ = new QPlainTextEdit(step1Group);
+    QFont ef; ef.setFamily("Consolas"); ef.setPointSize(9);
+    containerFileEdit_->setFont(ef);
+    containerFileEdit_->setPlaceholderText(
+        "추출 버튼을 누르면 컨테이너 내부 파일 내용이 여기에 표시됩니다.\n"
+        "내용을 직접 편집한 후 아래 ② 단계에서 저장하세요.");
+    containerFileEdit_->setMinimumHeight(180);
+    step1Layout->addWidget(containerFileEdit_, 1);
+
+    layout->addWidget(step1Group, 1);
+
+    // ── Step 2: 호스트 저장 + 볼륨 항목 생성 ────────────────────────────────
+    auto* step2Group  = new QGroupBox("② 저장 경로 설정 및 볼륨 항목 생성", page);
+    auto* step2Layout = new QVBoxLayout(step2Group);
+
+    auto* hostBar = new QHBoxLayout;
+    hostSavePathEdit_ = new QLineEdit(step2Group);
+    hostSavePathEdit_->setPlaceholderText("/cosmos/overrides/…");
+    hostSavePathEdit_->setFont(QFont("Consolas", 10));
+    hostSavePathEdit_->setToolTip(
+        "파일이 저장될 WSL/Linux 경로입니다.\n"
+        "이 경로가 compose.yaml의 volumes 항목에 사용됩니다.");
+    applyOverrideBtn_ = new QPushButton("✔ 저장 및 항목 생성", step2Group);
+    applyOverrideBtn_->setObjectName("PrimaryButton");
+    hostBar->addWidget(new QLabel("호스트 저장 경로:", step2Group));
+    hostBar->addWidget(hostSavePathEdit_, 1);
+    hostBar->addWidget(applyOverrideBtn_);
+    step2Layout->addLayout(hostBar);
+
+    // ── 생성된 볼륨 항목 ──────────────────────────────────────────────────────
+    auto* volumeHintLabel = new QLabel(
+        "compose.yaml에 추가할 <code>volumes:</code> 항목:", step2Group);
+    volumeHintLabel->setTextFormat(Qt::RichText);
+    step2Layout->addWidget(volumeHintLabel);
+
+    volumeEntryEdit_ = new QPlainTextEdit(step2Group);
+    volumeEntryEdit_->setFont(QFont("Consolas", 9));
+    volumeEntryEdit_->setReadOnly(true);
+    volumeEntryEdit_->setMaximumHeight(90);
+    volumeEntryEdit_->setPlaceholderText("저장 후 여기에 항목이 생성됩니다…");
+    step2Layout->addWidget(volumeEntryEdit_);
+
+    auto* actionBar = new QHBoxLayout;
+    copyVolumeEntryBtn_  = new QPushButton("📋 클립보드 복사", step2Group);
+    insertToComposeBtn_  = new QPushButton("→ compose 편집기에 삽입", step2Group);
+    actionBar->addWidget(copyVolumeEntryBtn_);
+    actionBar->addWidget(insertToComposeBtn_);
+    actionBar->addStretch();
+    step2Layout->addLayout(actionBar);
+
+    layout->addWidget(step2Group);
+
+    // ── 안내 ─────────────────────────────────────────────────────────────────
+    auto* restartHint = new QLabel(
+        "<small style='color:#858585'>"
+        "볼륨 항목 추가 후: <code>docker compose up -d &lt;service-name&gt;</code> "
+        "으로 컨테이너를 재시작하면 오버라이드가 적용됩니다."
+        "</small>", page);
+    restartHint->setTextFormat(Qt::RichText);
+    restartHint->setWordWrap(true);
+    layout->addWidget(restartHint);
 
     return page;
 }
@@ -198,38 +252,69 @@ QWidget* InfraView::buildPatchTab()
 
 void InfraView::bindViewModel()
 {
+    // ENV tab
     connect(envLoadBtn_,  &QPushButton::clicked, this, &InfraView::onEnvLoad);
     connect(envSaveBtn_,  &QPushButton::clicked, this, &InfraView::onEnvSave);
     connect(envSyncToRawBtn_,   &QPushButton::clicked,
             this, &InfraView::syncTableToRaw);
     connect(envSyncToTableBtn_, &QPushButton::clicked,
             this, &InfraView::syncRawToTable);
-
-    connect(composeLoadBtn_, &QPushButton::clicked, this, &InfraView::onComposeLoad);
-    connect(composeSaveBtn_, &QPushButton::clicked, this, &InfraView::onComposeSave);
-
-    connect(patchGenBtn_,  &QPushButton::clicked, this, &InfraView::onGeneratePatch);
-    connect(patchSaveBtn_, &QPushButton::clicked, this, &InfraView::onSavePatch);
-
     connect(envTable_, &QTableWidget::cellChanged,
             this, &InfraView::onTableCellChanged);
 
-    // ViewModel → View
+    // Compose tab
+    connect(composeLoadBtn_, &QPushButton::clicked, this, &InfraView::onComposeLoad);
+    connect(composeSaveBtn_, &QPushButton::clicked, this, &InfraView::onComposeSave);
+
+    // Volume Override tab
+    connect(containerRefreshBtn_, &QPushButton::clicked,
+            &vm_, &ViewModels::InfraViewModel::loadContainers);
+    connect(extractBtn_,          &QPushButton::clicked,
+            this, &InfraView::onExtractFile);
+    connect(applyOverrideBtn_,    &QPushButton::clicked,
+            this, &InfraView::onApplyOverride);
+    connect(containerFilePathEdit_, &QLineEdit::textChanged,
+            this, &InfraView::onContainerFilePathChanged);
+
+    connect(copyVolumeEntryBtn_, &QPushButton::clicked, this, [this] {
+        const QString text = volumeEntryEdit_->toPlainText().trimmed();
+        if (!text.isEmpty())
+            QApplication::clipboard()->setText(text);
+    });
+
+    connect(insertToComposeBtn_, &QPushButton::clicked, this, [this] {
+        const QString text = volumeEntryEdit_->toPlainText().trimmed();
+        if (text.isEmpty()) return;
+        // Switch to compose tab and append the volume entry
+        tabs_->setCurrentIndex(1);
+        composeEdit_->appendPlainText("\n" + text);
+    });
+
+    // ── ViewModel → View ──────────────────────────────────────────────────────
     connect(&vm_, &ViewModels::InfraViewModel::statusMessageChanged,
             this, [this] { statusLabel_->setText(vm_.statusMessage()); });
 
+    // Refresh path defaults when connection is established (cosmos root may change)
+    connect(&vm_, &ViewModels::InfraViewModel::connectionChanged,
+            this, [this] {
+                if (vm_.isConnected()) {
+                    envPathEdit_->setText(vm_.defaultEnvPath());
+                    composePath_->setText(vm_.defaultComposePath());
+                    // Trigger container list refresh
+                    vm_.loadContainers();
+                }
+            });
+
     connect(&vm_, &ViewModels::InfraViewModel::envLoaded,
             this, [this](const QString& path, const QString& content) {
-                envCurrentPath_ = path;
-                envBaseline_    = content;
+                envPathEdit_->setText(path);
                 envRawEdit_->setPlainText(content);
                 loadEnvIntoTable(content);
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::composeLoaded,
             this, [this](const QString& path, const QString& content) {
-                composeCurrentPath_ = path;
-                composeBaseline_    = content;
+                composePath_->setText(path);
                 composeEdit_->setPlainText(content);
             });
 
@@ -240,27 +325,40 @@ void InfraView::bindViewModel()
                         "파일 저장에 실패했습니다:\n" + path);
             });
 
-    connect(&vm_, &ViewModels::InfraViewModel::patchReady,
-            this, [this](const QString& patch) {
-                patchEdit_->clear();
-                if (patch == "(변경 없음)") {
-                    patchEdit_->setPlainText("(변경 없음 — 원본과 동일합니다)");
-                    return;
-                }
-                // Color-code the diff lines
-                for (const QString& line : patch.split('\n')) {
-                    if (line.startsWith('+') && !line.startsWith("+++")) {
-                        patchEdit_->setTextColor(QColor(0x4e, 0xc9, 0x4e));
-                    } else if (line.startsWith('-') && !line.startsWith("---")) {
-                        patchEdit_->setTextColor(QColor(0xf1, 0x44, 0x4c));
-                    } else if (line.startsWith("@@")) {
-                        patchEdit_->setTextColor(QColor(0x56, 0x9c, 0xd6));
-                    } else {
-                        patchEdit_->setTextColor(QColor(0x85, 0x85, 0x85));
-                    }
-                    patchEdit_->append(line);
-                }
+    connect(&vm_, &ViewModels::InfraViewModel::containersLoaded,
+            this, [this](const QStringList& names) {
+                const QString prev = containerCombo_->currentText();
+                containerCombo_->clear();
+                containerCombo_->addItems(names);
+                // Restore previous selection if still present
+                const int idx = containerCombo_->findText(prev);
+                if (idx >= 0) containerCombo_->setCurrentIndex(idx);
             });
+
+    connect(&vm_, &ViewModels::InfraViewModel::containerFileExtracted,
+            this, [this](const QString& /*path*/, const QString& content) {
+                containerFileEdit_->setPlainText(content);
+                applyOverrideBtn_->setEnabled(true);
+            });
+
+    connect(&vm_, &ViewModels::InfraViewModel::volumeEntryReady,
+            this, [this](const QString& entry) {
+                volumeEntryEdit_->setPlainText(entry);
+                copyVolumeEntryBtn_->setEnabled(true);
+                insertToComposeBtn_->setEnabled(true);
+            });
+
+    connect(&vm_, &ViewModels::InfraViewModel::overrideApplied,
+            this, [this](bool ok, const QString& hostPath) {
+                if (!ok)
+                    QMessageBox::warning(this, "저장 실패",
+                        "호스트 파일 저장 실패:\n" + hostPath);
+            });
+
+    // Initial state
+    applyOverrideBtn_->setEnabled(false);
+    copyVolumeEntryBtn_->setEnabled(false);
+    insertToComposeBtn_->setEnabled(false);
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -286,54 +384,65 @@ void InfraView::onComposeSave()
     vm_.saveComposeFile(composePath_->text().trimmed(), composeEdit_->toPlainText());
 }
 
-void InfraView::onGeneratePatch()
+void InfraView::onExtractFile()
 {
-    const bool isEnv = (patchSourceCombo_->currentIndex() == 0);
-    const QString original = isEnv ? envBaseline_     : composeBaseline_;
-    const QString current  = isEnv ? envRawEdit_->toPlainText()
-                                   : composeEdit_->toPlainText();
-    const QString fname    = isEnv ? ".env" : "compose.yaml";
+    const QString container = containerCombo_->currentText().trimmed();
+    const QString filePath  = containerFilePathEdit_->text().trimmed();
 
-    if (original.isEmpty()) {
-        QMessageBox::information(this, "Patch",
-            "먼저 파일을 Load 해야 베이스라인이 설정됩니다.");
+    if (container.isEmpty()) {
+        QMessageBox::information(this, "컨테이너 선택",
+            "컨테이너를 선택하거나 새로고침 버튼으로 목록을 불러오세요.");
+        return;
+    }
+    if (filePath.isEmpty()) {
+        QMessageBox::information(this, "파일 경로",
+            "추출할 파일의 컨테이너 내부 경로를 입력하세요.");
         return;
     }
 
-    vm_.generatePatch(original, current, fname);
+    containerFileEdit_->clear();
+    applyOverrideBtn_->setEnabled(false);
+    vm_.extractContainerFile(container, filePath);
 }
 
-void InfraView::onSavePatch()
+void InfraView::onApplyOverride()
 {
-    const QString patch = patchEdit_->toPlainText();
-    if (patch.isEmpty() || patch.startsWith("(변경 없음")) {
-        QMessageBox::information(this, "저장", "저장할 패치 내용이 없습니다.");
+    const QString container = containerCombo_->currentText().trimmed();
+    const QString ctrPath   = containerFilePathEdit_->text().trimmed();
+    const QString hostPath  = hostSavePathEdit_->text().trimmed();
+    const QString content   = containerFileEdit_->toPlainText();
+
+    if (hostPath.isEmpty()) {
+        QMessageBox::information(this, "저장 경로",
+            "파일이 저장될 호스트(WSL) 경로를 입력하세요.\n"
+            "예: /cosmos/overrides/cosmos/config/system.txt");
+        return;
+    }
+    if (content.isEmpty()) {
+        QMessageBox::information(this, "내용 없음",
+            "먼저 컨테이너에서 파일을 추출하거나 내용을 입력하세요.");
         return;
     }
 
-    const QString defaultName =
-        QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss") + "_cosmos.patch";
-    const QString path = QFileDialog::getSaveFileName(
-        this, "패치 파일 저장", QDir::homePath() + "/" + defaultName,
-        "Patch files (*.patch);;All files (*)");
-    if (path.isEmpty()) return;
-
-    QFile f(path);
-    if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        f.write(patch.toUtf8());
-        QMessageBox::information(this, "저장 완료",
-            "패치 파일이 저장되었습니다:\n" + path);
-    } else {
-        QMessageBox::warning(this, "저장 실패", "파일을 열 수 없습니다:\n" + path);
-    }
+    volumeEntryEdit_->clear();
+    copyVolumeEntryBtn_->setEnabled(false);
+    insertToComposeBtn_->setEnabled(false);
+    vm_.applyVolumeOverride(container, ctrPath, hostPath, content);
 }
 
 void InfraView::onTableCellChanged(int /*row*/, int /*col*/)
 {
     if (!suppressTableSignal_) {
-        // Light sync: update raw edit from table on every cell change
-        // Use a deferred update to avoid re-entrancy during bulk load
+        syncTableToRaw();
     }
+}
+
+void InfraView::onContainerFilePathChanged(const QString& path)
+{
+    // Auto-fill host save path: <cosmosRoot>/overrides + filePath
+    if (path.isEmpty() || !hostSavePathEdit_->text().isEmpty()) return;
+    const QString stripped = path.startsWith('/') ? path.mid(1) : path;
+    hostSavePathEdit_->setText(vm_.cosmosRootPath() + "/overrides/" + stripped);
 }
 
 // ── ENV table helpers ─────────────────────────────────────────────────────────
@@ -353,7 +462,6 @@ void InfraView::loadEnvIntoTable(const QString& content)
         }
 
         if (line.startsWith('#')) {
-            // Accumulate comment block for the next key
             pendingComment = line.mid(1).trimmed();
             continue;
         }
@@ -387,14 +495,14 @@ QString InfraView::collectTableToEnv() const
 {
     QString result;
     for (int row = 0; row < envTable_->rowCount(); ++row) {
-        const auto* keyItem  = envTable_->item(row, 0);
-        const auto* valItem  = envTable_->item(row, 1);
-        const auto* cmtItem  = envTable_->item(row, 2);
+        const auto* keyItem = envTable_->item(row, 0);
+        const auto* valItem = envTable_->item(row, 1);
+        const auto* cmtItem = envTable_->item(row, 2);
 
         if (!keyItem) continue;
         const QString key     = keyItem->text();
-        const QString value   = valItem  ? valItem->text()  : QString{};
-        const QString comment = cmtItem  ? cmtItem->text()  : QString{};
+        const QString value   = valItem ? valItem->text()  : QString{};
+        const QString comment = cmtItem ? cmtItem->text()  : QString{};
 
         if (!comment.isEmpty())
             result += "# " + comment + "\n";
@@ -405,8 +513,7 @@ QString InfraView::collectTableToEnv() const
 
 void InfraView::syncTableToRaw()
 {
-    const QString text = collectTableToEnv();
-    envRawEdit_->setPlainText(text);
+    envRawEdit_->setPlainText(collectTableToEnv());
 }
 
 void InfraView::syncRawToTable()

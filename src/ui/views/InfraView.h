@@ -16,7 +16,7 @@
 namespace OpenC3::UI::Views {
 
 /// Infrastructure Manager view.
-/// Three tabs: ENV editor | compose.yaml editor | Patch generator.
+/// Three tabs: ENV editor | compose.yaml editor | Volume Override (patch).
 class InfraView final : public QWidget {
     Q_OBJECT
 public:
@@ -27,9 +27,10 @@ private slots:
     void onEnvSave();
     void onComposeLoad();
     void onComposeSave();
-    void onGeneratePatch();
-    void onSavePatch();
     void onTableCellChanged(int row, int col);
+    void onExtractFile();
+    void onApplyOverride();
+    void onContainerFilePathChanged(const QString& path);
 
 private:
     void setupUi();
@@ -37,27 +38,27 @@ private:
 
     QWidget* buildEnvTab();
     QWidget* buildComposeTab();
-    QWidget* buildPatchTab();
+    QWidget* buildVolumeOverrideTab();
 
     void loadEnvIntoTable(const QString& content);
     QString collectTableToEnv() const;
     void syncTableToRaw();
     void syncRawToTable();
-    void appendPatchLine(const QString& line);
 
     ViewModels::InfraViewModel& vm_;
 
     QTabWidget* tabs_{nullptr};
+    QLabel*     statusLabel_{nullptr};
 
     // ── ENV tab ───────────────────────────────────────────────────────────────
-    QLineEdit*    envPathEdit_{nullptr};
-    QPushButton*  envLoadBtn_{nullptr};
-    QPushButton*  envSaveBtn_{nullptr};
-    QTableWidget* envTable_{nullptr};
+    QLineEdit*      envPathEdit_{nullptr};
+    QPushButton*    envLoadBtn_{nullptr};
+    QPushButton*    envSaveBtn_{nullptr};
+    QTableWidget*   envTable_{nullptr};
     QPlainTextEdit* envRawEdit_{nullptr};
-    QPushButton*  envSyncToRawBtn_{nullptr};
-    QPushButton*  envSyncToTableBtn_{nullptr};
-    bool          suppressTableSignal_{false};
+    QPushButton*    envSyncToRawBtn_{nullptr};
+    QPushButton*    envSyncToTableBtn_{nullptr};
+    bool            suppressTableSignal_{false};
 
     // ── Compose tab ───────────────────────────────────────────────────────────
     QLineEdit*      composePath_{nullptr};
@@ -65,18 +66,17 @@ private:
     QPushButton*    composeSaveBtn_{nullptr};
     QPlainTextEdit* composeEdit_{nullptr};
 
-    // ── Patch tab ─────────────────────────────────────────────────────────────
-    QComboBox*    patchSourceCombo_{nullptr};
-    QTextEdit*    patchEdit_{nullptr};
-    QPushButton*  patchGenBtn_{nullptr};
-    QPushButton*  patchSaveBtn_{nullptr};
-    QLabel*       statusLabel_{nullptr};
-
-    // Baselines captured at load time for diff
-    QString envBaseline_;
-    QString composeBaseline_;
-    QString envCurrentPath_;
-    QString composeCurrentPath_;
+    // ── Volume Override tab ───────────────────────────────────────────────────
+    QComboBox*      containerCombo_{nullptr};
+    QPushButton*    containerRefreshBtn_{nullptr};
+    QLineEdit*      containerFilePathEdit_{nullptr};
+    QPushButton*    extractBtn_{nullptr};
+    QPlainTextEdit* containerFileEdit_{nullptr};
+    QLineEdit*      hostSavePathEdit_{nullptr};
+    QPushButton*    applyOverrideBtn_{nullptr};
+    QPlainTextEdit* volumeEntryEdit_{nullptr};
+    QPushButton*    copyVolumeEntryBtn_{nullptr};
+    QPushButton*    insertToComposeBtn_{nullptr};
 };
 
 } // namespace OpenC3::UI::Views

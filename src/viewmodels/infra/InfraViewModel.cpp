@@ -1,13 +1,10 @@
 #include "InfraViewModel.h"
+#include "viewmodels/plugin/PluginTemplateEngine.h"
 #include "core/logging/Logger.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
-#include <QDir>
-#include <QFile>
-#include <QProcess>
 #include <QStringList>
-#include <QDateTime>
 #include <QMap>
 
 namespace OpenC3::ViewModels {
@@ -36,6 +33,26 @@ InfraViewModel::InfraViewModel(
 bool    InfraViewModel::isConnected()   const noexcept { return connected_; }
 bool    InfraViewModel::isBusy()        const noexcept { return busy_; }
 QString InfraViewModel::statusMessage() const noexcept { return statusMessage_; }
+
+QString InfraViewModel::cosmosRootPath() const noexcept
+{
+    return QString::fromStdString(connection_.cosmosRootPath());
+}
+
+QString InfraViewModel::defaultEnvPath()    const noexcept
+{
+    return cosmosRootPath() + "/.env";
+}
+
+QString InfraViewModel::defaultComposePath() const noexcept
+{
+    return cosmosRootPath() + "/compose.yaml";
+}
+
+QString InfraViewModel::defaultPluginsPath() const noexcept
+{
+    return cosmosRootPath() + "/plugins";
+}
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
@@ -138,107 +155,105 @@ void InfraViewModel::saveComposeFile(const QString& remotePath, const QString& c
     }));
 }
 
-// ── Patch generation ──────────────────────────────────────────────────────────
+// ── Volume override workflow ──────────────────────────────────────────────────
 
-void InfraViewModel::generatePatch(
-    const QString& originalContent,
-    const QString& currentContent,
-    const QString& filename)
+void InfraViewModel::loadContainers()
 {
-    if (originalContent == currentContent) {
-        emit patchReady("(변경 없음)");
-        return;
-    }
+    if (!connected_) { setStatus("연결되지 않음"); return; }
 
-    // Run on background thread — writing temp files + git diff can block briefly.
+    auto* watcher = new QFutureWatcher<void>(this);
+    connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
+
+    watcher->setFuture(QtConcurrent::run([this] {
+        const std::string out =
+            fs_.executeCommand("docker ps --format '{{.Names}}'");
+        QStringList names;
+        for (const QString& line :
+             QString::fromStdString(out).split('\n', Qt::SkipEmptyParts))
+        {
+            const QString n = line.trimmed();
+            if (!n.isEmpty()) names << n;
+        }
+        QMetaObject::invokeMethod(this, [this, names] {
+            emit containersLoaded(names);
+        }, Qt::QueuedConnection);
+    }));
+}
+
+void InfraViewModel::extractContainerFile(
+    const QString& container, const QString& filePath)
+{
+    if (!connected_) { setStatus("연결되지 않음"); return; }
+    setBusy(true);
+    setStatus("컨테이너 파일 추출 중…");
+
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
 
     watcher->setFuture(QtConcurrent::run([this,
-        orig = originalContent,
-        curr = currentContent,
-        fname = filename] {
-            const QString patch = computePatch(
-                orig, curr,
-                "a/" + fname,
-                "b/" + fname);
-            QMetaObject::invokeMethod(this, [this, patch] {
-                emit patchReady(patch);
-            }, Qt::QueuedConnection);
+        ctr  = container.toStdString(),
+        path = filePath.toStdString()] {
+            const std::string content =
+                fs_.executeCommand("docker exec " + ctr + " cat " + path);
+            const bool ok = !content.empty();
+            QMetaObject::invokeMethod(this, [this,
+                fpath = QString::fromStdString(path),
+                txt   = QString::fromStdString(content), ok] {
+                    setBusy(false);
+                    setStatus(ok ? "파일 추출 완료" : "파일을 찾을 수 없습니다");
+                    if (ok) emit containerFileExtracted(fpath, txt);
+                }, Qt::QueuedConnection);
     }));
 }
 
-// static
-QString InfraViewModel::computePatch(
-    const QString& original,
-    const QString& modified,
-    const QString& filenameA,
-    const QString& filenameB)
+void InfraViewModel::applyVolumeOverride(
+    const QString& container,
+    const QString& containerFilePath,
+    const QString& hostSavePath,
+    const QString& content)
 {
-    // Preferred: git diff --no-index writes a proper unified diff.
-    const QString tmpA = QDir::tempPath() + "/cosmos_patch_orig.tmp";
-    const QString tmpB = QDir::tempPath() + "/cosmos_patch_curr.tmp";
+    if (!connected_) { setStatus("연결되지 않음"); return; }
+    setBusy(true);
+    setStatus("볼륨 오버라이드 파일 저장 중…");
 
-    auto writeTmp = [](const QString& path, const QString& content) {
-        QFile f(path);
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text))
-            f.write(content.toUtf8());
-    };
-    writeTmp(tmpA, original);
-    writeTmp(tmpB, modified);
+    auto* watcher = new QFutureWatcher<void>(this);
+    connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
 
-    QProcess git;
-    git.start("git", {"diff", "--no-index",
-                       "--src-prefix=" + filenameA.section('/', 0, 0) + "/",
-                       "--dst-prefix=" + filenameB.section('/', 0, 0) + "/",
-                       tmpA, tmpB});
-    git.waitForFinished(8000);
-    QString patch = QString::fromUtf8(git.readAllStandardOutput());
+    watcher->setFuture(QtConcurrent::run([this,
+        ctr      = container.toStdString(),
+        ctrPath  = containerFilePath.toStdString(),
+        hostPath = hostSavePath.toStdString(),
+        data     = content.toStdString()] {
 
-    QFile::remove(tmpA);
-    QFile::remove(tmpB);
+            const std::string dirPath = hostPath.substr(0, hostPath.rfind('/'));
+            [[maybe_unused]] const std::string mkdirOut =
+                fs_.executeCommand("mkdir -p '" + dirPath + "'");
 
-    if (!patch.isEmpty()) {
-        // Replace temp paths with meaningful names
-        patch.replace(tmpA, filenameA);
-        patch.replace(tmpB, filenameB);
-        return patch;
-    }
+            const bool ok = fs_.writeFile(hostPath, data);
 
-    // Fallback: simple line-by-line unified diff
-    const QStringList lA = original.split('\n');
-    const QStringList lB = modified.split('\n');
+            // compose.yaml volume entry: uses 6-space indent (service.volumes list item)
+            const QString entry = QString("      - %1:%2")
+                .arg(QString::fromStdString(hostPath))
+                .arg(QString::fromStdString(ctrPath));
+            // Helpful restart hint
+            const QString hint = QString(
+                "# 컨테이너: %1\n"
+                "# 아래 항목을 compose.yaml의 해당 서비스 volumes: 섹션에 추가하세요:\n"
+                "%2\n\n"
+                "# 적용: docker compose up -d %1")
+                .arg(QString::fromStdString(ctr))
+                .arg(entry);
 
-    QString result;
-    result += "--- " + filenameA + "\n";
-    result += "+++ " + filenameB + "\n";
-
-    // Emit hunks using a basic linear scan (no LCS — good enough for config files)
-    int i = 0, j = 0;
-    while (i < lA.size() || j < lB.size()) {
-        if (i < lA.size() && j < lB.size() && lA[i] == lB[j]) {
-            ++i; ++j;
-            continue;
-        }
-        // Start a hunk
-        const int startA = i, startB = j;
-        QStringList removed, added;
-        while (i < lA.size() && (j >= lB.size() || lA[i] != lB[j])) {
-            removed << lA[i++];
-        }
-        while (j < lB.size() && (i >= lA.size() || lA[i] != lB[j])) {
-            added << lB[j++];
-        }
-        if (removed.isEmpty() && added.isEmpty()) { ++i; ++j; continue; }
-
-        result += QString("@@ -%1,%2 +%3,%4 @@\n")
-                      .arg(startA + 1).arg(removed.size())
-                      .arg(startB + 1).arg(added.size());
-        for (const auto& l : std::as_const(removed))  result += "-" + l + "\n";
-        for (const auto& l : std::as_const(added))    result += "+" + l + "\n";
-    }
-
-    return result;
+            QMetaObject::invokeMethod(this, [this, ok,
+                hp   = QString::fromStdString(hostPath),
+                hint] {
+                    setBusy(false);
+                    setStatus(ok ? "저장 완료 — compose.yaml에 볼륨 항목을 추가하세요"
+                                 : "파일 저장 실패: " + hp);
+                    if (ok) emit volumeEntryReady(hint);
+                    emit overrideApplied(ok, hp);
+                }, Qt::QueuedConnection);
+    }));
 }
 
 // ── Plugin scaffolding ────────────────────────────────────────────────────────
@@ -267,7 +282,7 @@ void InfraViewModel::scaffoldPlugin(
         tmpl  = templateType] {
 
             const QMap<QString, QString> files =
-                buildScaffoldFiles(pname, tname, ns, desc, tmpl);
+                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl);
 
             const QString pluginDir = root + "/cosmos-" + pname;
             int created = 0;
@@ -276,9 +291,12 @@ void InfraViewModel::scaffoldPlugin(
             for (auto it = files.cbegin(); it != files.cend(); ++it) {
                 const std::string fullPath = (pluginDir + "/" + it.key()).toStdString();
 
-                // Ensure parent directory (mkdir -p equivalent via executor)
+                // Ensure parent directory exists on the remote host.
+                // executeCommand returns stdout; mkdir -p errors go to stderr so
+                // we rely on writeFile below to surface any actual failure.
                 const std::string dirPath = fullPath.substr(0, fullPath.rfind('/'));
-                (void)fs_.executeCommand("mkdir -p '" + dirPath + "'");
+                [[maybe_unused]] const std::string mkdirOut =
+                    fs_.executeCommand("mkdir -p '" + dirPath + "'");
 
                 if (fs_.writeFile(fullPath, it.value().toStdString()))
                     ++created;
@@ -300,168 +318,57 @@ void InfraViewModel::scaffoldPlugin(
     }));
 }
 
-// ── Scaffold template builder ─────────────────────────────────────────────────
+// ── Add target to existing plugin ────────────────────────────────────────────
 
-// static
-QMap<QString, QString> InfraViewModel::buildScaffoldFiles(
-    const QString& pluginName,
+void InfraViewModel::addTargetToPlugin(
+    const QString& pluginRoot,
     const QString& targetName,
-    const QString& ns,
-    const QString& description,
+    const QString& pluginNamespace,
     int            templateType)
 {
-    const QString tgt    = targetName.toUpper();
-    const QString gem    = "cosmos-" + pluginName;
-    const QString varPfx = pluginName.toLower().replace('-', '_');
-    (void)ns; // used in template expansion below
-    (void)templateType;
+    if (!connected_) { setStatus("연결되지 않음"); return; }
+    setBusy(true);
+    setStatus("타겟 추가 중…");
 
-    QMap<QString, QString> files;
+    auto* watcher = new QFutureWatcher<void>(this);
+    connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
 
-    // ── plugin.txt ────────────────────────────────────────────────────────────
-    const QString interfaceClass = (templateType == 2)
-        ? "tcpip_client_interface.rb localhost 8080 8080 10 nil BURST"
-        : "tcpip_client_interface.rb localhost 8080 8080 10 nil BURST";
+    watcher->setFuture(QtConcurrent::run([this,
+        root  = pluginRoot,
+        tname = targetName,
+        ns    = pluginNamespace,
+        tmpl  = templateType] {
 
-    files["plugin.txt"] =
-        QString(
-            "# OpenC3 COSMOS Plugin: %1\n"
-            "# Description: %2\n\n"
-            "VARIABLE %3_target_name %4\n\n"
-            "TARGET %4 <%= %3_target_name %>\n"
-            "INTERFACE <%= %3_target_name %>_INT %5\n"
-            "  MAP_TARGET <%= %3_target_name %>\n"
-        ).arg(pluginName, description, varPfx, tgt, interfaceClass);
+            const QMap<QString, QString> allFiles =
+                PluginTemplateEngine::buildTargetFiles(tname, tmpl);
 
-    // ── gemspec ───────────────────────────────────────────────────────────────
-    files[gem + ".gemspec"] =
-        QString(
-            "# encoding: ascii-8bit\n\n"
-            "lib = File.expand_path('../lib', __FILE__)\n"
-            "$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)\n\n"
-            "Gem::Specification.new do |s|\n"
-            "  s.name        = '%1'\n"
-            "  s.version     = '0.0.1'\n"
-            "  s.platform    = Gem::Platform::RUBY\n"
-            "  s.summary     = '%2'\n"
-            "  s.description = '%2'\n"
-            "  s.homepage    = ''\n"
-            "  s.license     = 'Nonstandard'\n\n"
-            "  s.authors     = ['']\n"
-            "  s.email       = ['']\n\n"
-            "  s.files       = Dir['{targets,lib,spec}/**/*', 'plugin.txt']\n"
-            "  s.require_paths = ['lib']\n"
-            "end\n"
-        ).arg(gem, description);
+            int created = 0;
+            QStringList failed;
 
-    // ── Gemfile ───────────────────────────────────────────────────────────────
-    files["Gemfile"] =
-        "# frozen_string_literal: true\n\n"
-        "source 'https://rubygems.org'\n"
-        "gemspec\n";
+            for (auto it = allFiles.cbegin(); it != allFiles.cend(); ++it) {
+                const std::string fullPath = (root + "/" + it.key()).toStdString();
+                const std::string dirPath  =
+                    fullPath.substr(0, fullPath.rfind('/'));
+                [[maybe_unused]] const std::string mkdirOut =
+                    fs_.executeCommand("mkdir -p '" + dirPath + "'");
 
-    // ── CMD/TLM definitions ───────────────────────────────────────────────────
-    const QString cmdPath = "targets/" + tgt + "/cmd_tlm/" +
-                            targetName.toLower() + "_cmds.txt";
-    const QString tlmPath = "targets/" + tgt + "/cmd_tlm/" +
-                            targetName.toLower() + "_tlm.txt";
+                if (fs_.writeFile(fullPath, it.value().toStdString()))
+                    ++created;
+                else
+                    failed << it.key();
+            }
 
-    if (templateType == 1) {
-        // Satellite target — CCSDS-style
-        files[cmdPath] =
-            QString(
-                "# %1 Commands\n\n"
-                "COMMAND %2 NOOP BIG_ENDIAN 'No operation'\n"
-                "  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN MAX 0x1800 'Stream ID'\n"
-                "    FORMAT_STRING '0x%%04X'\n"
-                "  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN MAX 0xC000 'Sequence Control'\n"
-                "  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN MAX 0 'Data Length'\n"
-                "  APPEND_PARAMETER CCSDS_FUNCCODE 8 UINT MIN MAX 0 'Function Code'\n"
-                "  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN MAX 0 'Checksum'\n\n"
-                "COMMAND %2 RESET BIG_ENDIAN 'Software Reset'\n"
-                "  APPEND_ID_PARAMETER CCSDS_STREAMID 16 UINT MIN MAX 0x1801 'Stream ID'\n"
-                "    FORMAT_STRING '0x%%04X'\n"
-                "  APPEND_PARAMETER CCSDS_SEQUENCE 16 UINT MIN MAX 0xC000 'Sequence Control'\n"
-                "  APPEND_PARAMETER CCSDS_LENGTH 16 UINT MIN MAX 0 'Data Length'\n"
-                "  APPEND_PARAMETER CCSDS_FUNCCODE 8 UINT MIN MAX 1 'Function Code'\n"
-                "  APPEND_PARAMETER CCSDS_CHECKSUM 8 UINT MIN MAX 0 'Checksum'\n"
-            ).arg(tgt, tgt);
+            const bool    ok     = failed.isEmpty();
+            const QString detail = ok
+                ? QString("타겟 %1: %2개 파일 생성").arg(tname).arg(created)
+                : QString("실패: ") + failed.join(", ");
 
-        files[tlmPath] =
-            QString(
-                "# %1 Telemetry\n\n"
-                "TELEMETRY %2 HK BIG_ENDIAN 'Housekeeping'\n"
-                "  APPEND_ID_ITEM CCSDS_STREAMID 16 UINT 0x0800 'Stream ID'\n"
-                "    FORMAT_STRING '0x%%04X'\n"
-                "  APPEND_ITEM CCSDS_SEQUENCE 16 UINT 'Sequence Control'\n"
-                "  APPEND_ITEM CCSDS_LENGTH 16 UINT 'Packet Length'\n"
-                "  APPEND_ITEM CCSDS_SECONDS 32 UINT 'Time Seconds'\n"
-                "  APPEND_ITEM CCSDS_SUBSECONDS 16 UINT 'Time Subseconds'\n"
-                "  APPEND_ITEM MODE 8 UINT 'Operating Mode'\n"
-                "    STATES SAFE 0 NOMINAL 1 FAULT 2\n"
-                "  APPEND_ITEM TEMP 16 INT 'Temperature (°C x 10)'\n"
-                "    UNITS Celsius C\n"
-                "    POLYNOMIAL_CONVERSION_FACTOR 0 0.1\n"
-            ).arg(tgt, tgt);
-    } else {
-        // Generic target
-        files[cmdPath] =
-            QString(
-                "# %1 Commands\n\n"
-                "COMMAND %2 PING BIG_ENDIAN 'Ping command'\n"
-                "  APPEND_PARAMETER CMD_ID 8 UINT 0 255 0x01 'Command ID'\n"
-                "  APPEND_PARAMETER LENGTH 8 UINT 0 255 0 'Payload Length'\n\n"
-                "COMMAND %2 RESET BIG_ENDIAN 'Reset command'\n"
-                "  APPEND_PARAMETER CMD_ID 8 UINT 0 255 0x02 'Command ID'\n"
-                "  APPEND_PARAMETER LENGTH 8 UINT 0 255 0 'Payload Length'\n"
-            ).arg(tgt, tgt);
-
-        files[tlmPath] =
-            QString(
-                "# %1 Telemetry\n\n"
-                "TELEMETRY %2 STATUS BIG_ENDIAN 'Status packet'\n"
-                "  APPEND_ITEM TLM_ID 8 UINT 'Telemetry ID'\n"
-                "  APPEND_ITEM LENGTH 8 UINT 'Length'\n"
-                "  APPEND_ITEM STATUS 8 UINT 'Status byte'\n"
-                "    STATES IDLE 0 RUNNING 1 ERROR 2\n"
-                "  APPEND_ITEM COUNTER 16 UINT 'Packet counter'\n"
-            ).arg(tgt, tgt);
-    }
-
-    // ── Screen definition ─────────────────────────────────────────────────────
-    const QString screenPath = "targets/" + tgt + "/screens/" +
-                               targetName.toLower() + ".txt";
-    files[screenPath] =
-        QString(
-            "SCREEN AUTO AUTO 1.0\n\n"
-            "TITLE '%1 Status'\n\n"
-            "VERTICALBOX\n"
-            "  LABELVALUE %2 HK MODE\n"
-            "  LABELVALUE %2 HK TEMP\n"
-            "END\n"
-        ).arg(tgt, tgt);
-
-    // ── Procedures ────────────────────────────────────────────────────────────
-    const QString procPath = "targets/" + tgt + "/procedures/" +
-                             targetName.toLower() + "_check.rb";
-    files[procPath] =
-        QString(
-            "# %1 checkout procedure\n\n"
-            "load_utility 'cosmos_lib/procedures/utilities/clear'\n\n"
-            "def %2_check\n"
-            "  puts 'Starting %1 checkout...'\n\n"
-            "  # Send NOOP / PING\n"
-            "  cmd('%2 NOOP')\n"
-            "  wait_check('%2 STATUS STATUS == \"RUNNING\"', 5)\n\n"
-            "  puts '%1 checkout PASSED'\n"
-            "rescue => e\n"
-            "  puts \"FAILED: #{e.message}\"\n"
-            "  raise\n"
-            "end\n\n"
-            "%2_check\n"
-        ).arg(tgt, tgt.toLower());
-
-    return files;
+            QMetaObject::invokeMethod(this, [this, tname, ok, detail] {
+                setBusy(false);
+                setStatus(detail);
+                emit targetAdded(tname, ok, detail);
+            }, Qt::QueuedConnection);
+    }));
 }
 
 } // namespace OpenC3::ViewModels

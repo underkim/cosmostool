@@ -24,6 +24,7 @@ private slots:
     void onRemoveClicked();
     void onValidateClicked();
     void onScaffoldClicked();
+    void onAddTargetClicked();
     void onTableSelectionChanged();
 
 private:
@@ -31,6 +32,7 @@ private:
     void bindViewModel();
 
     [[nodiscard]] QString selectedPluginName() const;
+    [[nodiscard]] QString selectedPluginRoot() const;
 
     ViewModels::PluginViewModel& vm_;
     ViewModels::InfraViewModel&  infraVm_;
@@ -41,6 +43,7 @@ private:
     QPushButton* removeBtn_{nullptr};
     QPushButton* validateBtn_{nullptr};
     QPushButton* scaffoldBtn_{nullptr};
+    QPushButton* addTargetBtn_{nullptr};
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
     QTextEdit*   detailEdit_{nullptr};

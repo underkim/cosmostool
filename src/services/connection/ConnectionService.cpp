@@ -35,7 +35,7 @@ bool ConnectionService::connect(const std::string& profileId)
         return false;
     }
 
-    activeProfile_ = &*maybeProfile;  // pointer into settings_ cache — stable
+    activeProfile_ = maybeProfile;  // stored by value — safe after connect() returns
     setState(ConnectionState::Connected);
     Logging::Logger::info("[ConnectionService] Connected via profile '{}'",
                           profile.name);
@@ -46,14 +46,22 @@ void ConnectionService::disconnect()
 {
     if (executor_) executor_->disconnect();
     executor_.reset();
-    activeProfile_ = nullptr;
+    activeProfile_.reset();
     setState(ConnectionState::Disconnected);
 }
 
 ConnectionState ConnectionService::state() const noexcept { return state_; }
 
 const Models::ConnectionProfile*
-ConnectionService::activeProfile() const noexcept { return activeProfile_; }
+ConnectionService::activeProfile() const noexcept
+{
+    return activeProfile_ ? &*activeProfile_ : nullptr;
+}
+
+std::string ConnectionService::cosmosRootPath() const noexcept
+{
+    return activeProfile_ ? activeProfile_->cosmosRootPath : "/cosmos";
+}
 
 void ConnectionService::onStateChanged(
     std::function<void(const ConnectionEvent&)> cb)

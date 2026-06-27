@@ -37,6 +37,7 @@ public:
         QObject*                     parent = nullptr);
 
     [[nodiscard]] ProfileListModel* profileModel() const noexcept;
+    [[nodiscard]] bool isConnected() const noexcept;
 
 public slots:
     void loadProfiles();

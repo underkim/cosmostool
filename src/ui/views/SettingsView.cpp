@@ -85,8 +85,16 @@ void SettingsView::setupUi()
     nameEdit_  = new QLineEdit(formGroup);
     modeCombo_ = new QComboBox(formGroup);
     modeCombo_->addItems({"WSL", "SSH"});
+    cosmosRootPathEdit_ = new QLineEdit("/cosmos", formGroup);
+    cosmosRootPathEdit_->setPlaceholderText("/cosmos");
+    cosmosRootPathEdit_->setFont(QFont("Consolas", 10));
+    cosmosRootPathEdit_->setToolTip(
+        "COSMOS가 설치된 원격 경로입니다.\n"
+        ".env, compose.yaml, plugins 경로가 여기서 파생됩니다.\n"
+        "예: /cosmos  또는  /home/user/cosmos");
     formLayout->addRow("Name:", nameEdit_);
     formLayout->addRow("Mode:", modeCombo_);
+    formLayout->addRow("COSMOS 경로:", cosmosRootPathEdit_);
 
     // ── Mode-specific stack ───────────────────────────────────────────────────
     modeStack_ = new QStackedWidget(formGroup);
@@ -133,25 +141,38 @@ void SettingsView::setupUi()
     portEdit_->setFixedWidth(80);
     usernameEdit_   = new QLineEdit(sshPage);
     usernameEdit_->setPlaceholderText("cosmos");
+
+    // Auth method — order MUST match ConnectionConfig::AuthMethod enum:
+    //   Password=0, PublicKey=1
     authMethodCombo_ = new QComboBox(sshPage);
-    authMethodCombo_->addItems({"Public Key", "Password"});
-    keyPathEdit_    = new QLineEdit(sshPage);
+    authMethodCombo_->addItems({"Password", "Public Key"});
+
+    // Password field (shown when auth = Password)
+    passwordEdit_ = new QLineEdit(sshPage);
+    passwordEdit_->setEchoMode(QLineEdit::Password);
+    passwordEdit_->setPlaceholderText("SSH 비밀번호");
+
+    // Key path field (shown when auth = Public Key)
+    keyPathEdit_ = new QLineEdit(sshPage);
     keyPathEdit_->setPlaceholderText("C:\\Users\\me\\.ssh\\id_rsa");
 
-    auto* keyRow    = new QHBoxLayout;
-    auto* browseKey = new QPushButton("…", sshPage);
+    auto* keyWidget = new QWidget(sshPage);
+    auto* keyRowLayout = new QHBoxLayout(keyWidget);
+    keyRowLayout->setContentsMargins(0, 0, 0, 0);
+    auto* browseKey = new QPushButton("…", keyWidget);
     browseKey->setFixedWidth(28);
     browseKey->setToolTip("개인 키 파일 선택");
-    keyRow->addWidget(keyPathEdit_);
-    keyRow->addWidget(browseKey);
+    keyRowLayout->addWidget(keyPathEdit_);
+    keyRowLayout->addWidget(browseKey);
 
     sshLayout->addRow("SSH Host:",    hostEdit_);
     sshLayout->addRow("SSH Port:",    portEdit_);
     sshLayout->addRow("Username:",    usernameEdit_);
     sshLayout->addRow("Auth Method:", authMethodCombo_);
-    sshLayout->addRow("Key Path:",    keyRow);
+    sshLayout->addRow("Password:",    passwordEdit_);
+    sshLayout->addRow("Key Path:",    keyWidget);
 
-    // Key browse button
+    // Browse key button
     connect(browseKey, &QPushButton::clicked, this, [this] {
         const QString path = QFileDialog::getOpenFileName(
             this, "개인 키 파일 선택",
@@ -161,18 +182,15 @@ void SettingsView::setupUi()
             keyPathEdit_->setText(QDir::toNativeSeparators(path));
     });
 
-    // Show/hide key path row based on auth method
-    auto updateKeyRow = [this, sshLayout, browseKey](int idx) {
-        const bool isPubKey = (idx == 0);
-        keyPathEdit_->setVisible(isPubKey);
-        browseKey->setVisible(isPubKey);
-        // Hide label too — find the row
-        auto* lbl = sshLayout->labelForField(keyPathEdit_->parentWidget()
-                        ? static_cast<QWidget*>(keyPathEdit_) : nullptr);
-        if (lbl) lbl->setVisible(isPubKey);
+    // Show password row or key-path row based on auth method selection
+    auto updateAuthFields = [this, sshLayout, keyWidget](int idx) {
+        const bool isPassword = (idx == 0); // Password=0, PublicKey=1
+        sshLayout->setRowVisible(passwordEdit_, isPassword);
+        sshLayout->setRowVisible(keyWidget,     !isPassword);
     };
     connect(authMethodCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, updateKeyRow);
+            this, updateAuthFields);
+    updateAuthFields(authMethodCombo_->currentIndex());
 
     modeStack_->addWidget(sshPage); // index 1
 
@@ -216,10 +234,16 @@ void SettingsView::bindViewModel()
     connect(&vm_, &ViewModels::SettingsViewModel::connectionStateChanged,
             this, [this](const QString& state) {
                 statusLabel_->setText("Status: " + state);
+                updateConnectionButtons(state);
             });
 
     // initial stack page
     modeStack_->setCurrentIndex(0);
+
+    // Sync button state with the actual current connection state.
+    // SettingsView may be created AFTER a successful connect (e.g. via
+    // ConnectionDialog), so the "Connected" signal has already been consumed.
+    updateConnectionButtons(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -314,6 +338,8 @@ void SettingsView::onProfileSelected(const QModelIndex& idx)
 void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
 {
     nameEdit_->setText(QString::fromStdString(p.name));
+    cosmosRootPathEdit_->setText(QString::fromStdString(
+        p.cosmosRootPath.empty() ? "/cosmos" : p.cosmosRootPath));
 
     const int modeIdx = static_cast<int>(p.mode);
     modeCombo_->setCurrentIndex(modeIdx);
@@ -325,7 +351,6 @@ void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
     if (di >= 0)
         wslDistroCombo_->setCurrentIndex(di);
     else if (!distro.isEmpty()) {
-        // Saved distro not in list — add it temporarily
         wslDistroCombo_->addItem(distro);
         wslDistroCombo_->setCurrentText(distro);
     }
@@ -335,6 +360,7 @@ void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
     portEdit_->setText(QString::number(p.port > 0 ? p.port : 22));
     usernameEdit_->setText(QString::fromStdString(p.username));
     authMethodCombo_->setCurrentIndex(static_cast<int>(p.authMethod));
+    passwordEdit_->setText(QString::fromStdString(p.password));
     keyPathEdit_->setText(QString::fromStdString(p.privateKeyPath));
 }
 
@@ -348,8 +374,10 @@ Models::ConnectionProfile SettingsView::collectProfileForm() const
     if (p.id.empty())
         p.id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
 
-    p.name = nameEdit_->text().toStdString();
-    p.mode = static_cast<Models::ConnectionMode>(modeCombo_->currentIndex());
+    p.name           = nameEdit_->text().toStdString();
+    p.mode           = static_cast<Models::ConnectionMode>(modeCombo_->currentIndex());
+    p.cosmosRootPath = cosmosRootPathEdit_->text().trimmed().toStdString();
+    if (p.cosmosRootPath.empty()) p.cosmosRootPath = "/cosmos";
 
     // WSL
     p.wslDistribution = wslDistroCombo_->currentText().toStdString();
@@ -359,9 +387,22 @@ Models::ConnectionProfile SettingsView::collectProfileForm() const
     p.port           = portEdit_->text().toInt();
     p.username       = usernameEdit_->text().toStdString();
     p.authMethod     = static_cast<Models::AuthMethod>(authMethodCombo_->currentIndex());
+    p.password       = passwordEdit_->text().toStdString();
     p.privateKeyPath = keyPathEdit_->text().toStdString();
 
     return p;
+}
+
+void SettingsView::updateConnectionButtons(const QString& state)
+{
+    const bool connected  = (state == "Connected");
+    const bool connecting = (state == "Connecting");
+
+    connectBtn_->setVisible(!connected);
+    disconnectBtn_->setVisible(connected);
+
+    connectBtn_->setEnabled(!connected && !connecting);
+    disconnectBtn_->setEnabled(connected && !connecting);
 }
 
 } // namespace OpenC3::UI::Views

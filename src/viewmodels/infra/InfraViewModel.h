@@ -16,8 +16,11 @@ class InfraViewModel final : public ViewModelBase {
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
 
 public:
-    static constexpr const char* kDefaultEnvPath     = "/cosmos/.env";
-    static constexpr const char* kDefaultComposePath = "/cosmos/compose.yaml";
+    // Derived paths — call these after connection to get live cosmos root
+    [[nodiscard]] QString cosmosRootPath()   const noexcept;
+    [[nodiscard]] QString defaultEnvPath()   const noexcept;
+    [[nodiscard]] QString defaultComposePath() const noexcept;
+    [[nodiscard]] QString defaultPluginsPath() const noexcept;
 
     explicit InfraViewModel(
         Services::IConnectionService& connection,
@@ -34,11 +37,16 @@ public slots:
     void loadComposeFile(const QString& remotePath);
     void saveComposeFile(const QString& remotePath, const QString& content);
 
-    // Generates a unified diff patch between originalContent and currentContent.
-    // Result is emitted via patchReady(). Falls back to simple line diff if git unavailable.
-    void generatePatch(const QString& originalContent,
-                       const QString& currentContent,
-                       const QString& filename);
+    // Volume override workflow:
+    //   1. loadContainers()         → populates container list via docker ps
+    //   2. extractContainerFile()   → docker exec cat → containerFileExtracted()
+    //   3. applyVolumeOverride()    → saves file to host path → volumeEntryReady()
+    void loadContainers();
+    void extractContainerFile(const QString& container, const QString& filePath);
+    void applyVolumeOverride(const QString& container,
+                              const QString& containerFilePath,
+                              const QString& hostSavePath,
+                              const QString& content);
 
     // Creates an OpenC3 plugin scaffold directory tree on the remote host.
     // templateType: 0=Generic, 1=Satellite Target, 2=GSE Interface, 3=Tool
@@ -50,6 +58,13 @@ public slots:
         const QString& description,
         int            templateType);
 
+    // Appends a new target directory tree to an existing plugin root on the remote.
+    void addTargetToPlugin(
+        const QString& pluginRoot,   // e.g. /cosmos/plugins/cosmos-my-plugin
+        const QString& targetName,
+        const QString& pluginNamespace,
+        int            templateType);
+
 signals:
     void connectionChanged();
     void busyChanged();
@@ -57,28 +72,16 @@ signals:
     void envLoaded(const QString& path, const QString& content);
     void composeLoaded(const QString& path, const QString& content);
     void fileSaved(const QString& path, bool success);
-    void patchReady(const QString& patchContent);
+    void containersLoaded(const QStringList& names);
+    void containerFileExtracted(const QString& containerPath, const QString& content);
+    void volumeEntryReady(const QString& composeEntry);
+    void overrideApplied(bool ok, const QString& hostPath);
     void scaffoldComplete(const QString& rootPath, bool success, const QString& detail);
+    void targetAdded(const QString& targetName, bool success, const QString& detail);
 
 private:
     void setStatus(const QString& msg);
     void setBusy(bool b);
-
-    // Builds the full set of scaffold file contents for a plugin.
-    // Returns a map of relativePath → fileContent.
-    static QMap<QString, QString> buildScaffoldFiles(
-        const QString& pluginName,
-        const QString& targetName,
-        const QString& ns,
-        const QString& description,
-        int            templateType);
-
-    // Local unified diff (git diff --no-index preferred; line diff as fallback).
-    static QString computePatch(
-        const QString& original,
-        const QString& modified,
-        const QString& filenameA,
-        const QString& filenameB);
 
     Services::IConnectionService& connection_;
     Services::IRemoteFileService& fs_;

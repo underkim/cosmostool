@@ -56,12 +56,9 @@ int Application::run()
         return 1;
     }
 
-    // ── Optional quick-connect on startup ─────────────────────────────────────
-    auto& settingsVm  = *registry_.resolve<ViewModels::SettingsViewModel>();
-    const auto profiles =
-        registry_.resolve<Services::ISettingsService>()->profiles();
-
-    if (!profiles.empty()) {
+    // ── Connection dialog on startup ──────────────────────────────────────────
+    auto& settingsVm = *registry_.resolve<ViewModels::SettingsViewModel>();
+    {
         UI::Dialogs::ConnectionDialog dlg(settingsVm);
         dlg.exec();
     }
@@ -172,7 +169,7 @@ void Application::registerViewModels()
         *settings, *connection);
     registry_.registerInstance<ViewModels::SettingsViewModel>(settingsVm);
 
-    auto pluginVm = std::make_shared<ViewModels::PluginViewModel>(*plugin);
+    auto pluginVm = std::make_shared<ViewModels::PluginViewModel>(*plugin, *connection);
     registry_.registerInstance<ViewModels::PluginViewModel>(pluginVm);
 
     auto cmdTlmVm = std::make_shared<ViewModels::CmdTlmViewModel>(

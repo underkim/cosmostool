@@ -93,9 +93,13 @@ QVariant PluginTableModel::headerData(int section,
 
 // ── PluginViewModel ───────────────────────────────────────────────────────────
 
-PluginViewModel::PluginViewModel(Services::IPluginService& plugin, QObject* parent)
+PluginViewModel::PluginViewModel(
+    Services::IPluginService&     plugin,
+    Services::IConnectionService& connection,
+    QObject*                      parent)
     : ViewModelBase(parent)
     , plugin_(plugin)
+    , connection_(connection)
     , tableModel_(new PluginTableModel(this))
 {}
 
@@ -127,8 +131,9 @@ void PluginViewModel::refresh()
     setBusy(true);
     setStatus("Loading plugins…");
 
-    (void)QtConcurrent::run([this] {
-        auto plugins = plugin_.listInstalled();
+    const std::string cosmosRoot = connection_.cosmosRootPath();
+    (void)QtConcurrent::run([this, cosmosRoot] {
+        auto plugins = plugin_.listInstalled(cosmosRoot);
         QMetaObject::invokeMethod(this, [this, list = std::move(plugins)] () mutable {
             tableModel_->setPlugins(std::move(list));
             emit pluginListChanged();
@@ -141,12 +146,13 @@ void PluginViewModel::refresh()
 void PluginViewModel::install(const QString& gemFilePath)
 {
     if (busy_) return;
-    const std::string path = gemFilePath.toStdString();
+    const std::string path       = gemFilePath.toStdString();
+    const std::string cosmosRoot = connection_.cosmosRootPath();
     setBusy(true);
     setStatus("Installing " + gemFilePath + "…");
 
-    (void)QtConcurrent::run([this, path] {
-        const bool ok = plugin_.install(path);
+    (void)QtConcurrent::run([this, path, cosmosRoot] {
+        const bool ok = plugin_.install(path, cosmosRoot);
         QMetaObject::invokeMethod(this, [this, ok, qpath = QString::fromStdString(path)] {
             emit actionCompleted(qpath, ok);
             setBusy(false);
@@ -163,12 +169,13 @@ void PluginViewModel::install(const QString& gemFilePath)
 void PluginViewModel::remove(const QString& pluginName)
 {
     if (busy_) return;
-    const std::string name = pluginName.toStdString();
+    const std::string name       = pluginName.toStdString();
+    const std::string cosmosRoot = connection_.cosmosRootPath();
     setBusy(true);
     setStatus("Removing " + pluginName + "…");
 
-    (void)QtConcurrent::run([this, name] {
-        const bool ok = plugin_.remove(name);
+    (void)QtConcurrent::run([this, name, cosmosRoot] {
+        const bool ok = plugin_.remove(name, cosmosRoot);
         QMetaObject::invokeMethod(this, [this, ok, qname = QString::fromStdString(name)] {
             emit actionCompleted(qname, ok);
             setBusy(false);

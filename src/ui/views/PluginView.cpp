@@ -1,5 +1,6 @@
 #include "PluginView.h"
-#include "ui/dialogs/PluginScaffoldDialog.h"
+#include "ui/dialogs/PluginWizard.h"
+#include "ui/dialogs/AddTargetDialog.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -41,10 +42,13 @@ void PluginView::setupUi()
     auto* toolbar = new QHBoxLayout;
     refreshBtn_  = new QPushButton("↻  Refresh",   this);
     installBtn_  = new QPushButton("⬇  Install",   this);
-    removeBtn_   = new QPushButton("✕  Remove",    this);
-    validateBtn_ = new QPushButton("✔  Validate",  this);
-    scaffoldBtn_ = new QPushButton("🔨  Scaffold",  this);
-    scaffoldBtn_->setToolTip("새 OpenC3 플러그인 구조를 원격에 자동 생성합니다");
+    removeBtn_    = new QPushButton("✕  Remove",       this);
+    validateBtn_  = new QPushButton("✔  Validate",     this);
+    scaffoldBtn_  = new QPushButton("🔨  New Plugin",   this);
+    addTargetBtn_ = new QPushButton("＋  Add Target",  this);
+    scaffoldBtn_->setToolTip("새 OpenC3 플러그인 구조를 위자드로 생성합니다");
+    addTargetBtn_->setToolTip("선택한 플러그인에 새 타겟을 추가합니다");
+    addTargetBtn_->setEnabled(false);
     progressBar_ = new QProgressBar(this);
     progressBar_->setRange(0, 0);
     progressBar_->setVisible(false);
@@ -59,6 +63,7 @@ void PluginView::setupUi()
     toolbar->addWidget(validateBtn_);
     toolbar->addSpacing(16);
     toolbar->addWidget(scaffoldBtn_);
+    toolbar->addWidget(addTargetBtn_);
     toolbar->addStretch();
     toolbar->addWidget(progressBar_);
     root->addLayout(toolbar);
@@ -100,11 +105,19 @@ void PluginView::bindViewModel()
     connect(installBtn_,  &QPushButton::clicked, this, &PluginView::onInstallClicked);
     connect(removeBtn_,   &QPushButton::clicked, this, &PluginView::onRemoveClicked);
     connect(validateBtn_, &QPushButton::clicked, this, &PluginView::onValidateClicked);
-    connect(scaffoldBtn_, &QPushButton::clicked, this, &PluginView::onScaffoldClicked);
+    connect(scaffoldBtn_,  &QPushButton::clicked, this, &PluginView::onScaffoldClicked);
+    connect(addTargetBtn_, &QPushButton::clicked, this, &PluginView::onAddTargetClicked);
 
     connect(tableView_->selectionModel(),
             &QItemSelectionModel::selectionChanged,
             this, &PluginView::onTableSelectionChanged);
+
+    connect(&infraVm_, &ViewModels::InfraViewModel::busyChanged,
+            this, [this] {
+                const bool busy = infraVm_.isBusy();
+                scaffoldBtn_->setEnabled(!busy);
+                if (busy) addTargetBtn_->setEnabled(false);
+            });
 
     connect(&vm_, &ViewModels::PluginViewModel::busyChanged,
             this, [this] {
@@ -158,11 +171,22 @@ void PluginView::onRemoveClicked()
 
 void PluginView::onScaffoldClicked()
 {
-    auto* dlg = new Dialogs::PluginScaffoldDialog(infraVm_, this);
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
-    dlg->exec();
-    // After scaffold, refresh plugin list
-    vm_.refresh();
+    Dialogs::PluginWizard wizard(infraVm_, this);
+    if (wizard.exec() == QDialog::Accepted)
+        vm_.refresh();
+}
+
+void PluginView::onAddTargetClicked()
+{
+    const QString root = selectedPluginRoot();
+    if (root.isEmpty()) {
+        QMessageBox::information(this, "타겟 추가",
+            "플러그인을 선택한 후 타겟을 추가하세요.");
+        return;
+    }
+    Dialogs::AddTargetDialog dlg(infraVm_, root, this);
+    if (dlg.exec() == QDialog::Accepted)
+        vm_.refresh();
 }
 
 void PluginView::onValidateClicked()
@@ -177,6 +201,7 @@ void PluginView::onTableSelectionChanged()
 {
     const bool hasSel = tableView_->selectionModel()->hasSelection();
     removeBtn_->setEnabled(hasSel && !vm_.isBusy());
+    addTargetBtn_->setEnabled(hasSel && !infraVm_.isBusy());
 
     if (!hasSel) { detailEdit_->clear(); return; }
 
@@ -209,6 +234,17 @@ QString PluginView::selectedPluginName() const
     if (rows.isEmpty()) return {};
     const auto* p = vm_.pluginModel()->pluginAt(rows.first().row());
     return p ? QString::fromStdString(p->name) : QString{};
+}
+
+QString PluginView::selectedPluginRoot() const
+{
+    const auto rows = tableView_->selectionModel()->selectedRows();
+    if (rows.isEmpty()) return {};
+    const auto* p = vm_.pluginModel()->pluginAt(rows.first().row());
+    if (!p) return {};
+    // Derive remote plugin root from cosmos root + plugin name
+    return infraVm_.defaultPluginsPath() + "/cosmos-" +
+           QString::fromStdString(p->name);
 }
 
 } // namespace OpenC3::UI::Views

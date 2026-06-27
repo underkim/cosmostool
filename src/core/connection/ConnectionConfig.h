@@ -29,6 +29,8 @@ struct ConnectionConfig {
     std::string publicKeyPath;     // ~/.ssh/id_rsa.pub (optional, derived if empty)
     std::string passphrase;        // key passphrase (if any)
 
+    std::string cosmosRootPath{"/cosmos"};  // base directory of the COSMOS installation
+
     int connectTimeoutMs{10'000};
     int commandTimeoutMs{30'000};
 };

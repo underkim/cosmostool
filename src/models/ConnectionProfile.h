@@ -17,6 +17,9 @@ struct ConnectionProfile {
     ConnectionMode mode{ConnectionMode::WSL};
     bool           isDefault{false};
 
+    // ── COSMOS installation ───────────────────────────────────────────────────
+    std::string cosmosRootPath{"/cosmos"};  // root of the COSMOS deployment on the target
+
     // ── WSL ───────────────────────────────────────────────────────────────────
     std::string wslDistribution{"Ubuntu"};
 
@@ -37,6 +40,7 @@ struct ConnectionProfile {
     {
         Core::Connection::ConnectionConfig cfg;
         cfg.mode             = mode;
+        cfg.cosmosRootPath   = cosmosRootPath;
         cfg.wslDistribution  = wslDistribution;
         cfg.host             = host;
         cfg.port             = port;

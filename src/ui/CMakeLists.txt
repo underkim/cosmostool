@@ -6,6 +6,7 @@ add_library(opencosmos_ui STATIC
     widgets/StatusBadge.cpp
     widgets/LogWidget.cpp
     widgets/MetricCard.cpp
+    widgets/CmdTlmHighlighter.cpp
     views/DashboardView.cpp
     views/DockerView.cpp
     views/DoctorView.cpp
@@ -18,7 +19,8 @@ add_library(opencosmos_ui STATIC
     dialogs/ConnectionDialog.cpp
     dialogs/AboutDialog.cpp
     dialogs/UserGuideDialog.cpp
-    dialogs/PluginScaffoldDialog.cpp
+    dialogs/PluginWizard.cpp
+    dialogs/AddTargetDialog.cpp
     styles/ThemeManager.cpp
 )
 
