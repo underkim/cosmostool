@@ -8,6 +8,7 @@
 #include "views/PacketToolsView.h"
 #include "views/LogViewerView.h"
 #include "dialogs/AboutDialog.h"
+#include "dialogs/UserGuideDialog.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -140,7 +141,19 @@ void MainWindow::setupMenuBar()
     });
     viewMenu->addAction(refreshAction);
 
-    auto* helpMenu    = menuBar()->addMenu("&Help");
+    auto* helpMenu       = menuBar()->addMenu("&Help");
+
+    auto* guideAction = new QAction("&User Guide", this);
+    guideAction->setShortcut(QKeySequence::HelpContents); // F1
+    connect(guideAction, &QAction::triggered, this, [this] {
+        auto* dlg = new Dialogs::UserGuideDialog(this);
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->show();
+    });
+    helpMenu->addAction(guideAction);
+
+    helpMenu->addSeparator();
+
     auto* aboutAction = new QAction("&About", this);
     connect(aboutAction, &QAction::triggered, this, [this] {
         Dialogs::AboutDialog dlg(this);

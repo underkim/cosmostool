@@ -22,7 +22,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     appName->setFont(f);
     appName->setAlignment(Qt::AlignCenter);
 
-    auto* version = new QLabel("Version 0.1.0  |  Phase 2 — Skeleton", this);
+    auto* version = new QLabel("Version 0.1.0  |  All Phases Complete", this);
     version->setAlignment(Qt::AlignCenter);
     version->setObjectName("SubLabel");
 

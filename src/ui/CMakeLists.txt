@@ -16,6 +16,7 @@ add_library(opencosmos_ui STATIC
     views/LogViewerView.cpp
     dialogs/ConnectionDialog.cpp
     dialogs/AboutDialog.cpp
+    dialogs/UserGuideDialog.cpp
     styles/ThemeManager.cpp
 )
 
