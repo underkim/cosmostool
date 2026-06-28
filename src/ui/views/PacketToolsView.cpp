@@ -89,6 +89,11 @@ void PacketToolsView::setupUi()
 
     splitter->addWidget(leftGroup);
     splitter->addWidget(rightPane);
+    splitter->setChildrenCollapsible(false); // list and content pane stay visible
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    leftGroup->setMinimumWidth(200);
+    rightPane->setMinimumWidth(320);
     splitter->setSizes({280, 900});
     root->addWidget(splitter);
 

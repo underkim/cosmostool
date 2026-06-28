@@ -93,6 +93,9 @@ QWidget* InfraView::buildEnvTab()
 
     splitter->addWidget(envTable_);
     splitter->addWidget(envRawEdit_);
+    splitter->setChildrenCollapsible(false); // both panes stay usable on drag
+    envTable_->setMinimumWidth(240);
+    envRawEdit_->setMinimumWidth(240);
     splitter->setSizes({500, 500});
     layout->addWidget(splitter, 1);
 

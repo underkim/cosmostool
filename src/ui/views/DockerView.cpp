@@ -79,6 +79,10 @@ void DockerView::setupUi()
 
     splitter->addWidget(tableView_);
     splitter->addWidget(logGroup);
+    splitter->setChildrenCollapsible(false); // keep table and logs visible on drag
+    splitter->setStretchFactor(0, 1);
+    tableView_->setMinimumHeight(120);
+    logGroup->setMinimumHeight(120);
     splitter->setSizes({420, 280});
     root->addWidget(splitter);
 }

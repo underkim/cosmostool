@@ -229,15 +229,23 @@ void PluginView::setupUi()
     componentSplitter->addWidget(componentList_);
     componentSplitter->addWidget(editorPane);
     componentSplitter->addWidget(guideGroup);
+    componentSplitter->setChildrenCollapsible(false); // panes must not vanish on drag
     componentSplitter->setStretchFactor(0, 0);
     componentSplitter->setStretchFactor(1, 1);
     componentSplitter->setStretchFactor(2, 0);
     componentSplitter->setSizes({280, 680, 300});
+    editorPane->setMinimumWidth(320);
+    guideGroup->setMinimumWidth(200);
     componentLayout->addWidget(componentSplitter);
     detailTabs_->addTab(componentTab, "Component Files");
 
     mainSplitter->addWidget(tableView_);
     mainSplitter->addWidget(detailTabs_);
+    mainSplitter->setChildrenCollapsible(false); // table and detail stay visible
+    mainSplitter->setStretchFactor(0, 0);
+    mainSplitter->setStretchFactor(1, 1);
+    tableView_->setMinimumHeight(120);
+    detailTabs_->setMinimumHeight(160);
     mainSplitter->setSizes({360, 360});
     root->addWidget(mainSplitter);
 }

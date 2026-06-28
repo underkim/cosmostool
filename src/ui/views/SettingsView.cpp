@@ -212,6 +212,11 @@ void SettingsView::setupUi()
 
     splitter->addWidget(leftPane);
     splitter->addWidget(formGroup);
+    splitter->setChildrenCollapsible(false); // profile list and form stay visible
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    leftPane->setMinimumWidth(180);
+    formGroup->setMinimumWidth(360);
     splitter->setSizes({240, 600});
     root->addWidget(splitter);
 }
