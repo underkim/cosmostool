@@ -10,6 +10,9 @@ MetricCard::MetricCard(const QString& title, const QString& unit, QWidget* paren
     , unit_(unit)
 {
     setObjectName("MetricCard");
+    // Required for the QSS background-color / border / border-radius on a plain
+    // QWidget subclass to actually paint; without it the card renders flat.
+    setAttribute(Qt::WA_StyledBackground, true);
     setMinimumWidth(160);
 
     auto* layout = new QVBoxLayout(this);

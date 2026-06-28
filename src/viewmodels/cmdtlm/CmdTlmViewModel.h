@@ -32,6 +32,7 @@ public:
 
 public slots:
     void listDirectory(const QString& remotePath);
+    void listPluginFiles(const QString& pluginRootPath);
     void openFile(const QString& remotePath);
     void saveFile(const QString& remotePath, const QString& content);
 
@@ -44,6 +45,7 @@ signals:
     void busyChanged();
     void statusMessageChanged();
     void directoryListed(const QStringList& entries, const QString& path);
+    void pluginFilesListed(const QStringList& files, const QString& pluginRootPath);
     void fileOpened(const QString& path, const QString& content);
     void fileSaved(const QString& path, bool success);
     void fileParsed(const CmdTlmParseResult& result, const QString& filePath);

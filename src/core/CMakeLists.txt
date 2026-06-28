@@ -6,6 +6,7 @@ add_library(opencosmos_core STATIC
     logging/Logger.cpp
     events/EventBus.cpp
     connection/ExecutorProxy.cpp
+    connection/ShellQuote.cpp
     connection/wsl/WslExecutor.cpp
     connection/ssh/SshExecutor.cpp
 )

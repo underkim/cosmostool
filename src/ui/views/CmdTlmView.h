@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QTextEdit>
 
 namespace OpenC3::UI::Widgets { class CmdTlmHighlighter; }
 
@@ -35,6 +36,10 @@ public:
     explicit CmdTlmView(ViewModels::CmdTlmViewModel& vm,
                         QWidget*                     parent = nullptr);
 
+public slots:
+    void openDirectory(const QString& remotePath);
+    void openFile(const QString& remotePath);
+
 private slots:
     void onBrowseClicked();
     void onFileItemDoubleClicked(QListWidgetItem* item);
@@ -43,6 +48,7 @@ private slots:
     void onInsertCmd();
     void onInsertTlm();
     void onInsertParam();
+    void onAddField();
     void onStructureItemClicked(QTreeWidgetItem* item, int col);
     void onDiagnosticItemClicked(QListWidgetItem* item);
     void onFileParsed(const ViewModels::CmdTlmParseResult& result,
@@ -65,6 +71,7 @@ private:
     QPushButton* insertCmdBtn_{nullptr};
     QPushButton* insertTlmBtn_{nullptr};
     QPushButton* insertParamBtn_{nullptr};
+    QPushButton* addFieldBtn_{nullptr};
     QPushButton* validateBtn_{nullptr};
     QPushButton* saveBtn_{nullptr};
 
@@ -75,6 +82,7 @@ private:
     QLabel*        fileLabel_{nullptr};
     QPlainTextEdit* editor_{nullptr};
     Widgets::CmdTlmHighlighter* highlighter_{nullptr};
+    QTextEdit* syntaxGuide_{nullptr};
 
     // ── Bottom — structure tree ───────────────────────────────────────────────
     QTreeWidget* structureTree_{nullptr};

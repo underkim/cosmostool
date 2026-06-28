@@ -86,15 +86,24 @@ void SettingsView::setupUi()
     modeCombo_ = new QComboBox(formGroup);
     modeCombo_->addItems({"WSL", "SSH"});
     cosmosRootPathEdit_ = new QLineEdit("/cosmos", formGroup);
-    cosmosRootPathEdit_->setPlaceholderText("/cosmos");
+    cosmosRootPathEdit_->setPlaceholderText("/cosmos or /path/to/openc3.sh");
     cosmosRootPathEdit_->setFont(QFont("Consolas", 10));
     cosmosRootPathEdit_->setToolTip(
-        "COSMOS가 설치된 원격 경로입니다.\n"
-        ".env, compose.yaml, plugins 경로가 여기서 파생됩니다.\n"
-        "예: /cosmos  또는  /home/user/cosmos");
+        "Remote OpenC3 path used by Infra tools.\n"
+        "Enter either the OpenC3 directory or the full openc3.sh path.\n"
+        "Examples: /cosmos, /home/user/openc3, /home/user/openc3/openc3.sh");
+    detectOpenC3PathBtn_ = new QPushButton("Detect", formGroup);
+    detectOpenC3PathBtn_->setToolTip("Search the selected WSL distro for openc3.sh");
+
+    auto* openC3PathRow = new QWidget(formGroup);
+    auto* openC3PathLayout = new QHBoxLayout(openC3PathRow);
+    openC3PathLayout->setContentsMargins(0, 0, 0, 0);
+    openC3PathLayout->addWidget(cosmosRootPathEdit_, 1);
+    openC3PathLayout->addWidget(detectOpenC3PathBtn_);
+
     formLayout->addRow("Name:", nameEdit_);
     formLayout->addRow("Mode:", modeCombo_);
-    formLayout->addRow("COSMOS 경로:", cosmosRootPathEdit_);
+    formLayout->addRow("OpenC3 path:", openC3PathRow);
 
     // ── Mode-specific stack ───────────────────────────────────────────────────
     modeStack_ = new QStackedWidget(formGroup);
@@ -224,6 +233,8 @@ void SettingsView::bindViewModel()
 
     connect(wslRefreshBtn_, &QPushButton::clicked,
             this, &SettingsView::refreshWslDistros);
+    connect(detectOpenC3PathBtn_, &QPushButton::clicked,
+            this, &SettingsView::detectOpenC3Path);
 
     connect(profileList_, &QListView::activated,
             this, &SettingsView::onProfileSelected);
@@ -239,6 +250,7 @@ void SettingsView::bindViewModel()
 
     // initial stack page
     modeStack_->setCurrentIndex(0);
+    detectOpenC3PathBtn_->setEnabled(modeCombo_->currentIndex() == 0);
 
     // Sync button state with the actual current connection state.
     // SettingsView may be created AFTER a successful connect (e.g. via
@@ -251,6 +263,7 @@ void SettingsView::bindViewModel()
 void SettingsView::onModeChanged(int modeIndex)
 {
     modeStack_->setCurrentIndex(modeIndex); // 0=WSL, 1=SSH
+    detectOpenC3PathBtn_->setEnabled(modeIndex == 0);
 }
 
 void SettingsView::refreshWslDistros()
@@ -293,12 +306,76 @@ void SettingsView::refreshWslDistros()
     if (idx >= 0) wslDistroCombo_->setCurrentIndex(idx);
 }
 
+void SettingsView::detectOpenC3Path()
+{
+    if (modeCombo_->currentIndex() != 0) {
+        QMessageBox::information(this, "OpenC3 path detection",
+            "Automatic detection is currently available for WSL profiles.");
+        return;
+    }
+
+    const QString distro = wslDistroCombo_->currentText().trimmed();
+    if (distro.isEmpty()) {
+        QMessageBox::information(this, "OpenC3 path detection",
+            "Select a WSL distro first.");
+        return;
+    }
+
+    detectOpenC3PathBtn_->setEnabled(false);
+    detectOpenC3PathBtn_->setText("Detecting...");
+
+    const QString script = R"(for p in \
+  /cosmos/openc3.sh \
+  /openc3/openc3.sh \
+  "$HOME/openc3/openc3.sh" \
+  "$HOME/cosmos/openc3.sh"; do
+  [ -f "$p" ] && printf '%s\n' "$p" && exit 0
+done
+find "$HOME" /opt /srv /cosmos /openc3 -maxdepth 5 -type f -name openc3.sh 2>/dev/null | head -n 1)";
+
+    QProcess proc;
+    proc.start("wsl.exe", {"-d", distro, "--", "sh", "-lc", script});
+
+    const bool finished = proc.waitForFinished(15000);
+    detectOpenC3PathBtn_->setText("Detect");
+    detectOpenC3PathBtn_->setEnabled(modeCombo_->currentIndex() == 0);
+
+    if (!finished) {
+        proc.kill();
+        QMessageBox::warning(this, "OpenC3 path detection",
+            "Timed out while searching for openc3.sh.");
+        return;
+    }
+
+    const QString found =
+        QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
+    if (proc.exitStatus() == QProcess::NormalExit
+        && proc.exitCode() == 0
+        && !found.isEmpty()) {
+        cosmosRootPathEdit_->setText(found.split('\n').first().trimmed());
+        return;
+    }
+
+    QMessageBox::information(this, "OpenC3 path detection",
+        "Could not find openc3.sh in the selected WSL distro.\n"
+        "Enter the OpenC3 directory or openc3.sh path manually.");
+}
+
 void SettingsView::onAddProfile()
 {
+    // Clear the list selection first: collectProfileForm() derives the profile
+    // id from the currently selected row, so without this a freshly added
+    // profile would be saved over whichever profile is still highlighted.
+    // With no selection, collectProfileForm() generates a fresh id instead.
+    profileList_->clearSelection();
+    profileList_->setCurrentIndex(QModelIndex());
+
     Models::ConnectionProfile p;
-    p.id   = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
     p.name = "New Profile";
     populateProfileForm(p);
+
+    nameEdit_->setFocus();
+    nameEdit_->selectAll();
 }
 
 void SettingsView::onDeleteProfile()

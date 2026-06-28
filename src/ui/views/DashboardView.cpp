@@ -78,43 +78,51 @@ void DashboardView::setupUi()
 
 void DashboardView::bindViewModel()
 {
-    // Connection status
+    auto updateConnection = [this] {
+        const QString s = vm_.connectionStatus();
+        const auto style = s.startsWith("Connected")
+            ? Widgets::BadgeStyle::Success
+            : s.startsWith("Error")
+                ? Widgets::BadgeStyle::Error
+                : Widgets::BadgeStyle::Neutral;
+        connectionBadge_->setStyle(style, s);
+    };
+
+    auto updateDocker = [this] {
+        const QString s = vm_.dockerStatus();
+        const auto style = s.startsWith("Running")
+            ? Widgets::BadgeStyle::Success
+            : Widgets::BadgeStyle::Error;
+        dockerBadge_->setStyle(style, s);
+        containerLabel_->setText(QString::number(vm_.containerCount()));
+    };
+
+    auto updateVersion = [this] {
+        versionLabel_->setText(vm_.openC3Version());
+    };
+
+    auto updateMetrics = [this] {
+        cpuCard_->setValue(vm_.cpuPercent());
+        memCard_->setValue(vm_.memPercent());
+        diskCard_->setValue(vm_.diskPercent());
+    };
+
     connect(&vm_, &ViewModels::DashboardViewModel::connectionStatusChanged,
-            this, [this] {
-                const QString s = vm_.connectionStatus();
-                const auto style = s.startsWith("Connected")
-                    ? Widgets::BadgeStyle::Success
-                    : s.startsWith("Error")
-                        ? Widgets::BadgeStyle::Error
-                        : Widgets::BadgeStyle::Neutral;
-                connectionBadge_->setStyle(style, s);
-            });
+            this, updateConnection);
 
-    // Docker status
     connect(&vm_, &ViewModels::DashboardViewModel::dockerStatusChanged,
-            this, [this] {
-                const QString s = vm_.dockerStatus();
-                const auto style = s.startsWith("Running")
-                    ? Widgets::BadgeStyle::Success
-                    : Widgets::BadgeStyle::Error;
-                dockerBadge_->setStyle(style, s);
-                containerLabel_->setText(
-                    QString::number(vm_.containerCount()));
-            });
+            this, updateDocker);
 
-    // Version
     connect(&vm_, &ViewModels::DashboardViewModel::openC3VersionChanged,
-            this, [this] {
-                versionLabel_->setText(vm_.openC3Version());
-            });
+            this, updateVersion);
 
-    // Metrics
     connect(&vm_, &ViewModels::DashboardViewModel::metricsChanged,
-            this, [this] {
-                cpuCard_->setValue(vm_.cpuPercent());
-                memCard_->setValue(vm_.memPercent());
-                diskCard_->setValue(vm_.diskPercent());
-            });
+            this, updateMetrics);
+
+    updateConnection();
+    updateDocker();
+    updateVersion();
+    updateMetrics();
 }
 
 } // namespace OpenC3::UI::Views

@@ -14,7 +14,9 @@ ConnectionDialog::ConnectionDialog(
     , vm_(vm)
 {
     setWindowTitle("Connect to OpenC3 Environment");
-    setFixedSize(420, 180);
+    // Minimum (not fixed) so long/translated status text can grow the dialog
+    // instead of being clipped.
+    setMinimumSize(420, 180);
     setModal(true);
 
     auto* layout = new QVBoxLayout(this);
@@ -29,6 +31,7 @@ ConnectionDialog::ConnectionDialog(
 
     statusLabel_ = new QLabel(this);
     statusLabel_->setObjectName("SubLabel");
+    statusLabel_->setWordWrap(true);
     layout->addWidget(statusLabel_);
 
     auto* btnRow  = new QHBoxLayout;

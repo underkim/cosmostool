@@ -28,6 +28,7 @@ private slots:
     void onProfileSelected(const QModelIndex& idx);
     void onModeChanged(int modeIndex);
     void refreshWslDistros();
+    void detectOpenC3Path();
 
 private:
     void setupUi();
@@ -59,6 +60,7 @@ private:
 
     // Common field (shown for both WSL and SSH)
     QLineEdit*   cosmosRootPathEdit_{nullptr};
+    QPushButton* detectOpenC3PathBtn_{nullptr};
 
     // SSH page (index 1)
     QLineEdit*   hostEdit_{nullptr};

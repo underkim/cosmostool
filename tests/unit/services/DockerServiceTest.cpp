@@ -43,7 +43,7 @@ TEST_F(DockerServiceTest, ListContainersReturnsEmptyOnExecutorFailure)
 
 TEST_F(DockerServiceTest, StartContainerDelegatesToExecutor)
 {
-    EXPECT_CALL(mock_, execute("docker start mycontainer"))
+    EXPECT_CALL(mock_, execute("docker start 'mycontainer'"))
         .WillOnce(Return(ExecutorResult::ok()));
 
     EXPECT_TRUE(sut_.startContainer("mycontainer"));
@@ -51,7 +51,7 @@ TEST_F(DockerServiceTest, StartContainerDelegatesToExecutor)
 
 TEST_F(DockerServiceTest, StopContainerDelegatesToExecutor)
 {
-    EXPECT_CALL(mock_, execute("docker stop mycontainer"))
+    EXPECT_CALL(mock_, execute("docker stop 'mycontainer'"))
         .WillOnce(Return(ExecutorResult::ok()));
 
     EXPECT_TRUE(sut_.stopContainer("mycontainer"));
@@ -59,10 +59,29 @@ TEST_F(DockerServiceTest, StopContainerDelegatesToExecutor)
 
 TEST_F(DockerServiceTest, RemoveContainerWithForceFlagPassesFlag)
 {
-    EXPECT_CALL(mock_, execute("docker rm -f mycontainer"))
+    EXPECT_CALL(mock_, execute("docker rm -f 'mycontainer'"))
         .WillOnce(Return(ExecutorResult::ok()));
 
     EXPECT_TRUE(sut_.removeContainer("mycontainer", true));
+}
+
+TEST_F(DockerServiceTest, ContainerNameWithShellMetacharactersIsQuoted)
+{
+    // A malicious / awkward name must be passed as a single quoted argument so
+    // it cannot break out into a separate command.
+    EXPECT_CALL(mock_, execute("docker stop '$(rm -rf /); evil'"))
+        .WillOnce(Return(ExecutorResult::ok()));
+
+    EXPECT_TRUE(sut_.stopContainer("$(rm -rf /); evil"));
+}
+
+TEST_F(DockerServiceTest, ComposeDirWithSpacesIsQuoted)
+{
+    EXPECT_CALL(mock_,
+                execute("cd '/cosmos/my plugins' && docker compose up -d"))
+        .WillOnce(Return(ExecutorResult::ok()));
+
+    EXPECT_TRUE(sut_.composeUp("/cosmos/my plugins"));
 }
 
 TEST_F(DockerServiceTest, GetLogsReturnsOutputOnSuccess)

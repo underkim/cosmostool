@@ -11,7 +11,13 @@ namespace OpenC3::Services {
 
 class DoctorService final : public IDoctorService {
 public:
-    explicit DoctorService(Core::Connection::ICommandExecutor& executor);
+    /// @param executor            command executor (proxy in production).
+    /// @param cosmosRootProvider  returns the COSMOS root path to probe. Lets the
+    ///        OpenC3 checks follow the connected profile's configured path instead
+    ///        of a hardcoded location. When empty, defaults to "/cosmos".
+    explicit DoctorService(
+        Core::Connection::ICommandExecutor& executor,
+        std::function<std::string()>        cosmosRootProvider = {});
 
     [[nodiscard]] Models::DoctorReport runAll(
         std::function<void(const Models::HealthCheckResult&)> onProgress = {}) override;
@@ -36,6 +42,7 @@ private:
     Models::HealthCheckResult checkOpenC3Version();
 
     Core::Connection::ICommandExecutor& executor_;
+    std::function<std::string()>        cosmosRootProvider_;
     std::vector<std::pair<std::string, CheckFn>> checks_; // ordered
     std::unordered_map<std::string, CheckFn>     checkMap_;
 };

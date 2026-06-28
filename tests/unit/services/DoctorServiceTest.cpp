@@ -72,3 +72,43 @@ TEST_F(DoctorServiceTest, UnknownCheckIdReturnsFail)
     EXPECT_EQ(r.status, HealthStatus::Fail);
     EXPECT_EQ(r.detail, "Unknown check id");
 }
+
+TEST_F(DoctorServiceTest, PluginFolderUsesDefaultCosmosRoot)
+{
+    // Default provider probes "/cosmos", quoted as a single shell argument.
+    EXPECT_CALL(mock_, execute(
+        "test -d '/cosmos/plugins' && echo EXISTS || echo MISSING"))
+        .WillOnce(Return(ExecutorResult::ok("EXISTS\n")));
+
+    const auto r = sut_.runCheck("plugin_folder");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+}
+
+TEST(DoctorServicePathTest, PluginFolderUsesConfiguredCosmosRoot)
+{
+    MockCommandExecutor mock;
+    DoctorService doctor{mock, [] { return std::string("/opt/my cosmos"); }};
+
+    EXPECT_CALL(mock, execute(
+        "test -d '/opt/my cosmos/plugins' && echo EXISTS || echo MISSING"))
+        .WillOnce(Return(ExecutorResult::fail("missing")));
+
+    const auto r = doctor.runCheck("plugin_folder");
+    EXPECT_EQ(r.status, HealthStatus::Warning);
+    // Suggestion should mention the configured root.
+    EXPECT_NE(r.suggestion.find("/opt/my cosmos"), std::string::npos);
+}
+
+TEST(DoctorServicePathTest, VersionCheckUsesConfiguredCosmosRoot)
+{
+    MockCommandExecutor mock;
+    DoctorService doctor{mock, [] { return std::string("/srv/cosmos"); }};
+
+    EXPECT_CALL(mock, execute(
+        "cat '/srv/cosmos/openc3-cosmos-init/plugins/openc3-tool-base/VERSION'"
+        " 2>/dev/null || echo unknown"))
+        .WillOnce(Return(ExecutorResult::ok("6.1.0\n")));
+
+    const auto r = doctor.runCheck("openc3_version");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+}

@@ -46,8 +46,8 @@ CmdTlmHighlighter::CmdTlmHighlighter(QTextDocument* parent)
     {
         QTextCharFormat f;
         f.setForeground(QColor("#CE9178"));
-        add(R"(\b(UINT8|UINT16|UINT32|UINT64|INT8|INT16|INT32|INT64|)"
-            R"(FLOAT32|FLOAT64|STRING|BLOCK|DERIVED)\b)", f);
+        add(R"(\b(UINT|UINT8|UINT16|UINT32|UINT64|INT|INT8|INT16|INT32|INT64|)"
+            R"(FLOAT|FLOAT32|FLOAT64|STRING|BLOCK|DERIVED)\b)", f);
     }
 
     // ── Endianness — magenta ──────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 #include "DoctorService.h"
+#include "core/connection/ShellQuote.h"
 #include "core/logging/Logger.h"
 
 namespace OpenC3::Services {
@@ -6,10 +7,16 @@ namespace OpenC3::Services {
 using Models::HealthCheckResult;
 using Models::HealthStatus;
 using Models::DoctorReport;
+using Core::Connection::shellQuote;
 
-DoctorService::DoctorService(Core::Connection::ICommandExecutor& executor)
+DoctorService::DoctorService(
+    Core::Connection::ICommandExecutor& executor,
+    std::function<std::string()>        cosmosRootProvider)
     : executor_(executor)
+    , cosmosRootProvider_(std::move(cosmosRootProvider))
 {
+    if (!cosmosRootProvider_)
+        cosmosRootProvider_ = [] { return std::string("/cosmos"); };
     registerChecks();
 }
 
@@ -281,9 +288,9 @@ HealthCheckResult DoctorService::checkOpenC3PluginFolder()
     r.name     = "OpenC3 plugin folder";
     r.category = "OpenC3";
 
-    const std::string pluginPath = "/cosmos/plugins";
+    const std::string pluginPath = cosmosRootProvider_() + "/plugins";
     auto res = executor_.execute(
-        "test -d " + pluginPath + " && echo EXISTS || echo MISSING");
+        "test -d " + shellQuote(pluginPath) + " && echo EXISTS || echo MISSING");
 
     if (res && res.stdOut.find("EXISTS") != std::string::npos) {
         r.status = HealthStatus::Pass;
@@ -291,7 +298,8 @@ HealthCheckResult DoctorService::checkOpenC3PluginFolder()
     } else {
         r.status     = HealthStatus::Warning;
         r.detail     = "Plugin folder not found at " + pluginPath;
-        r.suggestion = "Verify your OpenC3 installation path";
+        r.suggestion = "Verify your OpenC3 installation path "
+                       "(configured root: " + cosmosRootProvider_() + ")";
     }
     return r;
 }
@@ -303,9 +311,11 @@ HealthCheckResult DoctorService::checkOpenC3Version()
     r.name     = "OpenC3 version";
     r.category = "OpenC3";
 
+    const std::string versionPath =
+        cosmosRootProvider_() +
+        "/openc3-cosmos-init/plugins/openc3-tool-base/VERSION";
     auto res = executor_.execute(
-        "cat /cosmos/openc3-cosmos-init/plugins/openc3-tool-base/VERSION"
-        " 2>/dev/null || echo unknown");
+        "cat " + shellQuote(versionPath) + " 2>/dev/null || echo unknown");
 
     if (res && res.stdOut != "unknown\n" && !res.stdOut.empty()) {
         r.status = HealthStatus::Pass;
@@ -313,7 +323,8 @@ HealthCheckResult DoctorService::checkOpenC3Version()
     } else {
         r.status     = HealthStatus::Warning;
         r.detail     = "Could not determine OpenC3 version";
-        r.suggestion = "Ensure OpenC3 is installed and the path is correct";
+        r.suggestion = "Ensure OpenC3 is installed at the configured root ("
+                       + cosmosRootProvider_() + ") and the path is correct";
     }
     return r;
 }

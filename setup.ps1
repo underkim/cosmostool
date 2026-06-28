@@ -112,6 +112,7 @@ function Test-Command {
 }
 
 $hasCmake  = Test-Command "CMake"        "cmake --version"
+$hasCtest  = Test-Command "CTest"        "ctest --version"
 $hasNinja  = Test-Command "Ninja"        "ninja --version"
 $hasCl     = Test-Command "MSVC (cl)"   "cl 2>&1 | Select-Object -First 1"
 $hasGit    = Test-Command "Git"         "git --version"
@@ -136,6 +137,15 @@ if (-not $hasNinja) {
     Write-Host ""
 }
 
+if (-not $hasCmake -or -not $hasCtest) {
+    Write-Host "[주의] CMake/CTest 명령을 찾을 수 없습니다." -ForegroundColor Yellow
+    Write-Host "  CMake가 설치되어 있고 PATH에 등록되어 있는지 확인하세요."
+    Write-Host "  Visual Studio Developer PowerShell 또는 새 VSCode 터미널에서 다시 시도하세요."
+    Write-Host "  이미 빌드된 local-debug 테스트가 있으면 아래 직접 실행 명령을 사용할 수 있습니다:"
+    Write-Host "    .\build\local-debug\bin\opencosmos_tests.exe" -ForegroundColor Gray
+    Write-Host ""
+}
+
 # ── 5. 완료 메시지 ────────────────────────────────────────────────────────────
 Write-Host "=== 설정 완료 ===" -ForegroundColor Cyan
 Write-Host ""
@@ -149,4 +159,9 @@ Write-Host ""
 Write-Host "터미널에서 직접 빌드:" -ForegroundColor White
 Write-Host "  cmake --preset local-debug" -ForegroundColor Gray
 Write-Host "  cmake --build --preset local-debug" -ForegroundColor Gray
+Write-Host ""
+Write-Host "테스트 실행:" -ForegroundColor White
+Write-Host "  ctest --preset local-unit" -ForegroundColor Gray
+Write-Host "  # 또는 CTest가 PATH에 없고 local-debug 빌드가 이미 있으면:" -ForegroundColor Gray
+Write-Host "  .\build\local-debug\bin\opencosmos_tests.exe" -ForegroundColor Gray
 Write-Host ""

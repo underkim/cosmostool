@@ -80,6 +80,8 @@ signals:
     void targetAdded(const QString& targetName, bool success, const QString& detail);
 
 private:
+    [[nodiscard]] QString infraRootPath() const noexcept;
+
     void setStatus(const QString& msg);
     void setBusy(bool b);
 

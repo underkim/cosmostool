@@ -18,7 +18,7 @@ AddTargetDialog::AddTargetDialog(
     , pluginRoot_(pluginRoot)
 {
     setWindowTitle("타겟 추가");
-    setFixedSize(480, 360);
+    setMinimumSize(480, 360);
 
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(20, 16, 20, 16);
@@ -104,6 +104,11 @@ AddTargetDialog::AddTargetDialog(
             });
 
     onTargetNameChanged(); // set initial preview label
+
+    // Land the keyboard on the first field, with its default text selected so
+    // the user can type over it immediately.
+    targetNameEdit_->setFocus();
+    targetNameEdit_->selectAll();
 }
 
 void AddTargetDialog::onTargetNameChanged()

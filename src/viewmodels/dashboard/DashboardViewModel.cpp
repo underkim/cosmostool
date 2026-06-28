@@ -21,12 +21,27 @@ DashboardViewModel::DashboardViewModel(
     connect(timer_, &QTimer::timeout, this, &DashboardViewModel::refresh);
     timer_->start();
 
+    switch (connection_.state()) {
+        case Services::ConnectionState::Connected:
+            connectionStatus_ = "Connected";
+            break;
+        case Services::ConnectionState::Connecting:
+            connectionStatus_ = "Connecting";
+            break;
+        case Services::ConnectionState::Disconnected:
+            connectionStatus_ = "Disconnected";
+            break;
+        case Services::ConnectionState::Error:
+            connectionStatus_ = "Error";
+            break;
+    }
+
     // Sync connection status — callback fires on the worker thread; marshal to GUI thread.
     connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         QString s;
         switch (ev.state) {
             case Services::ConnectionState::Connected:    s = "Connected";    break;
-            case Services::ConnectionState::Connecting:   s = "Connecting…";  break;
+            case Services::ConnectionState::Connecting:   s = "Connecting";   break;
             case Services::ConnectionState::Disconnected: s = "Disconnected"; break;
             case Services::ConnectionState::Error:
                 s = "Error: " + QString::fromStdString(ev.errorMessage); break;

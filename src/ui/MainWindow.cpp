@@ -89,7 +89,8 @@ void MainWindow::setupNavigation()
     navRail_->setSpacing(2);
 
     auto addItem = [&](const QString& icon, const QString& text) {
-        auto* item = new QListWidgetItem(icon + "  " + text);
+        Q_UNUSED(icon);
+        auto* item = new QListWidgetItem(text);
         item->setSizeHint(QSize(200, 40));
         QFont f = item->font();
         f.setPointSize(11);
@@ -124,8 +125,16 @@ void MainWindow::setupViews()
     contentStack_->addWidget(new Views::DockerView(dockerVm_,          this)); // 1
     contentStack_->addWidget(new Views::InfraView(infraVm_,            this)); // 2
     contentStack_->addWidget(new Views::DoctorView(doctorVm_,          this)); // 3
-    contentStack_->addWidget(new Views::PluginView(pluginVm_, infraVm_, this)); // 4
-    contentStack_->addWidget(new Views::CmdTlmView(cmdTlmVm_,          this)); // 5
+    auto* pluginView = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, this);
+    auto* cmdTlmView = new Views::CmdTlmView(cmdTlmVm_, this);
+    connect(pluginView, &Views::PluginView::openCmdTlmRequested,
+            this, [this, cmdTlmView](const QString& remoteFilePath) {
+                contentStack_->setCurrentIndex(5);
+                navRail_->setCurrentRow(5);
+                cmdTlmView->openFile(remoteFilePath);
+            });
+    contentStack_->addWidget(pluginView); // 4
+    contentStack_->addWidget(cmdTlmView); // 5
     contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 6
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_,    this)); // 7
     contentStack_->addWidget(new Views::SettingsView(settingsVm_,      this)); // 8
@@ -173,8 +182,8 @@ void MainWindow::setupMenuBar()
 
 void MainWindow::setupStatusBar()
 {
-    connectionLabel_ = new QLabel("  ⚪ Disconnected  ", this);
-    dockerLabel_     = new QLabel("  🐳 Docker: --  ", this);
+    connectionLabel_ = new QLabel("  Disconnected  ", this);
+    dockerLabel_     = new QLabel("  Docker: --  ", this);
 
     statusBar()->addWidget(connectionLabel_);
     statusBar()->addWidget(dockerLabel_);
@@ -187,8 +196,11 @@ void MainWindow::connectSignals()
             this, &MainWindow::onConnectionStatusChanged);
     connect(&dashboardVm_, &ViewModels::DashboardViewModel::dockerStatusChanged,
             this, [this] {
-                dockerLabel_->setText("  🐳 " + dashboardVm_.dockerStatus() + "  ");
+                dockerLabel_->setText("  Docker: " + dashboardVm_.dockerStatus() + "  ");
             });
+
+    onConnectionStatusChanged();
+    dockerLabel_->setText("  Docker: " + dashboardVm_.dockerStatus() + "  ");
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -201,8 +213,7 @@ void MainWindow::onNavItemSelected(int index)
 void MainWindow::onConnectionStatusChanged()
 {
     const QString status = dashboardVm_.connectionStatus();
-    const QString icon   = status.startsWith("Connected") ? "🟢" : "🔴";
-    connectionLabel_->setText("  " + icon + " " + status + "  ");
+    connectionLabel_->setText("  " + status + "  ");
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)

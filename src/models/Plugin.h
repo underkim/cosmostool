@@ -25,7 +25,9 @@ struct Plugin {
     std::string  author;
     std::string  cosmosVersion;     // Minimum compatible COSMOS version
     PluginStatus status{PluginStatus::Unknown};
+    std::string  rootPath;           // Root directory of a development plugin
     std::string  gemFilePath;       // Path to .gem file on remote
+    std::string  gemspecPath;       // Path to .gemspec file on remote
     std::string  pluginTxtPath;     // Path to plugin.txt
 
     std::vector<PluginTarget> targets;

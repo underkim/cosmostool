@@ -53,6 +53,7 @@ public slots:
     void install(const QString& gemFilePath);
     void remove(const QString& pluginName);
     void validate(const QString& localPath);
+    void build(const QString& pluginRootPath);
 
 signals:
     void pluginListChanged();
@@ -62,6 +63,8 @@ signals:
     void actionCompleted(const QString& pluginName, bool success);
 
 private:
+    [[nodiscard]] QString pluginRootPath() const noexcept;
+
     void setBusy(bool busy);
     void setStatus(const QString& msg);
 

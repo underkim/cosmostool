@@ -10,7 +10,7 @@ namespace OpenC3::UI::Dialogs {
 AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
 {
     setWindowTitle("About OpenC3 Developer Toolkit");
-    setFixedSize(400, 260);
+    setMinimumSize(400, 260);
     setModal(true);
 
     auto* layout = new QVBoxLayout(this);

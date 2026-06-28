@@ -1,5 +1,6 @@
 #include "InfraViewModel.h"
 #include "viewmodels/plugin/PluginTemplateEngine.h"
+#include "core/connection/ShellQuote.h"
 #include "core/logging/Logger.h"
 
 #include <QtConcurrent/QtConcurrent>
@@ -36,25 +37,41 @@ QString InfraViewModel::statusMessage() const noexcept { return statusMessage_; 
 
 QString InfraViewModel::cosmosRootPath() const noexcept
 {
-    return QString::fromStdString(connection_.cosmosRootPath());
+    return infraRootPath();
 }
 
 QString InfraViewModel::defaultEnvPath()    const noexcept
 {
-    return cosmosRootPath() + "/.env";
+    return infraRootPath() + "/.env";
 }
 
 QString InfraViewModel::defaultComposePath() const noexcept
 {
-    return cosmosRootPath() + "/compose.yaml";
+    return infraRootPath() + "/compose.yaml";
 }
 
 QString InfraViewModel::defaultPluginsPath() const noexcept
 {
-    return cosmosRootPath() + "/plugins";
+    return infraRootPath() + "/plugins";
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
+
+QString InfraViewModel::infraRootPath() const noexcept
+{
+    QString path = QString::fromStdString(connection_.cosmosRootPath()).trimmed();
+    if (path.isEmpty()) return "/cosmos";
+
+    while (path.size() > 1 && path.endsWith('/'))
+        path.chop(1);
+
+    if (path.endsWith("/openc3.sh") || path == "openc3.sh") {
+        const int slash = path.lastIndexOf('/');
+        return slash > 0 ? path.left(slash) : ".";
+    }
+
+    return path;
+}
 
 void InfraViewModel::setStatus(const QString& msg)
 {
@@ -194,7 +211,8 @@ void InfraViewModel::extractContainerFile(
         ctr  = container.toStdString(),
         path = filePath.toStdString()] {
             const std::string content =
-                fs_.executeCommand("docker exec " + ctr + " cat " + path);
+                fs_.executeCommand("docker exec " + Core::Connection::shellQuote(ctr)
+                                   + " cat " + Core::Connection::shellQuote(path));
             const bool ok = !content.empty();
             QMetaObject::invokeMethod(this, [this,
                 fpath = QString::fromStdString(path),
@@ -227,7 +245,7 @@ void InfraViewModel::applyVolumeOverride(
 
             const std::string dirPath = hostPath.substr(0, hostPath.rfind('/'));
             [[maybe_unused]] const std::string mkdirOut =
-                fs_.executeCommand("mkdir -p '" + dirPath + "'");
+                fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
             const bool ok = fs_.writeFile(hostPath, data);
 
@@ -296,7 +314,7 @@ void InfraViewModel::scaffoldPlugin(
                 // we rely on writeFile below to surface any actual failure.
                 const std::string dirPath = fullPath.substr(0, fullPath.rfind('/'));
                 [[maybe_unused]] const std::string mkdirOut =
-                    fs_.executeCommand("mkdir -p '" + dirPath + "'");
+                    fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
                 if (fs_.writeFile(fullPath, it.value().toStdString()))
                     ++created;
@@ -350,7 +368,7 @@ void InfraViewModel::addTargetToPlugin(
                 const std::string dirPath  =
                     fullPath.substr(0, fullPath.rfind('/'));
                 [[maybe_unused]] const std::string mkdirOut =
-                    fs_.executeCommand("mkdir -p '" + dirPath + "'");
+                    fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
                 if (fs_.writeFile(fullPath, it.value().toStdString()))
                     ++created;

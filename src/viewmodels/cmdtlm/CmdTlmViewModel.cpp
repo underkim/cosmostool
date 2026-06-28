@@ -1,5 +1,6 @@
 #include "CmdTlmViewModel.h"
 #include "CmdTlmParser.h"
+#include "core/connection/ShellQuote.h"
 #include "core/logging/Logger.h"
 #include "services/connection/IConnectionService.h"
 
@@ -9,9 +10,9 @@
 namespace OpenC3::ViewModels {
 
 CmdTlmViewModel::CmdTlmViewModel(
-    Services::IConnectionService&  connection,
-    Services::IRemoteFileService&  fs,
-    QObject*                       parent)
+    Services::IConnectionService& connection,
+    Services::IRemoteFileService& fs,
+    QObject* parent)
     : ViewModelBase(parent)
     , connection_(connection)
     , fs_(fs)
@@ -24,12 +25,12 @@ CmdTlmViewModel::CmdTlmViewModel(
     });
 }
 
-bool    CmdTlmViewModel::isConnected()   const noexcept
+bool CmdTlmViewModel::isConnected() const noexcept
 {
     return connection_.state() == Services::ConnectionState::Connected;
 }
 
-bool    CmdTlmViewModel::isBusy()        const noexcept { return busy_; }
+bool CmdTlmViewModel::isBusy() const noexcept { return busy_; }
 QString CmdTlmViewModel::statusMessage() const noexcept { return status_; }
 
 QString CmdTlmViewModel::defaultCmdTlmPath() const
@@ -51,14 +52,12 @@ void CmdTlmViewModel::setStatus(const QString& msg)
     emit statusMessageChanged();
 }
 
-// ── listDirectory ─────────────────────────────────────────────────────────────
-
 void CmdTlmViewModel::listDirectory(const QString& remotePath)
 {
     if (busy_) return;
     const std::string path = remotePath.toStdString();
     setBusy(true);
-    setStatus("Listing " + remotePath + "…");
+    setStatus("Listing " + remotePath);
 
     (void)QtConcurrent::run([this, path] {
         auto entries = fs_.listDirectory(path);
@@ -75,14 +74,52 @@ void CmdTlmViewModel::listDirectory(const QString& remotePath)
     });
 }
 
-// ── openFile ──────────────────────────────────────────────────────────────────
+void CmdTlmViewModel::listPluginFiles(const QString& pluginRootPath)
+{
+    if (busy_) return;
+    const std::string root = pluginRootPath.toStdString();
+    setBusy(true);
+    setStatus("Loading plugin files: " + pluginRootPath);
+
+    (void)QtConcurrent::run([this, root] {
+        using Core::Connection::shellQuote;
+        const std::string command =
+            "root=" + shellQuote(root) + "; "
+            "[ -d \"$root\" ] || exit 0; "
+            "find \"$root\" \\( "
+            "-path '*/cmd_tlm/*' -o "
+            "-path '*/screens/*' -o "
+            "-path '*/procedures/*' -o "
+            "-name 'plugin.txt' -o "
+            "-name '*.gemspec' "
+            "\\) -type f "
+            "| sed \"s#^$root/##\" "
+            "| sort";
+
+        const std::string output = fs_.executeCommand(command);
+
+        QMetaObject::invokeMethod(this,
+            [this, output, qroot = QString::fromStdString(root)] {
+                QStringList files;
+                const QString qout = QString::fromStdString(output);
+                for (const QString& line : qout.split('\n', Qt::SkipEmptyParts)) {
+                    const QString trimmed = line.trimmed();
+                    if (!trimmed.isEmpty())
+                        files << trimmed;
+                }
+                emit pluginFilesListed(files, qroot);
+                setBusy(false);
+                setStatus(QString("Loaded %1 plugin file(s)").arg(files.size()));
+            }, Qt::QueuedConnection);
+    });
+}
 
 void CmdTlmViewModel::openFile(const QString& remotePath)
 {
     if (busy_) return;
     const std::string path = remotePath.toStdString();
     setBusy(true);
-    setStatus("Loading " + remotePath + "…");
+    setStatus("Loading " + remotePath);
 
     (void)QtConcurrent::run([this, path] {
         const std::string content = fs_.readFile(path);
@@ -92,14 +129,11 @@ void CmdTlmViewModel::openFile(const QString& remotePath)
                 emit fileOpened(qpath, qcontent);
                 setBusy(false);
                 setStatus("Loaded " + qpath);
-                // Auto-parse if it looks like a cmd_tlm file
                 if (qpath.endsWith(".txt", Qt::CaseInsensitive))
                     parseContent(qcontent, qpath);
             }, Qt::QueuedConnection);
     });
 }
-
-// ── saveFile ──────────────────────────────────────────────────────────────────
 
 void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content)
 {
@@ -107,7 +141,7 @@ void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content
     const std::string path = remotePath.toStdString();
     const std::string data = content.toStdString();
     setBusy(true);
-    setStatus("Saving…");
+    setStatus("Saving");
 
     (void)QtConcurrent::run([this, path, data] {
         const bool ok = fs_.writeFile(path, data);
@@ -119,11 +153,8 @@ void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content
     });
 }
 
-// ── parseContent ──────────────────────────────────────────────────────────────
-
 void CmdTlmViewModel::parseContent(const QString& content, const QString& filePath)
 {
-    // Parse is fast (in-process, no I/O), run on GUI thread to avoid emit races.
     const CmdTlmParseResult result = CmdTlmParser::parse(content);
     const int e = result.errorCount();
     const int w = result.warningCount();

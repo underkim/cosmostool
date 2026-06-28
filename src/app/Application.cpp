@@ -133,7 +133,11 @@ void Application::registerServices()
     auto systemSvc = std::make_shared<Services::SystemService>(executorProxy_);
     registry_.registerInstance<Services::ISystemService>(systemSvc);
 
-    auto doctorSvc = std::make_shared<Services::DoctorService>(executorProxy_);
+    // Doctor probes the COSMOS root configured on the active connection profile,
+    // falling back to "/cosmos" when nothing is connected.
+    auto doctorSvc = std::make_shared<Services::DoctorService>(
+        executorProxy_,
+        [conn = connection.get()] { return conn->cosmosRootPath(); });
     registry_.registerInstance<Services::IDoctorService>(doctorSvc);
 
     auto pluginSvc = std::make_shared<Services::PluginService>(executorProxy_);

@@ -3,9 +3,13 @@
 add_executable(opencosmos_tests
     unit/core/ExecutorResultTest.cpp
     unit/core/EventBusTest.cpp
+    unit/core/ShellQuoteTest.cpp
     unit/services/DockerServiceTest.cpp
     unit/services/DoctorServiceTest.cpp
+    unit/services/PluginServiceTest.cpp
     unit/services/SettingsServiceTest.cpp
+    unit/viewmodels/CmdTlmParserTest.cpp
+    unit/viewmodels/PluginTemplateEngineTest.cpp
 )
 
 target_include_directories(opencosmos_tests
@@ -17,6 +21,7 @@ target_include_directories(opencosmos_tests
 target_link_libraries(opencosmos_tests
     PRIVATE
         opencosmos_services
+        opencosmos_viewmodels   # for CmdTlmParser / PluginTemplateEngine (Qt-based)
         GTest::gtest_main
         GTest::gmock
 )

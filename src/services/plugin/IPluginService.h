@@ -24,6 +24,9 @@ public:
         const std::string& pluginName,
         const std::string& cosmosRoot) = 0;
 
+    [[nodiscard]] virtual std::string build(
+        const std::string& pluginRootPath) = 0;
+
     [[nodiscard]] virtual bool backup(
         const std::string& pluginName,
         const std::string& localBackupPath,

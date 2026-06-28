@@ -4,14 +4,18 @@
    ============================================================ */
 
 /* ── Base ─────────────────────────────────────────────────── */
+/* Note: do NOT put background-color on the universal QWidget selector.
+   It bleeds into the internal sub-controls of composite widgets (combo-box
+   popups, spin-box bodies, scroll-area viewports) and breaks their rendering.
+   Only color/font are safe to inherit globally; backgrounds are scoped to
+   top-level containers and the content stack below. */
 QWidget {
-    background-color: #1e1e1e;
     color: #d4d4d4;
     font-family: "Segoe UI", "Inter", sans-serif;
     font-size: 13px;
 }
 
-QMainWindow, QDialog {
+QMainWindow, QDialog, QStackedWidget {
     background-color: #1e1e1e;
 }
 
@@ -152,6 +156,41 @@ QComboBox QAbstractItemView {
 QComboBox::drop-down {
     border-left: 1px solid #474747;
     width: 20px;
+}
+
+/* ── Spin Box ─────────────────────────────────────────────── */
+QSpinBox, QDoubleSpinBox {
+    background-color: #3c3c3c;
+    color: #d4d4d4;
+    border: 1px solid #474747;
+    border-radius: 4px;
+    padding: 4px 8px;
+    min-height: 26px;
+}
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: #007acc;
+}
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    background-color: #37373d;
+    border-left: 1px solid #474747;
+    width: 16px;
+}
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: #45454a;
+}
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    image: none;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid #d4d4d4;
+}
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    image: none;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #d4d4d4;
 }
 
 /* ── Table / List Views ───────────────────────────────────── */

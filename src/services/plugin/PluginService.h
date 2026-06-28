@@ -23,6 +23,9 @@ public:
         const std::string& pluginName,
         const std::string& cosmosRoot) override;
 
+    [[nodiscard]] std::string build(
+        const std::string& pluginRootPath) override;
+
     [[nodiscard]] bool backup(
         const std::string& pluginName,
         const std::string& localBackupPath,

@@ -1,4 +1,5 @@
 #include "DockerService.h"
+#include "core/connection/ShellQuote.h"
 #include "core/logging/Logger.h"
 
 #include <nlohmann/json.hpp>
@@ -7,6 +8,7 @@
 namespace OpenC3::Services {
 
 using json = nlohmann::json;
+using Core::Connection::shellQuote;
 
 DockerService::DockerService(Core::Connection::ICommandExecutor& executor)
     : executor_(executor)
@@ -49,24 +51,27 @@ DockerService::listContainers(bool allContainers)
 
 bool DockerService::startContainer(const std::string& nameOrId)
 {
-    return static_cast<bool>(executor_.execute("docker start " + nameOrId));
+    return static_cast<bool>(
+        executor_.execute("docker start " + shellQuote(nameOrId)));
 }
 
 bool DockerService::stopContainer(const std::string& nameOrId)
 {
-    return static_cast<bool>(executor_.execute("docker stop " + nameOrId));
+    return static_cast<bool>(
+        executor_.execute("docker stop " + shellQuote(nameOrId)));
 }
 
 bool DockerService::restartContainer(const std::string& nameOrId)
 {
-    return static_cast<bool>(executor_.execute("docker restart " + nameOrId));
+    return static_cast<bool>(
+        executor_.execute("docker restart " + shellQuote(nameOrId)));
 }
 
 bool DockerService::removeContainer(const std::string& nameOrId, bool force)
 {
     const std::string flag = force ? " -f" : "";
     return static_cast<bool>(
-        executor_.execute("docker rm" + flag + " " + nameOrId));
+        executor_.execute("docker rm" + flag + " " + shellQuote(nameOrId)));
 }
 
 // ── Logs ──────────────────────────────────────────────────────────────────────
@@ -75,7 +80,7 @@ std::string DockerService::getLogs(const std::string& nameOrId, int tail)
 {
     auto r = executor_.execute(
         "docker logs --tail " + std::to_string(tail) +
-        " --timestamps " + nameOrId + " 2>&1");
+        " --timestamps " + shellQuote(nameOrId) + " 2>&1");
     return r ? r.stdOut : r.errorMessage;
 }
 
@@ -86,7 +91,7 @@ Models::ContainerStats DockerService::getStats(const std::string& nameOrId)
     // --no-stream prints one snapshot then exits
     auto r = executor_.execute(
         "docker stats --no-stream --format "
-        "'{{json .}}' " + nameOrId);
+        "'{{json .}}' " + shellQuote(nameOrId));
 
     Models::ContainerStats stats;
     if (!r) return stats;
@@ -117,7 +122,7 @@ std::vector<Models::ComposeService>
 DockerService::listComposeServices(const std::string& composeDir)
 {
     auto r = executor_.execute(
-        "cd " + composeDir + " && docker compose ps --format json");
+        "cd " + shellQuote(composeDir) + " && docker compose ps --format json");
     if (!r) return {};
 
     std::vector<Models::ComposeService> services;
@@ -142,13 +147,13 @@ DockerService::listComposeServices(const std::string& composeDir)
 bool DockerService::composeUp(const std::string& composeDir)
 {
     return static_cast<bool>(executor_.execute(
-        "cd " + composeDir + " && docker compose up -d"));
+        "cd " + shellQuote(composeDir) + " && docker compose up -d"));
 }
 
 bool DockerService::composeDown(const std::string& composeDir)
 {
     return static_cast<bool>(executor_.execute(
-        "cd " + composeDir + " && docker compose down"));
+        "cd " + shellQuote(composeDir) + " && docker compose down"));
 }
 
 // ── System info ───────────────────────────────────────────────────────────────

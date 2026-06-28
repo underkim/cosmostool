@@ -1,4 +1,5 @@
-#include "CmdTlmView.h"
+﻿#include "CmdTlmView.h"
+#include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
 
 #include <QVBoxLayout>
@@ -17,7 +18,7 @@
 
 namespace OpenC3::UI::Views {
 
-// ── Templates inserted at cursor ──────────────────────────────────────────────
+// ?? Templates inserted at cursor ??????????????????????????????????????????????
 
 static const QString kCmdTemplate =
     "COMMAND TARGET_NAME COMMAND_NAME BIG_ENDIAN \"Command description\"\n"
@@ -32,7 +33,44 @@ static const QString kTlmTemplate =
 static const QString kParamTemplate =
     "  APPEND_PARAMETER PARAM_NAME 32 FLOAT 0.0 100.0 0.0 \"Parameter description\"\n";
 
-// ── Constructor ───────────────────────────────────────────────────────────────
+// ?? Constructor ???????????????????????????????????????????????????????????????
+
+static QString syntaxGuideText()
+{
+    return QStringLiteral(
+        "CMD/TLM Quick Reference\n\n"
+        "Block headers\n"
+        "  COMMAND <TARGET> <NAME> <ENDIANNESS> \"description\"\n"
+        "  TELEMETRY <TARGET> <NAME> <ENDIANNESS> \"description\"\n"
+        "  ENDIANNESS: BIG_ENDIAN or LITTLE_ENDIAN\n\n"
+        "Command parameters\n"
+        "  APPEND_PARAMETER <NAME> <BIT_SIZE> <TYPE> <MIN> <MAX> <DEFAULT> \"description\"\n"
+        "  PARAMETER is used when you need an explicit bit offset before the name.\n"
+        "  APPEND_ID_PARAMETER marks a command identifier field.\n\n"
+        "Telemetry items\n"
+        "  APPEND_ITEM <NAME> <BIT_SIZE> <TYPE> \"description\"\n"
+        "  ITEM is used when you need an explicit bit offset before the name.\n"
+        "  APPEND_ID_ITEM marks a telemetry identifier field.\n\n"
+        "Common data types\n"
+        "  UINT, INT, FLOAT\n"
+        "  UINT8, UINT16, UINT32, UINT64\n"
+        "  INT8, INT16, INT32, INT64\n"
+        "  FLOAT32, FLOAT64\n"
+        "  STRING, BLOCK, DERIVED\n\n"
+        "Common child keywords\n"
+        "  STATE <LABEL> <VALUE> \"description\"\n"
+        "  UNITS <FULL_NAME> <ABBREVIATION>\n"
+        "  FORMAT_STRING \"0x%04X\"\n"
+        "  REQUIRED, HIDDEN, HAZARDOUS\n"
+        "  LIMITS, LIMITS_RESPONSE\n"
+        "  READ_CONVERSION, WRITE_CONVERSION\n\n"
+        "Examples\n"
+        "  COMMAND FSW RESET BIG_ENDIAN \"Reset command\"\n"
+        "    APPEND_PARAMETER CMD_ID 8 UINT 0 255 1 \"Command ID\"\n\n"
+        "  TELEMETRY FSW HK BIG_ENDIAN \"Housekeeping\"\n"
+        "    APPEND_ITEM TEMP 16 INT \"Temperature\"\n"
+        "      UNITS Celsius C\n");
+}
 
 CmdTlmView::CmdTlmView(ViewModels::CmdTlmViewModel& vm, QWidget* parent)
     : QWidget(parent)
@@ -42,7 +80,7 @@ CmdTlmView::CmdTlmView(ViewModels::CmdTlmViewModel& vm, QWidget* parent)
     bindViewModel();
 }
 
-// ── setupUi ───────────────────────────────────────────────────────────────────
+// ?? setupUi ???????????????????????????????????????????????????????????????????
 
 void CmdTlmView::setupUi()
 {
@@ -50,20 +88,20 @@ void CmdTlmView::setupUi()
     root->setContentsMargins(20, 20, 20, 20);
     root->setSpacing(8);
 
-    // ── Title ─────────────────────────────────────────────────────────────────
+    // ?? Title ?????????????????????????????????????????????????????????????????
     auto* title = new QLabel("CMD / TLM Editor", this);
     QFont tf = title->font(); tf.setPointSize(18); tf.setBold(true);
     title->setFont(tf);
     title->setObjectName("PageTitle");
     root->addWidget(title);
 
-    // ── Connection hint ───────────────────────────────────────────────────────
+    // ?? Connection hint ???????????????????????????????????????????????????????
     connectionHint_ = new QLabel(
         "Connect to a remote environment to browse and edit definition files.", this);
     connectionHint_->setObjectName("SubLabel");
     root->addWidget(connectionHint_);
 
-    // ── Toolbar row 1 — path ──────────────────────────────────────────────────
+    // ── Toolbar row 1 — path ──────────────────────────────────────
     auto* pathBar = new QHBoxLayout;
     pathEdit_  = new QLineEdit(this);
     browseBtn_ = new QPushButton("Browse", this);
@@ -72,32 +110,35 @@ void CmdTlmView::setupUi()
     pathBar->addWidget(browseBtn_);
     root->addLayout(pathBar);
 
-    // ── Toolbar row 2 — editor actions ────────────────────────────────────────
+    // ── Toolbar row 2 — editor actions ────────────────────────────
     auto* actionBar = new QHBoxLayout;
     insertCmdBtn_   = new QPushButton("+ COMMAND",   this);
     insertTlmBtn_   = new QPushButton("+ TELEMETRY", this);
     insertParamBtn_ = new QPushButton("+ PARAMETER", this);
-    validateBtn_    = new QPushButton("✔ Validate",  this);
-    saveBtn_        = new QPushButton("💾 Save",      this);
+    addFieldBtn_    = new QPushButton("Add Field...", this);
+    validateBtn_    = new QPushButton("Validate", this);
+    saveBtn_        = new QPushButton("Save", this);
     saveBtn_->setObjectName("PrimaryButton");
     saveBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
     insertParamBtn_->setEnabled(false);
+    addFieldBtn_->setEnabled(false);
     validateBtn_->setEnabled(false);
     actionBar->addWidget(insertCmdBtn_);
     actionBar->addWidget(insertTlmBtn_);
     actionBar->addWidget(insertParamBtn_);
+    actionBar->addWidget(addFieldBtn_);
     actionBar->addSpacing(16);
     actionBar->addWidget(validateBtn_);
     actionBar->addStretch();
     actionBar->addWidget(saveBtn_);
     root->addLayout(actionBar);
 
-    // ── Main splitter (vertical) ──────────────────────────────────────────────
+    // ?? Main splitter (vertical) ??????????????????????????????????????????????
     auto* vSplit = new QSplitter(Qt::Vertical, this);
 
-    // ── Top: file browser | editor ────────────────────────────────────────────
+    // ?? Top: file browser | editor ????????????????????????????????????????????
     auto* hSplit = new QSplitter(Qt::Horizontal, vSplit);
 
     // File list (left)
@@ -119,12 +160,22 @@ void CmdTlmView::setupUi()
     editorLayout->addWidget(fileLabel_);
     editorLayout->addWidget(editor_);
 
+    auto* guideGroup = new QGroupBox("Reference", hSplit);
+    auto* guideLayout = new QVBoxLayout(guideGroup);
+    syntaxGuide_ = new QTextEdit(guideGroup);
+    syntaxGuide_->setObjectName("LogArea");
+    syntaxGuide_->setReadOnly(true);
+    syntaxGuide_->setLineWrapMode(QTextEdit::WidgetWidth);
+    syntaxGuide_->setPlainText(syntaxGuideText());
+    guideLayout->addWidget(syntaxGuide_);
+
     hSplit->addWidget(fileGroup);
     hSplit->addWidget(editorGroup);
-    hSplit->setSizes({240, 900});
+    hSplit->addWidget(guideGroup);
+    hSplit->setSizes({220, 760, 320});
     vSplit->addWidget(hSplit);
 
-    // ── Middle: structure tree ────────────────────────────────────────────────
+    // ?? Middle: structure tree ????????????????????????????????????????????????
     auto* structGroup  = new QGroupBox("Structure", vSplit);
     auto* structLayout = new QVBoxLayout(structGroup);
     structureTree_ = new QTreeWidget(structGroup);
@@ -135,7 +186,7 @@ void CmdTlmView::setupUi()
     structLayout->addWidget(structureTree_);
     vSplit->addWidget(structGroup);
 
-    // ── Bottom: diagnostics ───────────────────────────────────────────────────
+    // ?? Bottom: diagnostics ???????????????????????????????????????????????????
     auto* diagGroup  = new QGroupBox("Diagnostics", vSplit);
     auto* diagLayout = new QVBoxLayout(diagGroup);
     diagSummary_ = new QLabel("", diagGroup);
@@ -149,7 +200,7 @@ void CmdTlmView::setupUi()
     vSplit->setSizes({420, 180, 120});
     root->addWidget(vSplit, 1);
 
-    // ── Status bar ────────────────────────────────────────────────────────────
+    // ?? Status bar ????????????????????????????????????????????????????????????
     statusLabel_ = new QLabel(this);
     statusLabel_->setObjectName("SubLabel");
     root->addWidget(statusLabel_);
@@ -158,7 +209,7 @@ void CmdTlmView::setupUi()
     pathEdit_->setText("/cosmos/targets");
 }
 
-// ── bindViewModel ─────────────────────────────────────────────────────────────
+// ?? bindViewModel ?????????????????????????????????????????????????????????????
 
 void CmdTlmView::bindViewModel()
 {
@@ -168,6 +219,7 @@ void CmdTlmView::bindViewModel()
     connect(insertCmdBtn_,  &QPushButton::clicked, this, &CmdTlmView::onInsertCmd);
     connect(insertTlmBtn_,  &QPushButton::clicked, this, &CmdTlmView::onInsertTlm);
     connect(insertParamBtn_,&QPushButton::clicked, this, &CmdTlmView::onInsertParam);
+    connect(addFieldBtn_,   &QPushButton::clicked, this, &CmdTlmView::onAddField);
 
     connect(fileList_, &QListWidget::itemDoubleClicked,
             this, &CmdTlmView::onFileItemDoubleClicked);
@@ -219,6 +271,7 @@ void CmdTlmView::bindViewModel()
                 insertCmdBtn_->setEnabled(isTxt);
                 insertTlmBtn_->setEnabled(isTxt);
                 insertParamBtn_->setEnabled(isTxt);
+                addFieldBtn_->setEnabled(isTxt);
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileSaved,
@@ -239,7 +292,31 @@ void CmdTlmView::bindViewModel()
     if (on) pathEdit_->setText(vm_.defaultCmdTlmPath());
 }
 
-// ── Slots ─────────────────────────────────────────────────────────────────────
+// ?? Slots ?????????????????????????????????????????????????????????????????????
+
+void CmdTlmView::openDirectory(const QString& remotePath)
+{
+    const QString path = remotePath.trimmed();
+    if (path.isEmpty()) return;
+    currentDir_ = path;
+    pathEdit_->setText(path);
+    vm_.listDirectory(path);
+}
+
+void CmdTlmView::openFile(const QString& remotePath)
+{
+    const QString path = remotePath.trimmed();
+    if (path.isEmpty()) return;
+
+    const int slash = path.lastIndexOf('/');
+    if (slash > 0) {
+        currentDir_ = path.left(slash);
+        pathEdit_->setText(currentDir_);
+        vm_.listDirectory(currentDir_);
+    }
+
+    vm_.openFile(path);
+}
 
 void CmdTlmView::onBrowseClicked()
 {
@@ -278,6 +355,13 @@ void CmdTlmView::onInsertCmd()   { insertTextAtCursor(kCmdTemplate); }
 void CmdTlmView::onInsertTlm()   { insertTextAtCursor(kTlmTemplate); }
 void CmdTlmView::onInsertParam() { insertTextAtCursor(kParamTemplate); }
 
+void CmdTlmView::onAddField()
+{
+    Dialogs::CmdTlmFieldDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted)
+        insertTextAtCursor(dialog.generatedLine());
+}
+
 void CmdTlmView::onStructureItemClicked(QTreeWidgetItem* item, int /*col*/)
 {
     if (!item) return;
@@ -299,7 +383,7 @@ void CmdTlmView::onFileParsed(const ViewModels::CmdTlmParseResult& result,
     populateDiagnostics(result);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ?? Helpers ???????????????????????????????????????????????????????????????????
 
 void CmdTlmView::populateStructureTree(const ViewModels::CmdTlmParseResult& result)
 {
