@@ -12,6 +12,11 @@
 #include <QTextEdit>
 #include <QListWidget>
 #include <QTabWidget>
+#include <QTableWidget>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QGroupBox>
+#include <QVector>
 
 namespace OpenC3::UI::Widgets { class CmdTlmHighlighter; }
 
@@ -38,9 +43,17 @@ private slots:
     void onSaveComponentClicked();
     void onValidateComponentClicked();
     void onOpenInCmdTlmClicked();
+    void onStartCmdTlmEditClicked();
     void onInsertCmdClicked();
     void onInsertTlmClicked();
     void onAddFieldClicked();
+    void onAddStructureFieldClicked();
+    void onDeleteStructureFieldClicked();
+    void onRefreshStructureClicked();
+    void onApplyStructureClicked();
+    void onBlockSelectionChanged(int index);
+    void onApplyBlockClicked();
+    void onToggleReferenceClicked();
 
 signals:
     void openCmdTlmRequested(const QString& remoteFilePath);
@@ -49,8 +62,21 @@ private:
     void setupUi();
     void bindViewModel();
     void populateComponentList(const QStringList& files, const QString& pluginRootPath);
+    void setComponentHint(const QString& text);
     void openSelectedComponent(QListWidgetItem* item);
     void insertTextAtCursor(const QString& text);
+    void refreshStructureTable();
+    void refreshBlockEditor();
+    void populateBlockForm(int blockIndex);
+    void applyStructureRowToEditor(int row);
+    void focusEditorLineForStructureRow(int row);
+    void insertStructureFieldAfterRow(int row, const QString& line);
+    void replaceEditorLine(int lineNumber, const QString& newText);
+    void deleteEditorLine(int lineNumber);
+    void setComponentDirty(bool dirty);
+    void updateComponentPathLabel();
+    [[nodiscard]] bool confirmDiscardUnsavedChanges();
+    [[nodiscard]] bool confirmSaveAfterValidation();
 
     [[nodiscard]] QString selectedPluginName() const;
     [[nodiscard]] QString selectedPluginRoot() const;
@@ -70,23 +96,45 @@ private:
     QPushButton* addTargetBtn_{nullptr};
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
+    QLabel*      pluginSummaryLabel_{nullptr};
     QTabWidget*  detailTabs_{nullptr};
     QTextEdit*   detailEdit_{nullptr};
     QListWidget* componentList_{nullptr};
+    QLabel*      componentHintLabel_{nullptr};
     QLabel*      componentPathLabel_{nullptr};
     QTextEdit*   componentEditor_{nullptr};
     QTextEdit*   componentDiagnostics_{nullptr};
+    QTableWidget* structureTable_{nullptr};
+    QComboBox*   blockSelectorCombo_{nullptr};
+    QLabel*      blockKindLabel_{nullptr};
+    QLineEdit*   blockTargetEdit_{nullptr};
+    QLineEdit*   blockNameEdit_{nullptr};
+    QComboBox*   blockEndiannessCombo_{nullptr};
+    QLineEdit*   blockDescriptionEdit_{nullptr};
+    QPushButton* applyBlockBtn_{nullptr};
+    QGroupBox*   guideGroup_{nullptr};
+    QPushButton* toggleReferenceBtn_{nullptr};
     QTextEdit*   componentGuide_{nullptr};
     QPushButton* openComponentBtn_{nullptr};
     QPushButton* saveComponentBtn_{nullptr};
     QPushButton* validateComponentBtn_{nullptr};
     QPushButton* openInCmdTlmBtn_{nullptr};
+    QPushButton* startCmdTlmEditBtn_{nullptr};
     QPushButton* insertCmdBtn_{nullptr};
     QPushButton* insertTlmBtn_{nullptr};
     QPushButton* addFieldBtn_{nullptr};
+    QPushButton* addStructureFieldBtn_{nullptr};
+    QPushButton* deleteStructureFieldBtn_{nullptr};
+    QPushButton* refreshStructureBtn_{nullptr};
+    QPushButton* applyStructureBtn_{nullptr};
     Widgets::CmdTlmHighlighter* highlighter_{nullptr};
     QString     currentPluginRoot_;
     QString     currentComponentPath_;
+    QString     currentComponentDisplayPath_;
+    QString     firstCmdTlmComponentPath_;
+    bool        componentDirty_{false};
+    bool        pendingBuild_{false};
+    QVector<ViewModels::CmdTlmBlock> currentBlocks_;
 };
 
 } // namespace OpenC3::UI::Views
