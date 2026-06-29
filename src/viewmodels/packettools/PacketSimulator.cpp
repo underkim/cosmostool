@@ -58,7 +58,7 @@ bool PacketSimulator::startUdpListener(const QString& bindAddress, quint16 port)
 
     mode_ = Mode::UdpListener;
     emit started(
-        QString("UDP listener active on %1:%2").arg(address.toString()).arg(port));
+        QString("UDP listener active on %1:%2").arg(address.toString()).arg(udpSocket_->localPort()));
     return true;
 }
 
@@ -93,7 +93,7 @@ bool PacketSimulator::startTcpServer(const QString& bindAddress, quint16 port)
     }
 
     mode_ = Mode::TcpServer;
-    emit started(QString("TCP server active on %1:%2").arg(address.toString()).arg(port));
+    emit started(QString("TCP server active on %1:%2").arg(address.toString()).arg(tcpServer_->serverPort()));
     return true;
 }
 

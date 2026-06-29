@@ -13,6 +13,7 @@ add_executable(opencosmos_tests
     unit/viewmodels/ScreenParserTest.cpp
     unit/viewmodels/PluginConfigParserTest.cpp
     unit/viewmodels/ConfigValidatorTest.cpp
+    unit/viewmodels/PacketSimulatorTest.cpp
 )
 
 target_include_directories(opencosmos_tests
@@ -27,6 +28,7 @@ target_link_libraries(opencosmos_tests
         opencosmos_viewmodels   # for CmdTlmParser / PluginTemplateEngine (Qt-based)
         GTest::gtest_main
         GTest::gmock
+        Qt6::Test
 )
 
 target_set_warnings(opencosmos_tests)
