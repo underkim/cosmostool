@@ -3,6 +3,7 @@
 #include "viewmodels/plugin/PluginViewModel.h"
 #include "viewmodels/infra/InfraViewModel.h"
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
+#include "viewmodels/validator/ValidatorViewModel.h"
 
 #include <QWidget>
 #include <QTableView>
@@ -28,6 +29,7 @@ public:
     explicit PluginView(ViewModels::PluginViewModel& vm,
                         ViewModels::InfraViewModel&  infraVm,
                         ViewModels::CmdTlmViewModel& cmdTlmVm,
+                        ViewModels::ValidatorViewModel& validatorVm,
                         QWidget*                     parent = nullptr);
 
 private slots:
@@ -54,6 +56,7 @@ private slots:
     void onApplyStructureClicked();
     void onBlockSelectionChanged(int index);
     void onApplyBlockClicked();
+    void onStructureCellChanged(int row, int column);
     void onToggleReferenceClicked();
 
 signals:
@@ -78,6 +81,7 @@ private:
     void replaceEditorLine(int lineNumber, const QString& newText);
     void deleteEditorLine(int lineNumber);
     void setComponentDirty(bool dirty);
+    void setCmdTlmActionsVisible(bool visible);
     void updateComponentPathLabel();
     [[nodiscard]] bool confirmDiscardUnsavedChanges();
     [[nodiscard]] bool confirmSaveAfterValidation();
@@ -89,6 +93,7 @@ private:
     ViewModels::PluginViewModel& vm_;
     ViewModels::InfraViewModel&  infraVm_;
     ViewModels::CmdTlmViewModel& cmdTlmVm_;
+    ViewModels::ValidatorViewModel& validatorVm_;
 
     QTableView*  tableView_{nullptr};
     QPushButton* refreshBtn_{nullptr};
@@ -140,6 +145,8 @@ private:
     QString     firstCmdTlmComponentPath_;
     bool        componentDirty_{false};
     bool        pendingBuild_{false};
+    bool        pendingOfflineValidation_{false};
+    bool        updatingStructureTable_{false};
     QVector<ViewModels::CmdTlmBlock> currentBlocks_;
 };
 

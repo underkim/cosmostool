@@ -180,8 +180,34 @@ jobs:
             $candidate = Join-Path $env:QT_ROOT_DIR "bin/windeployqt.exe"
             if (Test-Path $candidate) { $windeployqt = $candidate }
           }
-          & $windeployqt --release --no-translations --compiler-runtime `
+          & $windeployqt --release --no-translations --no-opengl-sw --compiler-runtime `
             (Join-Path $portable "OpenC3DevToolkit.exe")
+
+          Get-ChildItem -Path $portable -Recurse -File |
+            Where-Object { $_.Extension -in ".ilk", ".pdb" } |
+            Remove-Item -Force
+
+          $crtDir = $null
+          if ($env:VCToolsRedistDir) {
+            $candidate = Join-Path $env:VCToolsRedistDir "x64\Microsoft.VC143.CRT"
+            if (Test-Path $candidate) { $crtDir = $candidate }
+          }
+          if (-not $crtDir) {
+            $crtDir = Get-ChildItem -Path "${env:ProgramFiles}\Microsoft Visual Studio\2022" -Recurse -Directory -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '\\VC\\Redist\\MSVC\\[^\\]+\\x64\\Microsoft\.VC143\.CRT$' } |
+              Sort-Object FullName -Descending |
+              Select-Object -ExpandProperty FullName -First 1
+          }
+          if ($crtDir) {
+            Copy-Item -Path (Join-Path $crtDir "*.dll") -Destination $portable -Force
+          } else {
+            Write-Warning "MSVC runtime DLL folder not found; relying on windeployqt output."
+          }
+
+          $vcRedist = Join-Path $portable "vc_redist.x64.exe"
+          if (Test-Path $vcRedist) {
+            Remove-Item -Force $vcRedist
+          }
 
           Compress-Archive -Path "$portable/*" `
             -DestinationPath "OpenC3DevToolkit-portable-windows.zip" -Force

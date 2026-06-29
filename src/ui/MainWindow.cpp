@@ -21,6 +21,7 @@
 #include <QCloseEvent>
 #include <QApplication>
 #include <QFont>
+#include <QTabWidget>
 
 namespace OpenC3::UI {
 
@@ -91,8 +92,7 @@ void MainWindow::setupNavigation()
     navRail_->setFrameShape(QFrame::NoFrame);
     navRail_->setSpacing(2);
 
-    auto addItem = [&](const QString& icon, const QString& text) {
-        Q_UNUSED(icon);
+    auto addItem = [&](const QString& text) {
         auto* item = new QListWidgetItem(text);
         item->setSizeHint(QSize(200, 40));
         QFont f = item->font();
@@ -101,20 +101,12 @@ void MainWindow::setupNavigation()
         navRail_->addItem(item);
     };
 
-    // ── 운영 ──────────────────────────────────────────────────────────────────
-    addItem("📊", "Dashboard");    // 0
-    addItem("🐳", "Docker");       // 1
-    // ── 인프라 관리 ───────────────────────────────────────────────────────────
-    addItem("🔧", "Infra");        // 2
-    addItem("🩺", "Doctor");       // 3
-    // ── 개발 도구 ─────────────────────────────────────────────────────────────
-    addItem("🧩", "Plugins");      // 4
-    addItem("📝", "CMD / TLM");    // 5
-    addItem("📦", "Packet Tools"); // 6
-    addItem("📋", "Log Viewer");   // 7
-    addItem("✅", "Validator");    // 8
-    // ── 설정 ──────────────────────────────────────────────────────────────────
-    addItem("⚙️",  "Settings");    // 9
+    addItem("Dashboard"); // 0
+    addItem("Workspace"); // 1
+    addItem("Simulator"); // 2
+    addItem("Logs");      // 3
+    addItem("Settings");  // 4
+    addItem("Advanced");  // 5
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -125,37 +117,41 @@ void MainWindow::setupNavigation()
 
 void MainWindow::setupViews()
 {
-    contentStack_->addWidget(new Views::DashboardView(dashboardVm_,    this)); // 0
-    contentStack_->addWidget(new Views::DockerView(dockerVm_,          this)); // 1
-    contentStack_->addWidget(new Views::InfraView(infraVm_,            this)); // 2
-    contentStack_->addWidget(new Views::DoctorView(doctorVm_,          this)); // 3
-    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, this);
+    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, this);
     auto* cmdTlmView    = new Views::CmdTlmView(cmdTlmVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
 
+    auto* advancedTabs = new QTabWidget(this);
+    advancedTabs->setObjectName("PluginDetailTabs");
+    advancedTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");
+    advancedTabs->addTab(new Views::InfraView(infraVm_, this), "Infra");
+    advancedTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");
+    advancedTabs->addTab(cmdTlmView, "CMD / TLM");
+    advancedTabs->addTab(validatorView, "Validator");
+
     connect(pluginView, &Views::PluginView::openCmdTlmRequested,
-            this, [this, cmdTlmView](const QString& remoteFilePath) {
+            this, [this, cmdTlmView, advancedTabs](const QString& remoteFilePath) {
                 contentStack_->setCurrentIndex(5);
                 navRail_->setCurrentRow(5);
+                advancedTabs->setCurrentIndex(3);
                 cmdTlmView->openFile(remoteFilePath);
             });
 
-    // Content-based hub: CMD/TLM editor and Plugin Manager hand their buffer to
-    // the offline per-rule Validator (index 8).
-    auto toValidator = [this, validatorView](const QString& content) {
-        contentStack_->setCurrentIndex(8);
-        navRail_->setCurrentRow(8);
+    auto toValidator = [this, validatorView, advancedTabs](const QString& content) {
+        contentStack_->setCurrentIndex(5);
+        navRail_->setCurrentRow(5);
+        advancedTabs->setCurrentIndex(4);
         validatorView->checkContent(content);
     };
     connect(cmdTlmView, &Views::CmdTlmView::openInValidatorRequested, this, toValidator);
     connect(pluginView, &Views::PluginView::openInValidatorRequested, this, toValidator);
 
-    contentStack_->addWidget(pluginView); // 4
-    contentStack_->addWidget(cmdTlmView); // 5
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 6
-    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_,    this)); // 7
-    contentStack_->addWidget(validatorView); // 8
-    contentStack_->addWidget(new Views::SettingsView(settingsVm_,      this)); // 9
+    contentStack_->addWidget(new Views::DashboardView(dashboardVm_, this)); // 0
+    contentStack_->addWidget(pluginView); // 1
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 2
+    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this)); // 3
+    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this)); // 4
+    contentStack_->addWidget(advancedTabs); // 5
 }
 
 void MainWindow::setupMenuBar()
@@ -171,16 +167,18 @@ void MainWindow::setupMenuBar()
     refreshAction->setShortcut(QKeySequence::Refresh);
     connect(refreshAction, &QAction::triggered, this, [this] {
         const int idx = contentStack_->currentIndex();
-        if      (idx == 0) dashboardVm_.refresh();
-        else if (idx == 1) dockerVm_.refresh();
-        else if (idx == 4) pluginVm_.refresh();
+        if (idx == 0) {
+            dashboardVm_.refresh();
+        } else if (idx == 1) {
+            pluginVm_.refresh();
+        }
     });
     viewMenu->addAction(refreshAction);
 
-    auto* helpMenu       = menuBar()->addMenu("&Help");
+    auto* helpMenu = menuBar()->addMenu("&Help");
 
     auto* guideAction = new QAction("&User Guide", this);
-    guideAction->setShortcut(QKeySequence::HelpContents); // F1
+    guideAction->setShortcut(QKeySequence::HelpContents);
     connect(guideAction, &QAction::triggered, this, [this] {
         auto* dlg = new Dialogs::UserGuideDialog(this);
         dlg->setAttribute(Qt::WA_DeleteOnClose);
@@ -220,8 +218,6 @@ void MainWindow::connectSignals()
     onConnectionStatusChanged();
     dockerLabel_->setText("  Docker: " + dashboardVm_.dockerStatus() + "  ");
 }
-
-// ── Slots ─────────────────────────────────────────────────────────────────────
 
 void MainWindow::onNavItemSelected(int index)
 {
