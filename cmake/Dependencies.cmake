@@ -63,4 +63,9 @@ endif()
 set(BUILD_EXAMPLES        OFF CACHE BOOL "" FORCE)
 set(LIBSSH2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS     OFF CACHE BOOL "" FORCE)
+
+# libssh2 1.11.0 declares cmake_minimum_required(VERSION 2.8.x). CMake >= 4.0
+# rejects that outright, so permit the older policy version for the bundled
+# source to keep it configurable under modern toolchains.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 FetchContent_MakeAvailable(libssh2)
