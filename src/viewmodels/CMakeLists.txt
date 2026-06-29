@@ -17,6 +17,7 @@ add_library(opencosmos_viewmodels STATIC
     validation/ScreenParser.cpp
     validation/PluginConfigParser.cpp
     validation/ConfigValidator.cpp
+    validator/ValidatorViewModel.cpp
     packettools/PacketToolsViewModel.cpp
     logviewer/LogViewerViewModel.cpp
     infra/InfraViewModel.cpp

@@ -14,6 +14,7 @@ add_library(opencosmos_ui STATIC
     views/SettingsView.cpp
     views/CmdTlmView.cpp
     views/PacketToolsView.cpp
+    views/ValidatorView.cpp
     views/InfraView.cpp
     views/LogViewerView.cpp
     dialogs/ConnectionDialog.cpp

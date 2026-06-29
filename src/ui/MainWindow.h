@@ -9,6 +9,7 @@
 #include "viewmodels/packettools/PacketToolsViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
 #include "viewmodels/infra/InfraViewModel.h"
+#include "viewmodels/validator/ValidatorViewModel.h"
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -36,6 +37,7 @@ public:
         ViewModels::CmdTlmViewModel&       cmdTlm,
         ViewModels::PacketToolsViewModel&  packetTools,
         ViewModels::LogViewerViewModel&    logViewer,
+        ViewModels::ValidatorViewModel&    validator,
         QWidget*                           parent = nullptr);
 
     ~MainWindow() override = default;
@@ -64,6 +66,7 @@ private:
     ViewModels::CmdTlmViewModel&       cmdTlmVm_;
     ViewModels::PacketToolsViewModel&  packetToolsVm_;
     ViewModels::LogViewerViewModel&    logViewerVm_;
+    ViewModels::ValidatorViewModel&    validatorVm_;
 
     QWidget*        centralWidget_{nullptr};
     QListWidget*    navRail_{nullptr};

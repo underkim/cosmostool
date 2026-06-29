@@ -8,6 +8,7 @@
 #include "views/CmdTlmView.h"
 #include "views/PacketToolsView.h"
 #include "views/LogViewerView.h"
+#include "views/ValidatorView.h"
 #include "dialogs/AboutDialog.h"
 #include "dialogs/UserGuideDialog.h"
 
@@ -33,6 +34,7 @@ MainWindow::MainWindow(
     ViewModels::CmdTlmViewModel&       cmdTlm,
     ViewModels::PacketToolsViewModel&  packetTools,
     ViewModels::LogViewerViewModel&    logViewer,
+    ViewModels::ValidatorViewModel&    validator,
     QWidget*                           parent)
     : QMainWindow(parent)
     , dashboardVm_(dashboard)
@@ -44,6 +46,7 @@ MainWindow::MainWindow(
     , cmdTlmVm_(cmdTlm)
     , packetToolsVm_(packetTools)
     , logViewerVm_(logViewer)
+    , validatorVm_(validator)
 {
     setWindowTitle("OpenC3 Developer Toolkit");
     setMinimumSize(1280, 800);
@@ -109,8 +112,9 @@ void MainWindow::setupNavigation()
     addItem("📝", "CMD / TLM");    // 5
     addItem("📦", "Packet Tools"); // 6
     addItem("📋", "Log Viewer");   // 7
+    addItem("✅", "Validator");    // 8
     // ── 설정 ──────────────────────────────────────────────────────────────────
-    addItem("⚙️",  "Settings");    // 8
+    addItem("⚙️",  "Settings");    // 9
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -137,7 +141,8 @@ void MainWindow::setupViews()
     contentStack_->addWidget(cmdTlmView); // 5
     contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 6
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_,    this)); // 7
-    contentStack_->addWidget(new Views::SettingsView(settingsVm_,      this)); // 8
+    contentStack_->addWidget(new Views::ValidatorView(validatorVm_,    this)); // 8
+    contentStack_->addWidget(new Views::SettingsView(settingsVm_,      this)); // 9
 }
 
 void MainWindow::setupMenuBar()
