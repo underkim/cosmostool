@@ -52,8 +52,14 @@ if(BUILD_TESTING)
     include(GoogleTest)
 endif()
 
-# libssh2 — WinCNG is the native Windows crypto backend (no external deps)
-set(CRYPTO_BACKEND        "WinCNG" CACHE STRING "" FORCE)
+# libssh2 — select the crypto backend per platform.
+#   Windows: WinCNG is native and needs no external dependencies.
+#   Other:   OpenSSL (provide libssl-dev / OpenSSL on the build machine).
+if(WIN32)
+    set(CRYPTO_BACKEND    "WinCNG"  CACHE STRING "" FORCE)
+else()
+    set(CRYPTO_BACKEND    "OpenSSL" CACHE STRING "" FORCE)
+endif()
 set(BUILD_EXAMPLES        OFF CACHE BOOL "" FORCE)
 set(LIBSSH2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS     OFF CACHE BOOL "" FORCE)
