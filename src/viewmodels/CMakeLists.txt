@@ -12,6 +12,11 @@ add_library(opencosmos_viewmodels STATIC
     plugin/PluginTemplateEngine.cpp
     cmdtlm/CmdTlmViewModel.cpp
     cmdtlm/CmdTlmParser.cpp
+    validation/Diagnostic.cpp
+    validation/TextTokenizer.cpp
+    validation/ScreenParser.cpp
+    validation/PluginConfigParser.cpp
+    validation/ConfigValidator.cpp
     packettools/PacketToolsViewModel.cpp
     logviewer/LogViewerViewModel.cpp
     infra/InfraViewModel.cpp

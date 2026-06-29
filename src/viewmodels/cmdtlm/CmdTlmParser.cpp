@@ -150,8 +150,9 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             // APPEND_ITEM      <name> <bit_size> <type> "desc"
             const bool isParam = kw.contains("PARAMETER");
 
+            bool bitOk = true;
             if (toks.size() >= 2) item.name     = toks[1].toUpper();
-            if (toks.size() >= 3) item.bitSize  = toks[2].toInt();
+            if (toks.size() >= 3) item.bitSize  = toks[2].toInt(&bitOk);
             if (toks.size() >= 4) item.dataType = toks[3].toUpper();
 
             if (isParam) {
@@ -169,6 +170,51 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                     QString("Unknown data type '%1' for '%2'")
                         .arg(item.dataType).arg(item.name)
                 });
+            }
+
+            // ── Bit size sanity ───────────────────────────────────────────────
+            if (toks.size() >= 3) {
+                if (!bitOk) {
+                    result.diagnostics.append({
+                        CmdTlmDiagnostic::Severity::Error, lineNo,
+                        QString("Bit size '%1' for '%2' is not an integer")
+                            .arg(toks[2]).arg(item.name)
+                    });
+                } else if (item.bitSize <= 0 && item.dataType != "DERIVED") {
+                    result.diagnostics.append({
+                        CmdTlmDiagnostic::Severity::Error, lineNo,
+                        QString("Bit size for '%1' must be positive").arg(item.name)
+                    });
+                }
+            }
+
+            // ── Numeric range sanity (parameters only) ────────────────────────
+            if (isParam) {
+                bool         minOk = false;
+                bool         maxOk = false;
+                const double mn    = item.minVal.toDouble(&minOk);
+                const double mx    = item.maxVal.toDouble(&maxOk);
+
+                if (minOk && maxOk && mn > mx) {
+                    result.diagnostics.append({
+                        CmdTlmDiagnostic::Severity::Error, lineNo,
+                        QString("Minimum (%1) is greater than maximum (%2) for '%3'")
+                            .arg(item.minVal).arg(item.maxVal).arg(item.name)
+                    });
+                }
+
+                if (!item.defaultVal.isEmpty()) {
+                    bool         defOk = false;
+                    const double dv    = item.defaultVal.toDouble(&defOk);
+                    if (defOk && minOk && maxOk && (dv < mn || dv > mx)) {
+                        result.diagnostics.append({
+                            CmdTlmDiagnostic::Severity::Warning, lineNo,
+                            QString("Default (%1) is outside the range [%2, %3] for '%4'")
+                                .arg(item.defaultVal).arg(item.minVal)
+                                .arg(item.maxVal).arg(item.name)
+                        });
+                    }
+                }
             }
 
             currentBlock->items.append(item);
@@ -200,6 +246,19 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                 });
             }
             seen.insert(item.name);
+        }
+    }
+
+    // ── Post-parse: blocks with no items ──────────────────────────────────────
+    for (const auto& block : result.blocks) {
+        if (block.items.isEmpty()
+            && !block.targetName.isEmpty() && !block.name.isEmpty()) {
+            result.diagnostics.append({
+                CmdTlmDiagnostic::Severity::Warning, block.lineNumber,
+                QString("%1 %2::%3 has no items defined")
+                    .arg(block.kind == CmdTlmBlock::Kind::Command ? "COMMAND" : "TELEMETRY")
+                    .arg(block.targetName).arg(block.name)
+            });
         }
     }
 

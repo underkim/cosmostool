@@ -159,6 +159,40 @@ jobs:
             throw "No supported build file found. Add one of: CMakeLists.txt, Makefile, go.mod, Cargo.toml, package.json, pyproject.toml, requirements.txt"
           }
 
+      - name: Make Windows portable package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $exe = Get-ChildItem -Recurse -File -Filter "OpenC3DevToolkit.exe" |
+            Where-Object { $_.FullName -notmatch '\\artifacts\\|\\portable\\' } |
+            Select-Object -First 1
+          if (-not $exe) { throw "OpenC3DevToolkit.exe not found" }
+
+          $portable = "portable/OpenC3DevToolkit"
+          New-Item -ItemType Directory -Force -Path $portable | Out-Null
+          Copy-Item $exe.FullName (Join-Path $portable "OpenC3DevToolkit.exe") -Force
+
+          # Bundle Qt runtime + plugins and the VC++ runtime so the folder runs
+          # offline on a machine with nothing installed.
+          $windeployqt = "windeployqt"
+          if ($env:QT_ROOT_DIR) {
+            $candidate = Join-Path $env:QT_ROOT_DIR "bin/windeployqt.exe"
+            if (Test-Path $candidate) { $windeployqt = $candidate }
+          }
+          & $windeployqt --release --no-translations --compiler-runtime `
+            (Join-Path $portable "OpenC3DevToolkit.exe")
+
+          Compress-Archive -Path "$portable/*" `
+            -DestinationPath "OpenC3DevToolkit-portable-windows.zip" -Force
+
+      - name: Upload Windows portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenC3DevToolkit-portable-windows
+          path: OpenC3DevToolkit-portable-windows.zip
+          if-no-files-found: error
+
       - name: Collect Windows executables
         shell: pwsh
         run: |

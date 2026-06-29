@@ -10,6 +10,9 @@ add_executable(opencosmos_tests
     unit/services/SettingsServiceTest.cpp
     unit/viewmodels/CmdTlmParserTest.cpp
     unit/viewmodels/PluginTemplateEngineTest.cpp
+    unit/viewmodels/ScreenParserTest.cpp
+    unit/viewmodels/PluginConfigParserTest.cpp
+    unit/viewmodels/ConfigValidatorTest.cpp
 )
 
 target_include_directories(opencosmos_tests
