@@ -36,7 +36,8 @@ static const QSet<QString> kSubKeywords = {
     "GENERIC_READ_CONVERSION_END",   "GENERIC_WRITE_CONVERSION_END",
     "ALLOW_SHORT", "HAZARDOUS", "DISABLE_MESSAGES",
     "ACCESSOR", "TEMPLATE", "VARIABLE_BIT_SIZE",
-    "IGNORE_OVERLAP", "CCSDS_VER"
+    "IGNORE_OVERLAP", "CCSDS_VER",
+    "LIMITS_GROUP", "LIMITS_GROUP_ITEM"
 };
 
 // Map a block kind to the diagnostic scope so CMD-only / TLM-only views can

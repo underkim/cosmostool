@@ -15,13 +15,17 @@ add_library(opencosmos_viewmodels STATIC
     validation/Diagnostic.cpp
     validation/TextTokenizer.cpp
     validation/ScreenParser.cpp
+    validation/PluginKeywords.cpp
     validation/PluginConfigParser.cpp
     validation/CmdTlmRuleSupport.cpp
+    validation/ProtocolRuleSupport.cpp
     validation/CommandValidator.cpp
     validation/TelemetryValidator.cpp
     validation/ScreenValidator.cpp
     validation/ProtocolValidator.cpp
+    validation/InterfaceValidator.cpp
     validation/PluginValidator.cpp
+    validation/TargetConfigValidator.cpp
     validation/RuleValidatorRegistry.cpp
     validation/ConfigValidator.cpp
     validator/ValidatorViewModel.cpp

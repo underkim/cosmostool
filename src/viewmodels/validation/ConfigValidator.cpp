@@ -1,6 +1,8 @@
 #include "ConfigValidator.h"
 #include "ScreenParser.h"
 #include "PluginConfigParser.h"
+#include "PluginValidator.h"
+#include "TargetConfigValidator.h"
 #include "CmdTlmRuleSupport.h"
 #include "TextTokenizer.h"
 
@@ -49,6 +51,8 @@ ConfigValidator::FileKind ConfigValidator::classify(const QString& path,
     const QString base = QFileInfo(path).fileName().toLower();
     if (base == QStringLiteral("plugin.txt"))
         return FileKind::PluginConfig;
+    if (base == QStringLiteral("target.txt"))
+        return FileKind::TargetConfig;
 
     const QString kw = firstKeyword(content);
     if (kw == QStringLiteral("SCREEN"))
@@ -78,7 +82,11 @@ ValidationReport ConfigValidator::validateContent(FileKind kind, const QString& 
     case FileKind::Screen:
         return ScreenParser::parse(content);
     case FileKind::PluginConfig:
-        return PluginConfigParser::parse(content).report;
+        // PluginValidator merges structural plugin.txt checks with the deep
+        // PROTOCOL checks (single source of protocol truth).
+        return PluginValidator{}.validate(content);
+    case FileKind::TargetConfig:
+        return TargetConfigValidator{}.validate(content);
     case FileKind::Unknown:
         break;
     }
@@ -173,6 +181,7 @@ QString ConfigValidator::fileKindLabel(FileKind kind)
     case FileKind::CmdTlm:       return QStringLiteral("CMD/TLM");
     case FileKind::Screen:       return QStringLiteral("Screen");
     case FileKind::PluginConfig: return QStringLiteral("Plugin");
+    case FileKind::TargetConfig: return QStringLiteral("Target");
     case FileKind::Unknown:      return QStringLiteral("Unknown");
     }
     return QStringLiteral("Unknown");

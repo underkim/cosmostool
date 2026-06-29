@@ -1,5 +1,6 @@
 #include "PluginValidator.h"
 #include "PluginConfigParser.h"
+#include "ProtocolRuleSupport.h"
 
 #include <QFileInfo>
 
@@ -21,7 +22,12 @@ bool PluginValidator::appliesTo(const QString& path, const QString& content) con
 
 ValidationReport PluginValidator::validate(const QString& content) const
 {
-    return PluginConfigParser::parse(content).report;
+    // Structural plugin.txt checks (TARGET/INTERFACE/ROUTER/MICROSERVICE/…) …
+    ValidationReport report = PluginConfigParser::parse(content).report;
+    // … plus the deep PROTOCOL checks from the shared protocol rule (the single
+    // source of protocol truth; PluginConfigParser no longer duplicates them).
+    checkProtocolLines(content, report);
+    return report;
 }
 
 } // namespace OpenC3::ViewModels::Validation

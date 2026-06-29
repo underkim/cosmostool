@@ -14,7 +14,7 @@ namespace OpenC3::ViewModels::Validation {
 
 class ConfigValidator {
 public:
-    enum class FileKind { CmdTlm, Screen, PluginConfig, Unknown };
+    enum class FileKind { CmdTlm, Screen, PluginConfig, TargetConfig, Unknown };
 
     // Best-effort classification from the path and a peek at the content.
     [[nodiscard]] static FileKind classify(const QString& path, const QString& content);

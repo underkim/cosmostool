@@ -1,4 +1,5 @@
 #include "PluginConfigParser.h"
+#include "PluginKeywords.h"
 #include "TextTokenizer.h"
 
 #include <QSet>
@@ -8,69 +9,8 @@ namespace OpenC3::ViewModels::Validation {
 
 namespace {
 
-// Top-level declarations that open a context modifiers attach to.
-const QSet<QString>& topLevelKeywords()
-{
-    static const QSet<QString> kTop = {
-        "VARIABLE", "NEEDS_DEPENDENCIES",
-        "TARGET", "INTERFACE", "ROUTER", "MICROSERVICE",
-        "TOOL", "WIDGET", "SCRIPT_ENGINE",
-    };
-    return kTop;
-}
-
-// Modifiers that may appear under INTERFACE / ROUTER.
-const QSet<QString>& interfaceModifiers()
-{
-    static const QSet<QString> kMods = {
-        "MAP_TARGET", "MAP_CMD_TARGET", "MAP_TLM_TARGET",
-        "PROTOCOL", "OPTION", "SECRET", "ENV", "WORK_DIR",
-        "DONT_CONNECT", "DONT_RECONNECT", "RECONNECT_DELAY",
-        "DISABLE_DISCONNECT", "LOG_RAW", "PORT", "CMD",
-        "CONTAINER", "ROUTE_PREFIX", "SHUTDOWN_DELAY",
-        "CONNECT_ON_STARTUP", "AUTO_RECONNECT",
-    };
-    return kMods;
-}
-
-// Modifiers that may appear under MICROSERVICE.
-const QSet<QString>& microserviceModifiers()
-{
-    static const QSet<QString> kMods = {
-        "ENV", "WORK_DIR", "CMD", "OPTION", "TOPIC", "TARGET_NAME",
-        "SECRET", "PORT", "CONTAINER", "ROUTE_PREFIX", "DISABLE_ERB",
-        "SHARD", "STOPPED",
-    };
-    return kMods;
-}
-
-// Modifiers that may appear under TARGET.
-const QSet<QString>& targetModifiers()
-{
-    static const QSet<QString> kMods = {
-        "CMD_BUFFER_DEPTH", "CMD_LOG_CYCLE_TIME", "CMD_LOG_CYCLE_SIZE",
-        "CMD_LOG_RETAIN_TIME", "CMD_DECOM_LOG_CYCLE_TIME",
-        "CMD_DECOM_LOG_CYCLE_SIZE", "CMD_DECOM_LOG_RETAIN_TIME",
-        "TLM_BUFFER_DEPTH", "TLM_LOG_CYCLE_TIME", "TLM_LOG_CYCLE_SIZE",
-        "TLM_LOG_RETAIN_TIME", "TLM_DECOM_LOG_CYCLE_TIME",
-        "TLM_DECOM_LOG_CYCLE_SIZE", "TLM_DECOM_LOG_RETAIN_TIME",
-        "REDUCED_MINUTE_LOG_RETAIN_TIME", "REDUCED_HOUR_LOG_RETAIN_TIME",
-        "REDUCED_DAY_LOG_RETAIN_TIME", "LOG_RETAIN_TIME",
-        "REDUCER_DISABLE", "REDUCER_MAX_CPU_UTILIZATION",
-        "TARGET_MICROSERVICE", "PACKET", "DISABLE_ERB", "SHARD",
-    };
-    return kMods;
-}
-
-// Modifiers that may appear under TOOL / WIDGET.
-const QSet<QString>& toolModifiers()
-{
-    static const QSet<QString> kMods = {
-        "URL", "INLINE_URL", "ICON", "CATEGORY", "SHOWN",
-        "POSITION", "WINDOW", "DISABLE_ERB", "IMPORT_MAP_ITEM",
-    };
-    return kMods;
-}
+// Recognised keyword sets are shared with InterfaceValidator (PluginKeywords).
+const QSet<QString>& topLevelKeywords() { return PluginKeywords::topLevel(); }
 
 enum class Context { None, Interface, Router, Microservice, Target, Tool, Variable };
 
@@ -79,13 +19,13 @@ bool modifierAllowed(Context ctx, const QString& kw)
     switch (ctx) {
     case Context::Interface:
     case Context::Router:
-        return interfaceModifiers().contains(kw);
+        return PluginKeywords::interfaceModifiers().contains(kw);
     case Context::Microservice:
-        return microserviceModifiers().contains(kw);
+        return PluginKeywords::microserviceModifiers().contains(kw);
     case Context::Target:
-        return targetModifiers().contains(kw);
+        return PluginKeywords::targetModifiers().contains(kw);
     case Context::Tool:
-        return toolModifiers().contains(kw);
+        return PluginKeywords::toolModifiers().contains(kw);
     case Context::None:
     case Context::Variable:
         return false;
@@ -173,34 +113,11 @@ PluginConfigParser::Result PluginConfigParser::parse(const QString& content)
             continue;
         }
 
-        // ── PROTOCOL (special-cased for direction + context) ─────────────────
-        if (kw == "PROTOCOL") {
-            if (ctx != Context::Interface && ctx != Context::Router) {
-                report.add(Diagnostic::error(
-                    lineNo,
-                    QStringLiteral("PROTOCOL must appear inside an INTERFACE or ROUTER"),
-                    QStringLiteral("plugin.protocol.context"),
-                    QStringLiteral("Place PROTOCOL after an INTERFACE/ROUTER declaration.")));
-                continue;
-            }
-            if (toks.size() < 3) {
-                report.add(Diagnostic::error(
-                    lineNo,
-                    QStringLiteral("PROTOCOL requires <READ|WRITE|READ_WRITE> <protocol_class> ..."),
-                    QStringLiteral("plugin.protocol.args"),
-                    QStringLiteral("Example: PROTOCOL READ_WRITE length_protocol.rb 0 16 0")));
-                continue;
-            }
-            const QString dir = toks[1].toUpper();
-            if (dir != "READ" && dir != "WRITE" && dir != "READ_WRITE") {
-                report.add(Diagnostic::error(
-                    lineNo,
-                    QStringLiteral("PROTOCOL direction '%1' must be READ, WRITE, or READ_WRITE")
-                        .arg(toks[1]),
-                    QStringLiteral("plugin.protocol.direction")));
-            }
+        // ── PROTOCOL is validated by the shared protocol rule ────────────────
+        // (ProtocolRuleSupport / ProtocolValidator). Skip it here so plugin.txt
+        // gets exactly one set of protocol diagnostics, not two.
+        if (kw == "PROTOCOL")
             continue;
-        }
 
         // ── MAP_TARGET reference (resolved after the full parse) ──────────────
         if (kw == "MAP_TARGET" || kw == "MAP_CMD_TARGET" || kw == "MAP_TLM_TARGET") {

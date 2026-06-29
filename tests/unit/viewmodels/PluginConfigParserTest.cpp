@@ -1,4 +1,5 @@
 #include "viewmodels/validation/PluginConfigParser.h"
+#include "viewmodels/validation/PluginValidator.h"
 
 #include <gtest/gtest.h>
 #include <QString>
@@ -20,14 +21,16 @@ TEST(PluginConfigParserTest, ValidPluginHasNoErrors)
     EXPECT_EQ(result.declaredInterfaces.size(), 1);
 }
 
-TEST(PluginConfigParserTest, ProtocolOutsideInterfaceProducesError)
+// PROTOCOL validation now lives in the shared protocol rule, surfaced through
+// PluginValidator for whole-plugin.txt checks.
+TEST(PluginConfigParserTest, ProtocolOutsideInterfaceProducesWarning)
 {
     const QString src =
         "TARGET INST INST\n"
         "PROTOCOL READ_WRITE length_protocol.rb\n";
 
-    const auto result = PluginConfigParser::parse(src);
-    EXPECT_GE(result.report.errorCount(), 1);
+    const auto report = PluginValidator{}.validate(src);
+    EXPECT_GE(report.warningCount(), 1);
 }
 
 TEST(PluginConfigParserTest, ProtocolBadDirectionProducesError)
@@ -36,8 +39,8 @@ TEST(PluginConfigParserTest, ProtocolBadDirectionProducesError)
         "INTERFACE INST_INT tcpip_client_interface.rb host 8080\n"
         "  PROTOCOL SIDEWAYS length_protocol.rb\n";
 
-    const auto result = PluginConfigParser::parse(src);
-    EXPECT_GE(result.report.errorCount(), 1);
+    const auto report = PluginValidator{}.validate(src);
+    EXPECT_GE(report.errorCount(), 1);
 }
 
 TEST(PluginConfigParserTest, InterfaceMissingClassProducesError)
