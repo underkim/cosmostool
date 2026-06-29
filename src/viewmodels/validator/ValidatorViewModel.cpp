@@ -1,5 +1,7 @@
 #include "ValidatorViewModel.h"
 
+#include "viewmodels/validation/RuleValidatorRegistry.h"
+
 namespace OpenC3::ViewModels {
 
 ValidatorViewModel::ValidatorViewModel(QObject* parent)
@@ -31,15 +33,27 @@ void ValidatorViewModel::validateFolder(const QString& dir)
     emit reportReady();
 }
 
-void ValidatorViewModel::validateText(const QString& content, int kindOrAuto)
+QVector<QPair<QString, QString>> ValidatorViewModel::availableValidators() const
 {
-    using FileKind = Validation::ConfigValidator::FileKind;
+    QVector<QPair<QString, QString>> out;
+    for (const auto* v : Validation::RuleValidatorRegistry::all())
+        out.append({ v->id(), v->label() });
+    return out;
+}
 
-    const FileKind kind = (kindOrAuto < 0)
-        ? Validation::ConfigValidator::classify(QString(), content)
-        : static_cast<FileKind>(kindOrAuto);
+void ValidatorViewModel::validateTextWith(const QString& validatorId,
+                                          const QString& content)
+{
+    if (validatorId.isEmpty()) {
+        // Auto-detect the file kind from the content.
+        const auto kind = Validation::ConfigValidator::classify(QString(), content);
+        report_ = Validation::ConfigValidator::validateContent(kind, content);
+    } else if (const auto* v = Validation::RuleValidatorRegistry::byId(validatorId)) {
+        report_ = v->validate(content);
+    } else {
+        report_ = Validation::ValidationReport{};
+    }
 
-    report_     = Validation::ConfigValidator::validateContent(kind, content);
     lastSource_ = QStringLiteral("(pasted)");
     emit reportReady();
 }

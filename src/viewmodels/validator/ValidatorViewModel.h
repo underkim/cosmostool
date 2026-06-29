@@ -3,7 +3,9 @@
 #include "viewmodels/base/ViewModelBase.h"
 #include "viewmodels/validation/ConfigValidator.h"
 
+#include <QPair>
 #include <QString>
+#include <QVector>
 
 namespace OpenC3::ViewModels {
 
@@ -20,11 +22,15 @@ public:
     [[nodiscard]] const Validation::ValidationReport& report() const noexcept;
     [[nodiscard]] QString lastSource() const noexcept;
 
+    // (id, label) of every standalone rule validator, for the UI to enumerate.
+    [[nodiscard]] QVector<QPair<QString, QString>> availableValidators() const;
+
 public slots:
     void validateFile(const QString& path);
     void validateFolder(const QString& dir);
-    // kindOrAuto: -1 auto-detect, otherwise a ConfigValidator::FileKind value.
-    void validateText(const QString& content, int kindOrAuto);
+    // validatorId selects a single rule validator by id (e.g. "cmd", "protocol").
+    // An empty id means auto-detect the file kind from the content.
+    void validateTextWith(const QString& validatorId, const QString& content);
     void clear();
 
 signals:

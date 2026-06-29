@@ -66,10 +66,9 @@ void ValidatorView::setupUi()
     auto* pasteRow = new QHBoxLayout();
     pasteRow->addWidget(new QLabel(tr("Type:"), this));
     kindCombo_ = new QComboBox(this);
-    kindCombo_->addItem(tr("Auto-detect"), -1);
-    kindCombo_->addItem(tr("CMD / TLM"), 0);
-    kindCombo_->addItem(tr("Screen"), 1);
-    kindCombo_->addItem(tr("Plugin (plugin.txt)"), 2);
+    kindCombo_->addItem(tr("Auto-detect"), QString());
+    for (const auto& v : vm_.availableValidators())
+        kindCombo_->addItem(v.second, v.first); // label, id
     pasteRow->addWidget(kindCombo_);
     checkBtn_ = new QPushButton(tr("Check"), this);
     pasteRow->addWidget(checkBtn_);
@@ -134,7 +133,7 @@ void ValidatorView::onCheckPasted()
     const QString text = pasteEdit_->toPlainText();
     if (text.trimmed().isEmpty())
         return;
-    vm_.validateText(text, kindCombo_->currentData().toInt());
+    vm_.validateTextWith(kindCombo_->currentData().toString(), text);
 }
 
 void ValidatorView::onReportReady()

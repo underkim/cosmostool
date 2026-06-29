@@ -42,9 +42,14 @@ struct CmdTlmBlock {
 
 struct CmdTlmDiagnostic {
     enum class Severity { Error, Warning };
+    // Which kind of block the finding belongs to. Block-less structural issues
+    // (e.g. a keyword outside any block) stay Any so they surface in both the
+    // CMD-only and TLM-only views.
+    enum class Scope { Any, Command, Telemetry };
     Severity severity{Severity::Warning};
     int      line{0};
     QString  message;
+    Scope    scope{Scope::Any};
 };
 
 // ── Result (output of parse()) ────────────────────────────────────────────────

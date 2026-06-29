@@ -1,9 +1,8 @@
 #include "ConfigValidator.h"
 #include "ScreenParser.h"
 #include "PluginConfigParser.h"
+#include "CmdTlmRuleSupport.h"
 #include "TextTokenizer.h"
-
-#include "viewmodels/cmdtlm/CmdTlmParser.h"
 
 #include <QDir>
 #include <QDirIterator>
@@ -42,23 +41,6 @@ QString firstKeyword(const QString& content)
     return {};
 }
 
-// Convert a CMD/TLM diagnostic into the common diagnostic type.
-Diagnostic fromCmdTlm(const OpenC3::ViewModels::CmdTlmDiagnostic& src)
-{
-    const bool isError = src.severity == OpenC3::ViewModels::CmdTlmDiagnostic::Severity::Error;
-    return isError ? Diagnostic::error(src.line, src.message, QStringLiteral("cmdtlm"))
-                   : Diagnostic::warning(src.line, src.message, QStringLiteral("cmdtlm"));
-}
-
-ValidationReport validateCmdTlm(const QString& content)
-{
-    ValidationReport report;
-    const auto parsed = OpenC3::ViewModels::CmdTlmParser::parse(content);
-    for (const auto& d : parsed.diagnostics)
-        report.add(fromCmdTlm(d));
-    return report;
-}
-
 } // namespace
 
 ConfigValidator::FileKind ConfigValidator::classify(const QString& path,
@@ -90,7 +72,9 @@ ValidationReport ConfigValidator::validateContent(FileKind kind, const QString& 
 {
     switch (kind) {
     case FileKind::CmdTlm:
-        return validateCmdTlm(content);
+        // CMD and TLM share one engine; the file-level path runs the union of
+        // both rule sets (std::nullopt = keep every scope).
+        return validateCmdTlmScoped(content, std::nullopt);
     case FileKind::Screen:
         return ScreenParser::parse(content);
     case FileKind::PluginConfig:

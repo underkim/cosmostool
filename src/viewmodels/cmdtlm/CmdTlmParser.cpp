@@ -39,6 +39,14 @@ static const QSet<QString> kSubKeywords = {
     "IGNORE_OVERLAP", "CCSDS_VER"
 };
 
+// Map a block kind to the diagnostic scope so CMD-only / TLM-only views can
+// filter findings to the blocks they care about.
+static CmdTlmDiagnostic::Scope scopeOf(CmdTlmBlock::Kind kind)
+{
+    return kind == CmdTlmBlock::Kind::Command ? CmdTlmDiagnostic::Scope::Command
+                                              : CmdTlmDiagnostic::Scope::Telemetry;
+}
+
 // ── Tokenizer (handles quoted strings) ───────────────────────────────────────
 
 QStringList CmdTlmParser::tokenize(const QString& line)
@@ -126,7 +134,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                     && block.endianness != "LITTLE_ENDIAN") {
                     result.diagnostics.append({
                         CmdTlmDiagnostic::Severity::Warning, lineNo,
-                        QString("Unrecognised endianness '%1'").arg(block.endianness)
+                        QString("Unrecognised endianness '%1'").arg(block.endianness),
+                        scopeOf(block.kind)
                     });
                 }
             }
@@ -134,7 +143,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             if (block.targetName.isEmpty() || block.name.isEmpty()) {
                 result.diagnostics.append({
                     CmdTlmDiagnostic::Severity::Error, lineNo,
-                    QString("%1 is missing target or packet name").arg(kw)
+                    QString("%1 is missing target or packet name").arg(kw),
+                    scopeOf(block.kind)
                 });
             }
 
@@ -210,7 +220,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                 result.diagnostics.append({
                     CmdTlmDiagnostic::Severity::Error, lineNo,
                     QString("Unknown data type '%1' for '%2'")
-                        .arg(item.dataType).arg(item.name)
+                        .arg(item.dataType).arg(item.name),
+                    scopeOf(currentBlock->kind)
                 });
             }
 
@@ -220,20 +231,23 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                     result.diagnostics.append({
                         CmdTlmDiagnostic::Severity::Error, lineNo,
                         QString("Bit size '%1' for '%2' is not an integer")
-                            .arg(bitTok).arg(item.name)
+                            .arg(bitTok).arg(item.name),
+                        scopeOf(currentBlock->kind)
                     });
                 } else if (item.dataType.startsWith("FLOAT")) {
                     if (item.bitSize != 32 && item.bitSize != 64) {
                         result.diagnostics.append({
                             CmdTlmDiagnostic::Severity::Error, lineNo,
                             QString("FLOAT '%1' must be 32 or 64 bits, not %2")
-                                .arg(item.name).arg(item.bitSize)
+                                .arg(item.name).arg(item.bitSize),
+                            scopeOf(currentBlock->kind)
                         });
                     }
                 } else if (item.bitSize <= 0 && item.dataType != "DERIVED") {
                     result.diagnostics.append({
                         CmdTlmDiagnostic::Severity::Error, lineNo,
-                        QString("Bit size for '%1' must be positive").arg(item.name)
+                        QString("Bit size for '%1' must be positive").arg(item.name),
+                        scopeOf(currentBlock->kind)
                     });
                 }
             }
@@ -249,7 +263,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                     result.diagnostics.append({
                         CmdTlmDiagnostic::Severity::Error, lineNo,
                         QString("Minimum (%1) is greater than maximum (%2) for '%3'")
-                            .arg(item.minVal).arg(item.maxVal).arg(item.name)
+                            .arg(item.minVal).arg(item.maxVal).arg(item.name),
+                        scopeOf(currentBlock->kind)
                     });
                 }
 
@@ -261,7 +276,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                             CmdTlmDiagnostic::Severity::Warning, lineNo,
                             QString("Default (%1) is outside the range [%2, %3] for '%4'")
                                 .arg(item.defaultVal).arg(item.minVal)
-                                .arg(item.maxVal).arg(item.name)
+                                .arg(item.maxVal).arg(item.name),
+                            scopeOf(currentBlock->kind)
                         });
                     }
                 }
@@ -272,12 +288,16 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
         }
 
         // ── Item modifiers with checkable argument shapes ────────────────────
+        const CmdTlmDiagnostic::Scope modScope =
+            currentBlock ? scopeOf(currentBlock->kind) : CmdTlmDiagnostic::Scope::Any;
+
         if (kw == "STATE") {
             // STATE <key> <value> [color|HAZARDOUS ...]
             if (toks.size() < 3)
                 result.diagnostics.append({
                     CmdTlmDiagnostic::Severity::Warning, lineNo,
-                    QString("STATE requires a name and a value")
+                    QString("STATE requires a name and a value"),
+                    modScope
                 });
             continue;
         }
@@ -286,7 +306,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             if (toks.size() < 3)
                 result.diagnostics.append({
                     CmdTlmDiagnostic::Severity::Warning, lineNo,
-                    QString("UNITS requires a full name and an abbreviation")
+                    QString("UNITS requires a full name and an abbreviation"),
+                    modScope
                 });
             continue;
         }
@@ -296,7 +317,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             if (n != 7 && n != 9)
                 result.diagnostics.append({
                     CmdTlmDiagnostic::Severity::Error, lineNo,
-                    QString("LIMITS expects 7 or 9 values but got %1").arg(n)
+                    QString("LIMITS expects 7 or 9 values but got %1").arg(n),
+                    modScope
                 });
             continue;
         }
@@ -322,7 +344,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                     QString("Duplicate item '%1' in %2 %3::%4")
                         .arg(item.name)
                         .arg(block.kind == CmdTlmBlock::Kind::Command ? "COMMAND" : "TELEMETRY")
-                        .arg(block.targetName).arg(block.name)
+                        .arg(block.targetName).arg(block.name),
+                    scopeOf(block.kind)
                 });
             }
             seen.insert(item.name);
@@ -337,7 +360,8 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                 CmdTlmDiagnostic::Severity::Warning, block.lineNumber,
                 QString("%1 %2::%3 has no items defined")
                     .arg(block.kind == CmdTlmBlock::Kind::Command ? "COMMAND" : "TELEMETRY")
-                    .arg(block.targetName).arg(block.name)
+                    .arg(block.targetName).arg(block.name),
+                scopeOf(block.kind)
             });
         }
     }
