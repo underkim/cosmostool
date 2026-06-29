@@ -9,6 +9,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QProgressBar>
+#include <QComboBox>
+#include <QSpinBox>
+#include <QTableWidget>
 
 namespace OpenC3::UI::Views {
 
@@ -22,6 +25,9 @@ public:
 private slots:
     void onLogFileSelected(QListWidgetItem* item);
     void onAnalyzeClicked();
+    void onSimulatorStartClicked();
+    void onSimulatorStopClicked();
+    void onSimulatorSendClicked();
 
 private:
     void setupUi();
@@ -38,6 +44,16 @@ private:
     QProgressBar* progressBar_{nullptr};
     QLabel*       statusLabel_{nullptr};
     QLabel*       analysisLabel_{nullptr};
+    QComboBox*    simulatorMode_{nullptr};
+    QLineEdit*    simulatorBindAddress_{nullptr};
+    QSpinBox*     simulatorBindPort_{nullptr};
+    QLineEdit*    simulatorSendHost_{nullptr};
+    QSpinBox*     simulatorSendPort_{nullptr};
+    QLineEdit*    simulatorPayload_{nullptr};
+    QPushButton*  simulatorStartBtn_{nullptr};
+    QPushButton*  simulatorStopBtn_{nullptr};
+    QPushButton*  simulatorSendBtn_{nullptr};
+    QTableWidget* simulatorPackets_{nullptr};
 };
 
 } // namespace OpenC3::UI::Views

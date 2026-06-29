@@ -8,6 +8,9 @@
 #include <QFont>
 #include <QFontDatabase>
 #include <QListWidgetItem>
+#include <QHeaderView>
+#include <QAbstractItemView>
+#include <QTableWidgetItem>
 
 namespace OpenC3::UI::Views {
 
@@ -97,6 +100,72 @@ void PacketToolsView::setupUi()
     splitter->setSizes({280, 900});
     root->addWidget(splitter);
 
+    // ── Simulator controls ───────────────────────────────────────────────────
+    auto* simulatorGroup = new QGroupBox("Peer Equipment Simulator", this);
+    auto* simulatorLayout = new QVBoxLayout(simulatorGroup);
+
+    auto* simulatorControlRow = new QHBoxLayout;
+    simulatorMode_ = new QComboBox(simulatorGroup);
+    simulatorMode_->addItem("UDP Listener", QStringLiteral("udp"));
+    simulatorMode_->addItem("TCP Server", QStringLiteral("tcp"));
+
+    simulatorBindAddress_ = new QLineEdit(simulatorGroup);
+    simulatorBindAddress_->setPlaceholderText("Bind address");
+    simulatorBindAddress_->setText("0.0.0.0");
+
+    simulatorBindPort_ = new QSpinBox(simulatorGroup);
+    simulatorBindPort_->setRange(1, 65535);
+    simulatorBindPort_->setValue(8080);
+
+    simulatorStartBtn_ = new QPushButton("Start", simulatorGroup);
+    simulatorStopBtn_ = new QPushButton("Stop", simulatorGroup);
+    simulatorStopBtn_->setEnabled(false);
+
+    simulatorControlRow->addWidget(new QLabel("Mode:", simulatorGroup));
+    simulatorControlRow->addWidget(simulatorMode_);
+    simulatorControlRow->addWidget(new QLabel("Bind:", simulatorGroup));
+    simulatorControlRow->addWidget(simulatorBindAddress_);
+    simulatorControlRow->addWidget(simulatorBindPort_);
+    simulatorControlRow->addWidget(simulatorStartBtn_);
+    simulatorControlRow->addWidget(simulatorStopBtn_);
+
+    auto* simulatorSendRow = new QHBoxLayout;
+    simulatorSendHost_ = new QLineEdit(simulatorGroup);
+    simulatorSendHost_->setPlaceholderText("Destination host");
+    simulatorSendHost_->setText("127.0.0.1");
+
+    simulatorSendPort_ = new QSpinBox(simulatorGroup);
+    simulatorSendPort_->setRange(1, 65535);
+    simulatorSendPort_->setValue(8080);
+
+    simulatorPayload_ = new QLineEdit(simulatorGroup);
+    simulatorPayload_->setPlaceholderText("Hex payload, e.g. 01 02 A0 FF");
+
+    simulatorSendBtn_ = new QPushButton("Send", simulatorGroup);
+
+    simulatorSendRow->addWidget(new QLabel("Send UDP host:", simulatorGroup));
+    simulatorSendRow->addWidget(simulatorSendHost_);
+    simulatorSendRow->addWidget(new QLabel("Port:", simulatorGroup));
+    simulatorSendRow->addWidget(simulatorSendPort_);
+    simulatorSendRow->addWidget(new QLabel("Hex:", simulatorGroup));
+    simulatorSendRow->addWidget(simulatorPayload_, 1);
+    simulatorSendRow->addWidget(simulatorSendBtn_);
+
+    simulatorPackets_ = new QTableWidget(0, 4, simulatorGroup);
+    simulatorPackets_->setHorizontalHeaderLabels({"Direction", "Peer", "Hex", "ASCII"});
+    simulatorPackets_->horizontalHeader()->setStretchLastSection(true);
+    simulatorPackets_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    simulatorPackets_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    simulatorPackets_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    simulatorPackets_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    simulatorPackets_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    simulatorPackets_->setMinimumHeight(140);
+
+    simulatorLayout->addLayout(simulatorControlRow);
+    simulatorLayout->addLayout(simulatorSendRow);
+    simulatorLayout->addWidget(simulatorPackets_);
+    root->addWidget(simulatorGroup);
+
     // ── Status ────────────────────────────────────────────────────────────────
     statusLabel_ = new QLabel(this);
     statusLabel_->setObjectName("SubLabel");
@@ -148,6 +217,60 @@ void PacketToolsView::bindViewModel()
                 analysisLabel_->setText(summary);
             });
 
+    connect(simulatorStartBtn_, &QPushButton::clicked,
+            this, &PacketToolsView::onSimulatorStartClicked);
+
+    connect(simulatorStopBtn_, &QPushButton::clicked,
+            this, &PacketToolsView::onSimulatorStopClicked);
+
+    connect(simulatorSendBtn_, &QPushButton::clicked,
+            this, &PacketToolsView::onSimulatorSendClicked);
+
+    connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorStateChanged,
+            this, [this] {
+                const bool running = vm_.simulatorRunning();
+                simulatorStartBtn_->setEnabled(!running);
+                simulatorStopBtn_->setEnabled(running);
+                simulatorMode_->setEnabled(!running);
+                simulatorBindAddress_->setEnabled(!running);
+                simulatorBindPort_->setEnabled(!running);
+            });
+
+    connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorError,
+            this, [this](const QString& reason) {
+                const int row = simulatorPackets_->rowCount();
+                simulatorPackets_->insertRow(row);
+                simulatorPackets_->setItem(row, 0, new QTableWidgetItem("ERROR"));
+                simulatorPackets_->setItem(row, 1, new QTableWidgetItem("Simulator"));
+                simulatorPackets_->setItem(row, 2, new QTableWidgetItem(reason));
+                simulatorPackets_->setItem(row, 3, new QTableWidgetItem(QString()));
+                simulatorPackets_->scrollToBottom();
+            });
+
+    connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorPacketReceived,
+            this, [this](const QString& transport, const QString& peer,
+                         const QString& hexPayload, const QString& asciiPreview) {
+                const int row = simulatorPackets_->rowCount();
+                simulatorPackets_->insertRow(row);
+                simulatorPackets_->setItem(row, 0, new QTableWidgetItem("RX " + transport));
+                simulatorPackets_->setItem(row, 1, new QTableWidgetItem(peer));
+                simulatorPackets_->setItem(row, 2, new QTableWidgetItem(hexPayload));
+                simulatorPackets_->setItem(row, 3, new QTableWidgetItem(asciiPreview));
+                simulatorPackets_->scrollToBottom();
+            });
+
+    connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorPacketSent,
+            this, [this](const QString& transport, const QString& peer,
+                         const QString& hexPayload) {
+                const int row = simulatorPackets_->rowCount();
+                simulatorPackets_->insertRow(row);
+                simulatorPackets_->setItem(row, 0, new QTableWidgetItem("TX " + transport));
+                simulatorPackets_->setItem(row, 1, new QTableWidgetItem(peer));
+                simulatorPackets_->setItem(row, 2, new QTableWidgetItem(hexPayload));
+                simulatorPackets_->setItem(row, 3, new QTableWidgetItem(QString()));
+                simulatorPackets_->scrollToBottom();
+            });
+
     // Initial state
     const bool on = vm_.isConnected();
     connectionHint_->setVisible(!on);
@@ -168,6 +291,36 @@ void PacketToolsView::onAnalyzeClicked()
     if (!item) return;
     const QString path = QString("/cosmos/outputs/logs/tlm/") + item->text();
     vm_.analyzePackets(path, filterEdit_->text().trimmed());
+}
+
+void PacketToolsView::onSimulatorStartClicked()
+{
+    const QString mode = simulatorMode_->currentData().toString();
+    if (mode == QStringLiteral("udp")) {
+        vm_.startUdpSimulator(simulatorBindAddress_->text().trimmed(),
+                              static_cast<quint16>(simulatorBindPort_->value()));
+    } else {
+        vm_.startTcpSimulator(simulatorBindAddress_->text().trimmed(),
+                              static_cast<quint16>(simulatorBindPort_->value()));
+    }
+}
+
+void PacketToolsView::onSimulatorStopClicked()
+{
+    vm_.stopSimulator();
+}
+
+void PacketToolsView::onSimulatorSendClicked()
+{
+    const QString mode = simulatorMode_->currentData().toString();
+    if (mode == QStringLiteral("tcp") && vm_.simulatorRunning()) {
+        vm_.sendTcpSimulatorPacket(simulatorPayload_->text().trimmed());
+        return;
+    }
+
+    vm_.sendUdpSimulatorPacket(simulatorSendHost_->text().trimmed(),
+                               static_cast<quint16>(simulatorSendPort_->value()),
+                               simulatorPayload_->text().trimmed());
 }
 
 } // namespace OpenC3::UI::Views

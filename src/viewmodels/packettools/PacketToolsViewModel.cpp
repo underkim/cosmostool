@@ -14,6 +14,23 @@ PacketToolsViewModel::PacketToolsViewModel(
     , connection_(connection)
     , fs_(fs)
 {
+    connect(&simulator_, &PacketSimulator::started, this, [this](const QString& message) {
+        setStatus(message);
+        emit simulatorStateChanged();
+    });
+    connect(&simulator_, &PacketSimulator::stopped, this, [this] {
+        setStatus(QStringLiteral("Simulator stopped."));
+        emit simulatorStateChanged();
+    });
+    connect(&simulator_, &PacketSimulator::errorOccurred, this, [this](const QString& reason) {
+        setStatus(reason);
+        emit simulatorError(reason);
+    });
+    connect(&simulator_, &PacketSimulator::packetReceived,
+            this, &PacketToolsViewModel::simulatorPacketReceived);
+    connect(&simulator_, &PacketSimulator::packetSent,
+            this, &PacketToolsViewModel::simulatorPacketSent);
+
     connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         Q_UNUSED(ev);
         QMetaObject::invokeMethod(this, [this] {
@@ -31,6 +48,11 @@ bool PacketToolsViewModel::isConnected() const noexcept
 bool PacketToolsViewModel::isBusy() const noexcept { return busy_; }
 
 QString PacketToolsViewModel::statusMessage() const noexcept { return status_; }
+
+bool PacketToolsViewModel::simulatorRunning() const noexcept
+{
+    return simulator_.isRunning();
+}
 
 void PacketToolsViewModel::setBusy(bool busy)
 {
@@ -109,6 +131,33 @@ void PacketToolsViewModel::analyzePackets(const QString& remotePath,
             setStatus("Analysis complete.");
         }, Qt::QueuedConnection);
     });
+}
+
+void PacketToolsViewModel::startUdpSimulator(const QString& bindAddress, quint16 port)
+{
+    (void)simulator_.startUdpListener(bindAddress, port);
+}
+
+void PacketToolsViewModel::startTcpSimulator(const QString& bindAddress, quint16 port)
+{
+    (void)simulator_.startTcpServer(bindAddress, port);
+}
+
+void PacketToolsViewModel::stopSimulator()
+{
+    simulator_.stop();
+}
+
+void PacketToolsViewModel::sendUdpSimulatorPacket(const QString& host,
+                                                  quint16 port,
+                                                  const QString& hexPayload)
+{
+    (void)simulator_.sendUdpHex(host, port, hexPayload);
+}
+
+void PacketToolsViewModel::sendTcpSimulatorPacket(const QString& hexPayload)
+{
+    (void)simulator_.sendTcpHex(hexPayload);
 }
 
 } // namespace OpenC3::ViewModels

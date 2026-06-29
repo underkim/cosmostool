@@ -13,8 +13,12 @@ add_library(opencosmos_viewmodels STATIC
     cmdtlm/CmdTlmViewModel.cpp
     cmdtlm/CmdTlmParser.cpp
     packettools/PacketToolsViewModel.cpp
+    packettools/PacketSimulator.cpp
     logviewer/LogViewerViewModel.cpp
     infra/InfraViewModel.cpp
+    validation/ConfigValidator.cpp
+    validation/PluginConfigParser.cpp
+    validation/TargetConfigParser.cpp
 )
 
 target_include_directories(opencosmos_viewmodels
@@ -28,6 +32,7 @@ target_link_libraries(opencosmos_viewmodels
         Qt6::Core
         Qt6::Concurrent
         Qt6::Gui
+        Qt6::Network
 )
 
 target_set_warnings(opencosmos_viewmodels)
