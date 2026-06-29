@@ -111,7 +111,10 @@ void CmdTlmView::setupUi()
     root->addLayout(pathBar);
 
     // ── Toolbar row 2 — editor actions ────────────────────────────
-    auto* actionBar = new QHBoxLayout;
+    auto* actionBlock = new QVBoxLayout;
+    actionBlock->setSpacing(6);
+    auto* insertBar = new QHBoxLayout;
+    auto* fileActionBar = new QHBoxLayout;
     insertCmdBtn_   = new QPushButton("+ COMMAND",   this);
     insertTlmBtn_   = new QPushButton("+ TELEMETRY", this);
     insertParamBtn_ = new QPushButton("+ PARAMETER", this);
@@ -125,15 +128,24 @@ void CmdTlmView::setupUi()
     insertParamBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     validateBtn_->setEnabled(false);
-    actionBar->addWidget(insertCmdBtn_);
-    actionBar->addWidget(insertTlmBtn_);
-    actionBar->addWidget(insertParamBtn_);
-    actionBar->addWidget(addFieldBtn_);
-    actionBar->addSpacing(16);
-    actionBar->addWidget(validateBtn_);
-    actionBar->addStretch();
-    actionBar->addWidget(saveBtn_);
-    root->addLayout(actionBar);
+    insertCmdBtn_->setMinimumWidth(110);
+    insertTlmBtn_->setMinimumWidth(120);
+    insertParamBtn_->setMinimumWidth(120);
+    addFieldBtn_->setMinimumWidth(110);
+    validateBtn_->setMinimumWidth(90);
+    saveBtn_->setMinimumWidth(80);
+
+    insertBar->addWidget(insertCmdBtn_);
+    insertBar->addWidget(insertTlmBtn_);
+    insertBar->addWidget(insertParamBtn_);
+    insertBar->addWidget(addFieldBtn_);
+    insertBar->addStretch();
+    fileActionBar->addStretch();
+    fileActionBar->addWidget(validateBtn_);
+    fileActionBar->addWidget(saveBtn_);
+    actionBlock->addLayout(insertBar);
+    actionBlock->addLayout(fileActionBar);
+    root->addLayout(actionBlock);
 
     // ── Main splitter (vertical) ──────────────────────────────────────────────
     auto* vSplit = new QSplitter(Qt::Vertical, this);
@@ -321,7 +333,6 @@ void CmdTlmView::openFile(const QString& remotePath)
     if (slash > 0) {
         currentDir_ = path.left(slash);
         pathEdit_->setText(currentDir_);
-        vm_.listDirectory(currentDir_);
     }
 
     vm_.openFile(path);

@@ -332,3 +332,97 @@ QToolTip {
     padding: 4px 8px;
     border-radius: 4px;
 }
+
+/* Plugin Manager */
+QSplitter#PluginWorkbench {
+    background-color: #1e1e1e;
+}
+
+QWidget#PluginLeftPane {
+    background-color: #1e1e1e;
+}
+
+QTabWidget#PluginDetailTabs::pane {
+    border: 1px solid #3f3f46;
+    border-radius: 6px;
+    top: -1px;
+}
+
+QTabWidget#PluginDetailTabs QTabBar::tab {
+    background-color: #2a2a2e;
+    color: #bdbdbd;
+    border: 1px solid #3f3f46;
+    border-bottom: none;
+    padding: 7px 14px;
+    margin-right: 3px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+QTabWidget#PluginDetailTabs QTabBar::tab:selected {
+    background-color: #37373d;
+    color: #ffffff;
+}
+
+QLabel#PluginFilePath {
+    background-color: #252526;
+    border: 1px solid #3f3f46;
+    border-radius: 4px;
+    color: #d4d4d4;
+    padding: 7px 10px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px;
+}
+
+QListWidget#PluginComponentList {
+    background-color: #202124;
+    border: 1px solid #3f3f46;
+    border-radius: 5px;
+    padding: 4px;
+}
+
+QListWidget#PluginComponentList::item {
+    padding: 7px 8px;
+    border-radius: 4px;
+    margin: 1px 0;
+}
+
+QListWidget#PluginComponentList::item:selected {
+    background-color: #23527a;
+    color: #ffffff;
+}
+
+QTextEdit#CodeEditor {
+    background-color: #111315;
+    color: #dcdcdc;
+    border: 1px solid #3f3f46;
+    border-radius: 5px;
+    padding: 8px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    selection-background-color: #264f78;
+}
+
+QTextEdit#LogArea {
+    background-color: #17191c;
+    color: #c9d1d9;
+    border: 1px solid #3f3f46;
+    border-radius: 5px;
+    padding: 8px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px;
+}
+
+QTableWidget#PluginStructureTable {
+    background-color: #202124;
+    alternate-background-color: #25272b;
+    border: 1px solid #3f3f46;
+    border-radius: 5px;
+    gridline-color: #343941;
+    selection-background-color: #23527a;
+    selection-color: #ffffff;
+}
+
+QTableWidget#PluginStructureTable::item {
+    padding: 5px 7px;
+}

@@ -44,24 +44,26 @@ static const QSet<QString> kSubKeywords = {
 QStringList CmdTlmParser::tokenize(const QString& line)
 {
     QStringList tokens;
-    bool    inQuote = false;
+    QChar quoteChar;
     QString current;
 
     for (int i = 0; i < line.length(); ++i) {
         const QChar c = line[i];
-        if (c == '"') {
-            if (inQuote) {
+        if (c == '"' || c == '\'') {
+            if (!quoteChar.isNull() && c == quoteChar) {
                 tokens.append(current);
                 current.clear();
-                inQuote = false;
-            } else {
+                quoteChar = QChar{};
+            } else if (quoteChar.isNull()) {
                 if (!current.isEmpty()) {
                     tokens.append(current);
                     current.clear();
                 }
-                inQuote = true;
+                quoteChar = c;
+            } else {
+                current += c;
             }
-        } else if ((c == ' ' || c == '\t') && !inQuote) {
+        } else if ((c == ' ' || c == '\t') && quoteChar.isNull()) {
             if (!current.isEmpty()) {
                 tokens.append(current);
                 current.clear();
@@ -153,11 +155,13 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
 
             CmdTlmItem item;
             item.lineNumber = lineNo;
+            item.keyword    = kw;
             item.isId       = kw.contains("ID_");
+            item.isArray    = kw.contains("ARRAY");
 
             const bool isParam  = kw.contains("PARAMETER");
             const bool isAppend = kw.startsWith("APPEND");
-            const bool isArray  = kw.contains("ARRAY");
+            item.hasExplicitOffset = !isAppend;
 
             // COSMOS grammar (positional). APPEND_* omit the leading bit_offset:
             //   [APPEND_]PARAMETER    <name> [bit_offset] <bit_size> <type> <min> <max> <default> ["desc"]
@@ -168,7 +172,10 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             int idx = 1;
             if (idx < toks.size()) item.name = toks[idx++].toUpper();
 
-            if (!isAppend && idx < toks.size()) ++idx;   // skip bit_offset
+            if (!isAppend && idx < toks.size()) {
+                item.bitOffset = toks[idx].toInt();
+                ++idx;
+            }
 
             bool    bitOk  = true;
             QString bitTok;
@@ -180,9 +187,12 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
 
             if (idx < toks.size()) item.dataType = toks[idx++].toUpper();
 
-            if (isArray && idx < toks.size()) ++idx;     // skip array_bit_size
+            if (item.isArray && idx < toks.size()) {
+                item.arrayBitSize = toks[idx].toInt();
+                ++idx;
+            }
 
-            if (isParam && !isArray) {
+            if (isParam) {
                 const bool strBlock = (item.dataType == "STRING" || item.dataType == "BLOCK");
                 if (!strBlock) {
                     if (idx < toks.size()) item.minVal = toks[idx++];
@@ -229,7 +239,7 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             }
 
             // ── Numeric range sanity (non-ID parameters) ──────────────────────
-            if (isParam && !isArray) {
+            if (isParam) {
                 bool         minOk = false;
                 bool         maxOk = false;
                 const double mn    = item.minVal.toDouble(&minOk);

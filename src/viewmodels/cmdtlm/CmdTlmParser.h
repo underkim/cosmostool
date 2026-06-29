@@ -9,14 +9,19 @@ namespace OpenC3::ViewModels {
 
 struct CmdTlmItem {
     QString name;
+    QString keyword;
     QString dataType;
     int     bitSize{0};
+    int     bitOffset{0};
+    int     arrayBitSize{0};
     QString minVal;
     QString maxVal;
     QString defaultVal;
     QString description;
     int     lineNumber{0};
     bool    isId{false};    // APPEND_ID_PARAMETER / APPEND_ID_ITEM
+    bool    isArray{false};
+    bool    hasExplicitOffset{false};
 };
 
 // ── Block (one COMMAND or TELEMETRY definition) ───────────────────────────────

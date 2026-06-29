@@ -54,6 +54,33 @@ TEST(CmdTlmParserTest, AcceptsCommonOpenC3TypeAliases)
     EXPECT_EQ(result.errorCount(), 0);
 }
 
+TEST(CmdTlmParserTest, ParsesExplicitOffsetParameterAndItem)
+{
+    const QString src =
+        "COMMAND TGT SET BIG_ENDIAN \"Set\"\n"
+        "  PARAMETER MODE 0 8 UINT 0 255 0 \"Mode\"\n"
+        "TELEMETRY TGT HK BIG_ENDIAN \"Housekeeping\"\n"
+        "  ITEM TEMP 16 16 INT \"Temperature\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+
+    EXPECT_EQ(result.errorCount(), 0);
+    ASSERT_EQ(result.blocks.size(), 2);
+    ASSERT_EQ(result.blocks[0].items.size(), 1);
+    EXPECT_EQ(result.blocks[0].items[0].name, "MODE");
+    EXPECT_EQ(result.blocks[0].items[0].bitSize, 8);
+    EXPECT_EQ(result.blocks[0].items[0].dataType, "UINT");
+    EXPECT_EQ(result.blocks[0].items[0].minVal, "0");
+    EXPECT_EQ(result.blocks[0].items[0].maxVal, "255");
+    EXPECT_EQ(result.blocks[0].items[0].defaultVal, "0");
+
+    ASSERT_EQ(result.blocks[1].items.size(), 1);
+    EXPECT_EQ(result.blocks[1].items[0].name, "TEMP");
+    EXPECT_EQ(result.blocks[1].items[0].bitSize, 16);
+    EXPECT_EQ(result.blocks[1].items[0].dataType, "INT");
+    EXPECT_EQ(result.blocks[1].items[0].description, "Temperature");
+}
+
 TEST(CmdTlmParserTest, ItemOutsideBlockProducesError)
 {
     const QString src = "APPEND_ITEM X 8 UINT8 \"orphan\"\n";
@@ -164,4 +191,25 @@ TEST(CmdTlmParserTest, ArrayItemIsAccepted)
 
     const auto result = CmdTlmParser::parse(src);
     EXPECT_EQ(result.errorCount(), 0);
+    ASSERT_EQ(result.blocks.size(), 1);
+    ASSERT_EQ(result.blocks[0].items.size(), 1);
+    EXPECT_TRUE(result.blocks[0].items[0].isArray);
+    EXPECT_EQ(result.blocks[0].items[0].arrayBitSize, 160);
+}
+
+TEST(CmdTlmParserTest, ArrayParameterKeepsRangeAndDefault)
+{
+    const QString src =
+        "COMMAND T C BIG_ENDIAN \"d\"\n"
+        "  APPEND_ARRAY_PARAMETER ARR 16 UINT 160 0 255 1 \"x\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.errorCount(), 0);
+    ASSERT_EQ(result.blocks.size(), 1);
+    ASSERT_EQ(result.blocks[0].items.size(), 1);
+    EXPECT_EQ(result.blocks[0].items[0].arrayBitSize, 160);
+    EXPECT_EQ(result.blocks[0].items[0].minVal, "0");
+    EXPECT_EQ(result.blocks[0].items[0].maxVal, "255");
+    EXPECT_EQ(result.blocks[0].items[0].defaultVal, "1");
+    EXPECT_EQ(result.blocks[0].items[0].description, "x");
 }

@@ -35,8 +35,18 @@ QString CmdTlmViewModel::statusMessage() const noexcept { return status_; }
 
 QString CmdTlmViewModel::defaultCmdTlmPath() const
 {
-    const std::string root = connection_.cosmosRootPath();
-    return QString::fromStdString(root) + "/targets";
+    QString root = QString::fromStdString(connection_.cosmosRootPath()).trimmed();
+    while (root.size() > 1 && root.endsWith('/'))
+        root.chop(1);
+
+    if (root.endsWith("/openc3.sh", Qt::CaseInsensitive)) {
+        const int slash = root.lastIndexOf('/');
+        root = slash > 0 ? root.left(slash) : QString{};
+    } else if (root.compare("openc3.sh", Qt::CaseInsensitive) == 0) {
+        root.clear();
+    }
+
+    return root.isEmpty() ? QString("targets") : root + "/targets";
 }
 
 void CmdTlmViewModel::setBusy(bool busy)

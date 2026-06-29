@@ -102,6 +102,29 @@ QString quotedValue(QString value)
     return '"' + value + '"';
 }
 
+bool startsWithAnyKeyword(const QString& trimmed, const QStringList& keywords)
+{
+    for (const QString& keyword : keywords) {
+        if (trimmed == keyword || trimmed.startsWith(keyword + " "))
+            return true;
+    }
+    return false;
+}
+
+bool isBlockOrFieldHeader(const QString& line)
+{
+    static const QStringList keywords = {
+        "COMMAND", "TELEMETRY",
+        "APPEND_PARAMETER", "PARAMETER",
+        "APPEND_ID_PARAMETER", "ID_PARAMETER",
+        "APPEND_ITEM", "ITEM",
+        "APPEND_ID_ITEM", "ID_ITEM",
+        "APPEND_ARRAY_PARAMETER", "ARRAY_PARAMETER",
+        "APPEND_ARRAY_ITEM", "ARRAY_ITEM"
+    };
+    return startsWithAnyKeyword(line.trimmed().toUpper(), keywords);
+}
+
 // Pull the produced gem filename out of a `gem build` log. The build command
 // appends the `.gem` path, and gem itself prints a "File: <name>.gem" line.
 QString extractGemPath(const QString& buildOutput)
@@ -412,15 +435,15 @@ void PluginView::setupUi()
     blockDescriptionEdit_->setEnabled(false);
     applyBlockBtn_->setEnabled(false);
 
-    structureTable_ = new QTableWidget(0, 9, structureGroup);
+    structureTable_ = new QTableWidget(0, 11, structureGroup);
     structureTable_->setObjectName("PluginStructureTable");
     structureTable_->setHorizontalHeaderLabels({
-        "Line", "Block", "Field", "Bits", "Type",
+        "Line", "Block", "Field", "Offset", "Bits", "Type", "Array Bits",
         "Min", "Max", "Default", "Description"
     });
     structureTable_->horizontalHeader()->setStretchLastSection(true);
     structureTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    structureTable_->horizontalHeader()->setSectionResizeMode(8, QHeaderView::Stretch);
+    structureTable_->horizontalHeader()->setSectionResizeMode(10, QHeaderView::Stretch);
     structureTable_->verticalHeader()->setVisible(false);
     structureTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     structureTable_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -1118,6 +1141,9 @@ void PluginView::refreshStructureTable()
             lineItem->setData(Qt::UserRole, item.lineNumber);
             lineItem->setData(Qt::UserRole + 1, isCommand);
             lineItem->setData(Qt::UserRole + 2, item.isId);
+            lineItem->setData(Qt::UserRole + 3, item.keyword);
+            lineItem->setData(Qt::UserRole + 4, item.hasExplicitOffset);
+            lineItem->setData(Qt::UserRole + 5, item.isArray);
 
             auto* blockItem = new QTableWidgetItem(blockLabel);
             blockItem->setFlags(blockItem->flags() & ~Qt::ItemIsEditable);
@@ -1125,12 +1151,18 @@ void PluginView::refreshStructureTable()
             structureTable_->setItem(row, 0, lineItem);
             structureTable_->setItem(row, 1, blockItem);
             structureTable_->setItem(row, 2, new QTableWidgetItem(item.name));
-            structureTable_->setItem(row, 3, new QTableWidgetItem(QString::number(item.bitSize)));
-            structureTable_->setItem(row, 4, new QTableWidgetItem(item.dataType));
-            structureTable_->setItem(row, 5, new QTableWidgetItem(item.minVal));
-            structureTable_->setItem(row, 6, new QTableWidgetItem(item.maxVal));
-            structureTable_->setItem(row, 7, new QTableWidgetItem(item.defaultVal));
-            structureTable_->setItem(row, 8, new QTableWidgetItem(item.description));
+            structureTable_->setItem(row, 3, new QTableWidgetItem(item.hasExplicitOffset
+                ? QString::number(item.bitOffset)
+                : QString{}));
+            structureTable_->setItem(row, 4, new QTableWidgetItem(QString::number(item.bitSize)));
+            structureTable_->setItem(row, 5, new QTableWidgetItem(item.dataType));
+            structureTable_->setItem(row, 6, new QTableWidgetItem(item.isArray
+                ? QString::number(item.arrayBitSize)
+                : QString{}));
+            structureTable_->setItem(row, 7, new QTableWidgetItem(item.minVal));
+            structureTable_->setItem(row, 8, new QTableWidgetItem(item.maxVal));
+            structureTable_->setItem(row, 9, new QTableWidgetItem(item.defaultVal));
+            structureTable_->setItem(row, 10, new QTableWidgetItem(item.description));
             ++row;
         }
     }
@@ -1261,6 +1293,9 @@ void PluginView::applyStructureRowToEditor(int row)
     const int lineNumber = lineCell->data(Qt::UserRole).toInt();
     const bool isCommand = lineCell->data(Qt::UserRole + 1).toBool();
     const bool isId = lineCell->data(Qt::UserRole + 2).toBool();
+    const QString originalKeyword = lineCell->data(Qt::UserRole + 3).toString();
+    const bool hasExplicitOffset = lineCell->data(Qt::UserRole + 4).toBool();
+    const bool isArray = lineCell->data(Qt::UserRole + 5).toBool();
     if (lineNumber <= 0)
         return;
 
@@ -1269,26 +1304,67 @@ void PluginView::applyStructureRowToEditor(int row)
         return item ? item->text().trimmed() : QString{};
     };
 
-    const QString keyword = isCommand
+    const QString keyword = originalKeyword.isEmpty()
+        ? (isCommand
         ? (isId ? "APPEND_ID_PARAMETER" : "APPEND_PARAMETER")
-        : (isId ? "APPEND_ID_ITEM" : "APPEND_ITEM");
+        : (isId ? "APPEND_ID_ITEM" : "APPEND_ITEM"))
+        : originalKeyword;
+    const bool isParameterKeyword = keyword.contains("PARAMETER");
     const QString name = textAt(2).toUpper();
-    const QString bits = textAt(3);
-    const QString type = textAt(4).toUpper();
-    const QString description = quotedValue(textAt(8));
+    const QString offset = textAt(3);
+    const QString bits = textAt(4);
+    const QString type = textAt(5).toUpper();
+    const QString arrayBits = textAt(6);
+    const QString description = quotedValue(textAt(10));
 
     if (name.isEmpty() || bits.isEmpty() || type.isEmpty()) {
         componentDiagnostics_->setPlainText("Name, Bits, and Type are required.");
         return;
     }
+    if (hasExplicitOffset && offset.isEmpty()) {
+        componentDiagnostics_->setPlainText("Offset is required for PARAMETER / ITEM rows.");
+        return;
+    }
+    if (isArray && arrayBits.isEmpty()) {
+        componentDiagnostics_->setPlainText("Array Bits is required for ARRAY rows.");
+        return;
+    }
 
     QString replacement;
     if (isCommand) {
-        replacement = QString("  %1 %2 %3 %4 %5 %6 %7 %8")
-            .arg(keyword, name, bits, type, textAt(5), textAt(6), textAt(7), description);
+        if (isArray && isParameterKeyword && hasExplicitOffset) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6 %7 %8 %9 %10")
+                .arg(keyword, name, offset, bits, type, arrayBits, textAt(7), textAt(8), textAt(9), description);
+        } else if (isArray && isParameterKeyword) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6 %7 %8 %9")
+                .arg(keyword, name, bits, type, arrayBits, textAt(7), textAt(8), textAt(9), description);
+        } else if (isArray && hasExplicitOffset) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6 %7")
+                .arg(keyword, name, offset, bits, type, arrayBits, description);
+        } else if (isArray) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6")
+                .arg(keyword, name, bits, type, arrayBits, description);
+        } else if (hasExplicitOffset) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6 %7 %8 %9")
+                .arg(keyword, name, offset, bits, type, textAt(7), textAt(8), textAt(9), description);
+        } else {
+            replacement = QString("  %1 %2 %3 %4 %5 %6 %7 %8")
+                .arg(keyword, name, bits, type, textAt(7), textAt(8), textAt(9), description);
+        }
     } else {
-        replacement = QString("  %1 %2 %3 %4 %5")
-            .arg(keyword, name, bits, type, description);
+        if (isArray && hasExplicitOffset) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6 %7")
+                .arg(keyword, name, offset, bits, type, arrayBits, description);
+        } else if (isArray) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6")
+                .arg(keyword, name, bits, type, arrayBits, description);
+        } else if (hasExplicitOffset) {
+            replacement = QString("  %1 %2 %3 %4 %5 %6")
+                .arg(keyword, name, offset, bits, type, description);
+        } else {
+            replacement = QString("  %1 %2 %3 %4 %5")
+                .arg(keyword, name, bits, type, description);
+        }
     }
 
     QTextBlock block = componentEditor_->document()->findBlockByNumber(lineNumber - 1);
