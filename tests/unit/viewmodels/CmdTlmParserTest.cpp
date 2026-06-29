@@ -110,3 +110,58 @@ TEST(CmdTlmParserTest, MissingTargetOrNameProducesError)
     const auto result = CmdTlmParser::parse(src);
     EXPECT_GE(result.errorCount(), 1);
 }
+
+TEST(CmdTlmParserTest, NonAppendParameterUsesBitOffsetColumn)
+{
+    const QString src =
+        "COMMAND TGT C BIG_ENDIAN \"d\"\n"
+        "  PARAMETER P 0 16 UINT 0 100 5 \"x\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.errorCount(), 0);
+    ASSERT_EQ(result.blocks.size(), 1);
+    ASSERT_EQ(result.blocks[0].items.size(), 1);
+    EXPECT_EQ(result.blocks[0].items[0].name, "P");
+    EXPECT_EQ(result.blocks[0].items[0].bitSize, 16);
+    EXPECT_EQ(result.blocks[0].items[0].dataType, "UINT");
+}
+
+TEST(CmdTlmParserTest, FloatWithBadBitSizeProducesError)
+{
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ITEM F 16 FLOAT \"x\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_GE(result.errorCount(), 1);
+}
+
+TEST(CmdTlmParserTest, SelectTelemetryWithoutItemsIsOk)
+{
+    const QString src = "SELECT_TELEMETRY T H\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.errorCount(), 0);
+    EXPECT_EQ(result.warningCount(), 0);
+}
+
+TEST(CmdTlmParserTest, LimitsWrongArgumentCountProducesError)
+{
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ITEM X 8 UINT \"x\"\n"
+        "  LIMITS DEFAULT 1 ENABLED 1 2\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_GE(result.errorCount(), 1);
+}
+
+TEST(CmdTlmParserTest, ArrayItemIsAccepted)
+{
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ARRAY_ITEM ARR 16 UINT 160 \"x\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.errorCount(), 0);
+}
