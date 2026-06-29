@@ -19,6 +19,10 @@ set(CMAKE_AUTOUIC ON)
 # ── CMake Modules ─────────────────────────────────────────────────────────────
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Define BUILD_TESTING before Dependencies so GoogleTest — which provides
+# gtest_discover_tests — is set up whenever the test suite is enabled.
+option(BUILD_TESTING "Build test suite" ON)
+
 include(CompilerWarnings)
 include(Dependencies)
 include(StaticAnalysis)
@@ -51,7 +55,6 @@ endif()
 # ── Subdirectories ────────────────────────────────────────────────────────────
 add_subdirectory(src)
 
-option(BUILD_TESTING "Build test suite" ON)
 if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(tests)

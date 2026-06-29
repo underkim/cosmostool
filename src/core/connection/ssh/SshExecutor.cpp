@@ -10,6 +10,7 @@
 #  include <winsock2.h>
 #  include <ws2tcpip.h>
    using SocketType = SOCKET;
+   using SockLenType = int;
    constexpr SocketType kInvalidSocket = INVALID_SOCKET;
 #else
 #  include <arpa/inet.h>
@@ -17,6 +18,7 @@
 #  include <sys/socket.h>
 #  include <unistd.h>
    using SocketType = int;
+   using SockLenType = socklen_t;
    constexpr SocketType kInvalidSocket = -1;
    inline void closesocket(int s) { close(s); }
 #endif
@@ -220,7 +222,7 @@ bool SshExecutor::resolveAndConnect()
         return false;
     }
 
-    if (::connect(sock, res->ai_addr, static_cast<int>(res->ai_addrlen)) != 0) {
+    if (::connect(sock, res->ai_addr, static_cast<SockLenType>(res->ai_addrlen)) != 0) {
         freeaddrinfo(res);
         closesocket(sock);
         Logging::Logger::error("[SshExecutor] connect() failed to {}:{}",

@@ -29,6 +29,7 @@ struct CmdTlmBlock {
     QString endianness;
     QString description;
     int     lineNumber{0};
+    bool    isSelect{false};   // SELECT_COMMAND / SELECT_TELEMETRY (modifies existing)
     QVector<CmdTlmItem> items;
 };
 

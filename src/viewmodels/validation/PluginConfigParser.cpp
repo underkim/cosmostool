@@ -1,255 +1,257 @@
 #include "PluginConfigParser.h"
+#include "TextTokenizer.h"
 
-#include <QHash>
-#include <QRegularExpression>
 #include <QSet>
+#include <QVector>
 
 namespace OpenC3::ViewModels::Validation {
+
 namespace {
 
-struct ParameterRule {
-    int minArgs;
-    int maxArgs; // -1 means unbounded.
-    QString hint;
-};
-
-const QHash<QString, ParameterRule> kPluginRules = {
-    {"VARIABLE", {2, 2, "VARIABLE requires a name and a default value."}},
-    {"TARGET", {1, 2, "TARGET requires a target folder and optionally a substituted display name."}},
-    {"INTERFACE", {2, -1, "INTERFACE requires a name and interface class plus constructor arguments."}},
-    {"ROUTER", {2, -1, "ROUTER requires a name and router class plus constructor arguments."}},
-    {"PROTOCOL", {1, -1, "PROTOCOL requires a protocol class plus constructor arguments."}},
-    {"MAP_TARGET", {1, 1, "MAP_TARGET requires exactly one target name."}},
-    {"CMD_TLM_SERVER", {1, 1, "CMD_TLM_SERVER requires exactly one target name."}},
-    {"MICROSERVICE", {2, -1, "MICROSERVICE requires a name and class or command."}},
-    {"WIDGET", {2, -1, "WIDGET requires a widget name and implementation."}},
-    {"TAB", {2, -1, "TAB requires a tab name and implementation."}},
-    {"TOOL", {2, -1, "TOOL requires a tool name and implementation."}},
-    {"CONVERSION", {2, -1, "CONVERSION requires a conversion name and implementation."}},
-    {"LIMITS_RESPONSE", {2, -1, "LIMITS_RESPONSE requires a response name and implementation."}},
-    {"ACCESSOR", {2, -1, "ACCESSOR requires an accessor name and implementation."}},
-    {"SECRET", {1, 2, "SECRET requires a key and optional default or prompt."}},
-    {"ENV", {2, 2, "ENV requires a key and value."}},
-    {"OPTION", {2, -1, "OPTION requires a name and default value; optional metadata may follow."}},
-    {"REQUIRE", {1, 1, "REQUIRE requires exactly one Ruby file path."}},
-    {"GEM", {1, 2, "GEM requires a gem name and optional version constraint."}}
-};
-
-const QSet<QString> kVariableAwareKeywords = {
-    "TARGET", "INTERFACE", "ROUTER", "MAP_TARGET", "CMD_TLM_SERVER", "MICROSERVICE",
-    "WIDGET", "TAB", "TOOL", "CONVERSION", "LIMITS_RESPONSE", "ACCESSOR", "ENV", "OPTION",
-    "PROTOCOL"
-};
-
-const QRegularExpression kIdentifierPattern(QStringLiteral("^[A-Za-z_][A-Za-z0-9_]*$"));
-const QRegularExpression kVariableReferencePattern(QStringLiteral(R"(<%=\s*([A-Za-z_][A-Za-z0-9_]*)\s*%>)"));
-const QRegularExpression kEnvNamePattern(QStringLiteral("^[A-Z_][A-Z0-9_]*$"));
-const QRegularExpression kClassOrFilePattern(QStringLiteral(R"((\.rb$)|(^[A-Za-z_][A-Za-z0-9_:]*$))"));
-
-void addDiagnostic(ValidationReport& report,
-                   const QString& filePath,
-                   int line,
-                   Severity severity,
-                   const QString& message,
-                   const QString& suggestion,
-                   const QString& rule)
+// Top-level declarations that open a context modifiers attach to.
+const QSet<QString>& topLevelKeywords()
 {
-    report.diagnostics.append({filePath, line, severity, message, suggestion, rule});
+    static const QSet<QString> kTop = {
+        "VARIABLE", "NEEDS_DEPENDENCIES",
+        "TARGET", "INTERFACE", "ROUTER", "MICROSERVICE",
+        "TOOL", "WIDGET", "SCRIPT_ENGINE",
+    };
+    return kTop;
 }
 
-bool isVariableReference(const QString& value)
+// Modifiers that may appear under INTERFACE / ROUTER.
+const QSet<QString>& interfaceModifiers()
 {
-    return kVariableReferencePattern.match(value).hasMatch();
+    static const QSet<QString> kMods = {
+        "MAP_TARGET", "MAP_CMD_TARGET", "MAP_TLM_TARGET",
+        "PROTOCOL", "OPTION", "SECRET", "ENV", "WORK_DIR",
+        "DONT_CONNECT", "DONT_RECONNECT", "RECONNECT_DELAY",
+        "DISABLE_DISCONNECT", "LOG_RAW", "PORT", "CMD",
+        "CONTAINER", "ROUTE_PREFIX", "SHUTDOWN_DELAY",
+        "CONNECT_ON_STARTUP", "AUTO_RECONNECT",
+    };
+    return kMods;
 }
 
-QString stripVariableSuffix(const QString& value)
+// Modifiers that may appear under MICROSERVICE.
+const QSet<QString>& microserviceModifiers()
 {
-    QString result = value;
-    const QRegularExpressionMatch match = kVariableReferencePattern.match(result);
-    if (match.hasMatch()) {
-        result.replace(match.captured(0), match.captured(1));
+    static const QSet<QString> kMods = {
+        "ENV", "WORK_DIR", "CMD", "OPTION", "TOPIC", "TARGET_NAME",
+        "SECRET", "PORT", "CONTAINER", "ROUTE_PREFIX", "DISABLE_ERB",
+        "SHARD", "STOPPED",
+    };
+    return kMods;
+}
+
+// Modifiers that may appear under TARGET.
+const QSet<QString>& targetModifiers()
+{
+    static const QSet<QString> kMods = {
+        "CMD_BUFFER_DEPTH", "CMD_LOG_CYCLE_TIME", "CMD_LOG_CYCLE_SIZE",
+        "CMD_LOG_RETAIN_TIME", "CMD_DECOM_LOG_CYCLE_TIME",
+        "CMD_DECOM_LOG_CYCLE_SIZE", "CMD_DECOM_LOG_RETAIN_TIME",
+        "TLM_BUFFER_DEPTH", "TLM_LOG_CYCLE_TIME", "TLM_LOG_CYCLE_SIZE",
+        "TLM_LOG_RETAIN_TIME", "TLM_DECOM_LOG_CYCLE_TIME",
+        "TLM_DECOM_LOG_CYCLE_SIZE", "TLM_DECOM_LOG_RETAIN_TIME",
+        "REDUCED_MINUTE_LOG_RETAIN_TIME", "REDUCED_HOUR_LOG_RETAIN_TIME",
+        "REDUCED_DAY_LOG_RETAIN_TIME", "LOG_RETAIN_TIME",
+        "REDUCER_DISABLE", "REDUCER_MAX_CPU_UTILIZATION",
+        "TARGET_MICROSERVICE", "PACKET", "DISABLE_ERB", "SHARD",
+    };
+    return kMods;
+}
+
+// Modifiers that may appear under TOOL / WIDGET.
+const QSet<QString>& toolModifiers()
+{
+    static const QSet<QString> kMods = {
+        "URL", "INLINE_URL", "ICON", "CATEGORY", "SHOWN",
+        "POSITION", "WINDOW", "DISABLE_ERB", "IMPORT_MAP_ITEM",
+    };
+    return kMods;
+}
+
+enum class Context { None, Interface, Router, Microservice, Target, Tool, Variable };
+
+bool modifierAllowed(Context ctx, const QString& kw)
+{
+    switch (ctx) {
+    case Context::Interface:
+    case Context::Router:
+        return interfaceModifiers().contains(kw);
+    case Context::Microservice:
+        return microserviceModifiers().contains(kw);
+    case Context::Target:
+        return targetModifiers().contains(kw);
+    case Context::Tool:
+        return toolModifiers().contains(kw);
+    case Context::None:
+    case Context::Variable:
+        return false;
     }
-    return result;
+    return false;
 }
 
 } // namespace
 
-QStringList PluginConfigParser::tokenize(const QString& line)
+PluginConfigParser::Result PluginConfigParser::parse(const QString& content)
 {
-    QStringList tokens;
-    bool inQuote = false;
-    bool inErb = false;
-    QChar quoteChar;
-    QString current;
+    Result result;
+    ValidationReport& report = result.report;
 
-    for (int i = 0; i < line.length(); ++i) {
-        const QChar c = line[i];
-        if (!inQuote && !inErb && c == '<' && i + 2 < line.length() && line[i + 1] == '%' && line[i + 2] == '=') {
-            if (!current.isEmpty()) {
-                tokens.append(current);
-                current.clear();
-            }
-            inErb = true;
-            current += c;
-        } else if (inErb) {
-            current += c;
-            if (c == '>' && i > 0 && line[i - 1] == '%') {
-                tokens.append(current.trimmed());
-                current.clear();
-                inErb = false;
-            }
-        } else if ((c == '\'' || c == '"') && (!inQuote || quoteChar == c)) {
-            if (inQuote) {
-                tokens.append(current);
-                current.clear();
-                inQuote = false;
-                quoteChar = QChar();
-            } else {
-                if (!current.isEmpty()) {
-                    tokens.append(current);
-                    current.clear();
-                }
-                inQuote = true;
-                quoteChar = c;
-            }
-        } else if ((c == ' ' || c == '\t') && !inQuote) {
-            if (!current.isEmpty()) {
-                tokens.append(current);
-                current.clear();
-            }
-        } else if (c == '#' && !inQuote) {
-            break;
-        } else {
-            current += c;
-        }
-    }
-
-    if (!current.isEmpty()) tokens.append(current);
-    return tokens;
-}
-
-ValidationReport PluginConfigParser::validate(const QString& content, const QString& filePath)
-{
-    ValidationReport report;
-    QSet<QString> variables;
-    QString currentAttachable;
     const QStringList lines = content.split('\n');
 
+    Context ctx = Context::None;
+
+    struct TargetRef { QString name; int line{0}; };
+    QVector<TargetRef> mappedTargets; // MAP_TARGET references to resolve later
+
     for (int i = 0; i < lines.size(); ++i) {
-        const int lineNo = i + 1;
+        const int     lineNo  = i + 1;
         const QString trimmed = lines[i].trimmed();
-        if (trimmed.isEmpty() || trimmed.startsWith('#')) continue;
 
-        const QStringList tokens = tokenize(trimmed);
-        if (tokens.isEmpty()) continue;
+        if (trimmed.isEmpty() || trimmed.startsWith('#'))
+            continue;
 
-        const QString keyword = tokens[0].toUpper();
-        const int argCount = tokens.size() - 1;
+        const QStringList toks = tokenizeConfigLine(trimmed);
+        if (toks.isEmpty())
+            continue;
 
-        if (keyword == "VARIABLE") {
-            if (tokens.size() > 1) {
-                const QString variableName = tokens[1];
-                if (!kIdentifierPattern.match(variableName).hasMatch()) {
-                    addDiagnostic(report, filePath, lineNo, Severity::Error,
-                                  QString("Invalid VARIABLE name '%1'.").arg(variableName),
-                                  "Use a Ruby/ERB-friendly identifier such as target_name.",
-                                  "plugin.variable.name");
+        const QString kw = toks[0].toUpper();
+
+        // ── Top-level declarations ───────────────────────────────────────────
+        if (topLevelKeywords().contains(kw)) {
+            if (kw == "TARGET") {
+                // TARGET <folder_name> <target_name>
+                if (toks.size() < 3) {
+                    report.add(Diagnostic::error(
+                        lineNo, QStringLiteral("TARGET requires <folder> <name>"),
+                        QStringLiteral("plugin.target.args"),
+                        QStringLiteral("Example: TARGET INST INST")));
                 } else {
-                    variables.insert(variableName);
+                    result.targetFolders     << toks[1];
+                    result.targetFolderLines << lineNo;
+                    result.declaredTargets   << toks[2].toUpper();
                 }
+                ctx = Context::Target;
+            } else if (kw == "INTERFACE" || kw == "ROUTER") {
+                // INTERFACE <name> <class_file> <params...>
+                if (toks.size() < 3) {
+                    report.add(Diagnostic::error(
+                        lineNo,
+                        QStringLiteral("%1 requires <name> <class_file> ...").arg(kw),
+                        QStringLiteral("plugin.interface.args"),
+                        QStringLiteral("Example: INTERFACE INST_INT tcpip_client_interface.rb host 8080 8081 10.0 nil BURST")));
+                } else {
+                    result.declaredInterfaces << toks[1].toUpper();
+                }
+                ctx = (kw == "INTERFACE") ? Context::Interface : Context::Router;
+            } else if (kw == "MICROSERVICE") {
+                // MICROSERVICE <folder> <name>
+                if (toks.size() < 3) {
+                    report.add(Diagnostic::error(
+                        lineNo, QStringLiteral("MICROSERVICE requires <folder> <name>"),
+                        QStringLiteral("plugin.microservice.args")));
+                }
+                ctx = Context::Microservice;
+            } else if (kw == "TOOL" || kw == "WIDGET") {
+                ctx = Context::Tool;
+            } else if (kw == "VARIABLE") {
+                // VARIABLE <name> <default_value>
+                if (toks.size() < 3) {
+                    report.add(Diagnostic::warning(
+                        lineNo, QStringLiteral("VARIABLE should have a name and default value"),
+                        QStringLiteral("plugin.variable.args"),
+                        QStringLiteral("Example: VARIABLE port 8080")));
+                }
+                ctx = Context::Variable;
+            } else {
+                // NEEDS_DEPENDENCIES / SCRIPT_ENGINE — no nested context
+                ctx = Context::None;
             }
-        }
-
-        const auto ruleIt = kPluginRules.constFind(keyword);
-        if (ruleIt == kPluginRules.constEnd()) {
-            addDiagnostic(report, filePath, lineNo, Severity::Warning,
-                          QString("Unknown plugin.txt keyword '%1'.").arg(tokens[0]),
-                          "Check the COSMOS plugin.txt keyword spelling or add a parser rule for this keyword.",
-                          "plugin.keyword.unknown");
             continue;
         }
 
-        const ParameterRule rule = ruleIt.value();
-        if (argCount < rule.minArgs || (rule.maxArgs >= 0 && argCount > rule.maxArgs)) {
-            const QString expected = rule.maxArgs < 0
-                ? QString("at least %1 argument(s)").arg(rule.minArgs)
-                : QString("%1-%2 argument(s)").arg(rule.minArgs).arg(rule.maxArgs);
-            addDiagnostic(report, filePath, lineNo, Severity::Error,
-                          QString("%1 has %2 argument(s), expected %3.").arg(keyword).arg(argCount).arg(expected),
-                          rule.hint,
-                          "plugin.keyword.arity");
-        }
-
-        if (keyword == "PROTOCOL" && currentAttachable.isEmpty()) {
-            addDiagnostic(report, filePath, lineNo, Severity::Error,
-                          "PROTOCOL appears before any INTERFACE or ROUTER.",
-                          "Place PROTOCOL on an indented line after the INTERFACE or ROUTER it configures.",
-                          "plugin.protocol.parent");
-        }
-
-        if (keyword == "INTERFACE" || keyword == "ROUTER") {
-            currentAttachable = tokens.value(1);
-        } else if (keyword != "PROTOCOL") {
-            currentAttachable.clear();
-        }
-
-        if (keyword == "OPTION" || keyword == "SECRET") {
-            const QString name = tokens.value(1);
-            if (!name.isEmpty() && !kIdentifierPattern.match(name).hasMatch()) {
-                addDiagnostic(report, filePath, lineNo, Severity::Error,
-                              QString("%1 name '%2' is not a valid identifier.").arg(keyword, name),
-                              "Use letters, numbers, and underscores; start with a letter or underscore.",
-                              "plugin.option_secret.name");
+        // ── PROTOCOL (special-cased for direction + context) ─────────────────
+        if (kw == "PROTOCOL") {
+            if (ctx != Context::Interface && ctx != Context::Router) {
+                report.add(Diagnostic::error(
+                    lineNo,
+                    QStringLiteral("PROTOCOL must appear inside an INTERFACE or ROUTER"),
+                    QStringLiteral("plugin.protocol.context"),
+                    QStringLiteral("Place PROTOCOL after an INTERFACE/ROUTER declaration.")));
+                continue;
             }
+            if (toks.size() < 3) {
+                report.add(Diagnostic::error(
+                    lineNo,
+                    QStringLiteral("PROTOCOL requires <READ|WRITE|READ_WRITE> <protocol_class> ..."),
+                    QStringLiteral("plugin.protocol.args"),
+                    QStringLiteral("Example: PROTOCOL READ_WRITE length_protocol.rb 0 16 0")));
+                continue;
+            }
+            const QString dir = toks[1].toUpper();
+            if (dir != "READ" && dir != "WRITE" && dir != "READ_WRITE") {
+                report.add(Diagnostic::error(
+                    lineNo,
+                    QStringLiteral("PROTOCOL direction '%1' must be READ, WRITE, or READ_WRITE")
+                        .arg(toks[1]),
+                    QStringLiteral("plugin.protocol.direction")));
+            }
+            continue;
         }
 
-        if (keyword == "ENV") {
-            const QString envName = tokens.value(1);
-            if (!envName.isEmpty() && !kEnvNamePattern.match(envName).hasMatch()) {
-                addDiagnostic(report, filePath, lineNo, Severity::Warning,
-                              QString("ENV name '%1' is not conventional uppercase snake case.").arg(envName),
-                              "Use names such as COSMOS_MY_SETTING for portable environment variables.",
-                              "plugin.env.name");
+        // ── MAP_TARGET reference (resolved after the full parse) ──────────────
+        if (kw == "MAP_TARGET" || kw == "MAP_CMD_TARGET" || kw == "MAP_TLM_TARGET") {
+            if (ctx != Context::Interface && ctx != Context::Router) {
+                report.add(Diagnostic::error(
+                    lineNo,
+                    QStringLiteral("%1 must appear inside an INTERFACE or ROUTER").arg(kw),
+                    QStringLiteral("plugin.maptarget.context")));
+            } else if (toks.size() < 2) {
+                report.add(Diagnostic::error(
+                    lineNo, QStringLiteral("%1 requires a target name").arg(kw),
+                    QStringLiteral("plugin.maptarget.args")));
+            } else {
+                mappedTargets.append(TargetRef{ toks[1].toUpper(), lineNo });
             }
+            continue;
         }
 
-        if ((keyword == "INTERFACE" || keyword == "ROUTER") && tokens.size() > 2) {
-            const QString implementation = tokens[2];
-            if (!kClassOrFilePattern.match(implementation).hasMatch()) {
-                addDiagnostic(report, filePath, lineNo, Severity::Warning,
-                              QString("%1 implementation '%2' does not look like a Ruby class or .rb file.").arg(keyword, implementation),
-                              "Use a Ruby class name, namespaced class, or a Ruby file ending in .rb.",
-                              "plugin.implementation.format");
-            }
+        // ── Other modifiers ──────────────────────────────────────────────────
+        if (ctx == Context::None) {
+            report.add(Diagnostic::warning(
+                lineNo,
+                QStringLiteral("'%1' is not inside a TARGET/INTERFACE/ROUTER/MICROSERVICE block")
+                    .arg(toks[0]),
+                QStringLiteral("plugin.modifier.orphan")));
+            continue;
         }
 
-        if (keyword == "PROTOCOL" && tokens.size() > 1) {
-            const QString implementation = tokens[1];
-            if (!kClassOrFilePattern.match(implementation).hasMatch()) {
-                addDiagnostic(report, filePath, lineNo, Severity::Warning,
-                              QString("PROTOCOL implementation '%1' does not look like a Ruby class or .rb file.").arg(implementation),
-                              "Use a Ruby class name, namespaced class, or a Ruby file ending in .rb.",
-                              "plugin.implementation.format");
-            }
-        }
-
-        if (kVariableAwareKeywords.contains(keyword)) {
-            for (int tokenIndex = 1; tokenIndex < tokens.size(); ++tokenIndex) {
-                const QString token = tokens[tokenIndex];
-                if (!isVariableReference(token)) continue;
-
-                const QString variableName = stripVariableSuffix(token);
-                if (!variables.contains(variableName)) {
-                    addDiagnostic(report, filePath, lineNo, Severity::Error,
-                                  QString("Undefined VARIABLE '%1' used in '%2'.").arg(variableName, token),
-                                  "Declare the variable earlier with VARIABLE before referencing it with ERB substitution.",
-                                  "plugin.variable.undefined");
-                }
-            }
+        if (!modifierAllowed(ctx, kw)) {
+            report.add(Diagnostic::warning(
+                lineNo,
+                QStringLiteral("'%1' is not a recognised modifier in this block").arg(toks[0]),
+                QStringLiteral("plugin.modifier.unknown")));
         }
     }
 
-    return report;
+    // ── Resolve MAP_TARGET references against declared targets ───────────────
+    const QSet<QString> declared(result.declaredTargets.begin(),
+                                 result.declaredTargets.end());
+    for (const auto& ref : mappedTargets) {
+        if (!declared.contains(ref.name)) {
+            report.add(Diagnostic::warning(
+                ref.line,
+                QStringLiteral("MAP_TARGET references target '%1' which is not declared in this plugin")
+                    .arg(ref.name),
+                QStringLiteral("plugin.maptarget.undeclared"),
+                QStringLiteral("Add a matching TARGET declaration or check the name.")));
+        }
+    }
+
+    return result;
 }
 
 } // namespace OpenC3::ViewModels::Validation

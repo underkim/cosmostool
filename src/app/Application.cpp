@@ -26,6 +26,7 @@
 #include "viewmodels/packettools/PacketToolsViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
 #include "viewmodels/infra/InfraViewModel.h"
+#include "viewmodels/validator/ValidatorViewModel.h"
 
 #include "ui/styles/ThemeManager.h"
 #include "ui/dialogs/ConnectionDialog.h"
@@ -73,7 +74,8 @@ int Application::run()
         *registry_.resolve<ViewModels::PluginViewModel>(),
         *registry_.resolve<ViewModels::CmdTlmViewModel>(),
         *registry_.resolve<ViewModels::PacketToolsViewModel>(),
-        *registry_.resolve<ViewModels::LogViewerViewModel>());
+        *registry_.resolve<ViewModels::LogViewerViewModel>(),
+        *registry_.resolve<ViewModels::ValidatorViewModel>());
 
     mainWindow_->show();
     Logging::Logger::info("Main window shown — entering event loop");
@@ -191,6 +193,10 @@ void Application::registerViewModels()
     auto infraVm = std::make_shared<ViewModels::InfraViewModel>(
         *connection, *fs);
     registry_.registerInstance<ViewModels::InfraViewModel>(infraVm);
+
+    // Validator needs no services — it runs fully offline static analysis.
+    auto validatorVm = std::make_shared<ViewModels::ValidatorViewModel>();
+    registry_.registerInstance<ViewModels::ValidatorViewModel>(validatorVm);
 
     Logging::Logger::info("[App] All ViewModels registered");
 }

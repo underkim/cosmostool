@@ -15,7 +15,12 @@ target_include_directories(opencosmos_core
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/.."
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${libssh2_SOURCE_DIR}/include"
+)
+
+# libssh2 is third-party: expose its headers as SYSTEM so warnings from
+# libssh2.h (e.g. old-style casts inside its macros) don't trip our -Werror.
+target_include_directories(opencosmos_core SYSTEM PUBLIC
+    "${libssh2_SOURCE_DIR}/include"
 )
 
 target_link_libraries(opencosmos_core
