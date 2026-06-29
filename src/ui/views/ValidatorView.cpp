@@ -128,6 +128,15 @@ void ValidatorView::onValidateFile()
         vm_.validateFile(path);
 }
 
+void ValidatorView::checkContent(const QString& content)
+{
+    if (content.trimmed().isEmpty())
+        return;
+    kindCombo_->setCurrentIndex(0);          // Auto-detect
+    pasteEdit_->setPlainText(content);
+    vm_.checkContent(content);
+}
+
 void ValidatorView::onCheckPasted()
 {
     const QString text = pasteEdit_->toPlainText();

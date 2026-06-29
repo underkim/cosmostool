@@ -58,6 +58,11 @@ void ValidatorViewModel::validateTextWith(const QString& validatorId,
     emit reportReady();
 }
 
+void ValidatorViewModel::checkContent(const QString& content)
+{
+    validateTextWith(QString(), content);
+}
+
 void ValidatorViewModel::clear()
 {
     report_.diagnostics.clear();

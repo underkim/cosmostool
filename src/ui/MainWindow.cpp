@@ -129,19 +129,32 @@ void MainWindow::setupViews()
     contentStack_->addWidget(new Views::DockerView(dockerVm_,          this)); // 1
     contentStack_->addWidget(new Views::InfraView(infraVm_,            this)); // 2
     contentStack_->addWidget(new Views::DoctorView(doctorVm_,          this)); // 3
-    auto* pluginView = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, this);
-    auto* cmdTlmView = new Views::CmdTlmView(cmdTlmVm_, this);
+    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, this);
+    auto* cmdTlmView    = new Views::CmdTlmView(cmdTlmVm_, this);
+    auto* validatorView = new Views::ValidatorView(validatorVm_, this);
+
     connect(pluginView, &Views::PluginView::openCmdTlmRequested,
             this, [this, cmdTlmView](const QString& remoteFilePath) {
                 contentStack_->setCurrentIndex(5);
                 navRail_->setCurrentRow(5);
                 cmdTlmView->openFile(remoteFilePath);
             });
+
+    // Content-based hub: CMD/TLM editor and Plugin Manager hand their buffer to
+    // the offline per-rule Validator (index 8).
+    auto toValidator = [this, validatorView](const QString& content) {
+        contentStack_->setCurrentIndex(8);
+        navRail_->setCurrentRow(8);
+        validatorView->checkContent(content);
+    };
+    connect(cmdTlmView, &Views::CmdTlmView::openInValidatorRequested, this, toValidator);
+    connect(pluginView, &Views::PluginView::openInValidatorRequested, this, toValidator);
+
     contentStack_->addWidget(pluginView); // 4
     contentStack_->addWidget(cmdTlmView); // 5
     contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 6
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_,    this)); // 7
-    contentStack_->addWidget(new Views::ValidatorView(validatorVm_,    this)); // 8
+    contentStack_->addWidget(validatorView); // 8
     contentStack_->addWidget(new Views::SettingsView(settingsVm_,      this)); // 9
 }
 

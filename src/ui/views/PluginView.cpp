@@ -173,6 +173,7 @@ void PluginView::setupUi()
     title->setFont(titleFont);
     title->setObjectName("PageTitle");
     auto* subtitle = new QLabel("플러그인을 선택하고 CMD/TLM 파일을 열어 필드를 편집·검증한 뒤 빌드하세요.", this);
+    subtitle->setText("Select a plugin, edit CMD/TLM files, validate, build, and install.");
     subtitle->setObjectName("SubLabel");
     subtitle->setWordWrap(true);
     titleBlock->addWidget(title);
@@ -201,6 +202,19 @@ void PluginView::setupUi()
     progressBar_->setRange(0, 0);
     progressBar_->setVisible(false);
     progressBar_->setFixedWidth(120);
+
+    refreshBtn_->setText("Refresh");
+    installBtn_->setText("Install Gem");
+    removeBtn_->setText("Remove");
+    validateBtn_->setText("Validate (build)");
+    validateBtn_->setToolTip(
+        "Runtime gem validation via openc3cli (requires a connection). "
+        "For offline rule checks, use Validate (offline) on a component file.");
+    buildBtn_->setText("Build");
+    scaffoldBtn_->setText("New Plugin");
+    addTargetBtn_->setText("Add Target");
+    scaffoldBtn_->setToolTip("Create an OpenC3 plugin folder structure.");
+    addTargetBtn_->setToolTip("Add a target folder structure to the selected plugin.");
 
     buildBtn_->setObjectName("PrimaryButton");
 
@@ -243,9 +257,12 @@ void PluginView::setupUi()
     auto* leftLayout = new QVBoxLayout(leftPane);
     leftLayout->setContentsMargins(0, 0, 0, 0);
     leftLayout->setSpacing(8);
+    auto* leftTabs = new QTabWidget(leftPane);
+    leftTabs->setObjectName("PluginDetailTabs");
 
     auto* pluginListGroup = new QGroupBox("플러그인 폴더", leftPane);
     auto* pluginListLayout = new QVBoxLayout(pluginListGroup);
+    pluginListGroup->setTitle("Plugin Folders");
     pluginListLayout->setContentsMargins(8, 14, 8, 8);
     tableView_ = new QTableView(pluginListGroup);
     tableView_->setModel(vm_.pluginModel());
@@ -256,8 +273,7 @@ void PluginView::setupUi()
     tableView_->verticalHeader()->setVisible(false);
     tableView_->setShowGrid(false);
     tableView_->setSortingEnabled(true);
-    tableView_->setMinimumHeight(150);
-    tableView_->setMaximumHeight(230);
+    tableView_->setMinimumHeight(240);
     tableView_->setColumnHidden(ViewModels::PluginTableModel::Version, true);
     tableView_->horizontalHeader()->setStretchLastSection(false);
     tableView_->horizontalHeader()->setSectionResizeMode(ViewModels::PluginTableModel::Name, QHeaderView::Stretch);
@@ -265,11 +281,12 @@ void PluginView::setupUi()
     tableView_->horizontalHeader()->setSectionResizeMode(ViewModels::PluginTableModel::Author, QHeaderView::ResizeToContents);
     tableView_->setColumnWidth(ViewModels::PluginTableModel::Status, 96);
     tableView_->setColumnWidth(ViewModels::PluginTableModel::Author, 58);
-    pluginListLayout->addWidget(tableView_);
-    leftLayout->addWidget(pluginListGroup, 0);
+    pluginListLayout->addWidget(tableView_, 1);
+    leftTabs->addTab(pluginListGroup, "Plugins");
 
     auto* componentListGroup = new QGroupBox("플러그인 파일", leftPane);
     auto* componentListLayout = new QVBoxLayout(componentListGroup);
+    componentListGroup->setTitle("Plugin Files");
     componentListLayout->setContentsMargins(8, 14, 8, 8);
     componentListLayout->setSpacing(6);
     componentHintLabel_ = new QLabel("Select a plugin first.", componentListGroup);
@@ -280,7 +297,8 @@ void PluginView::setupUi()
     componentList_->setMinimumWidth(280);
     componentListLayout->addWidget(componentHintLabel_);
     componentListLayout->addWidget(componentList_, 1);
-    leftLayout->addWidget(componentListGroup, 1);
+    leftTabs->addTab(componentListGroup, "Files");
+    leftLayout->addWidget(leftTabs, 1);
     leftPane->setMinimumWidth(330);
 
     detailTabs_ = new QTabWidget(mainSplitter);
@@ -293,16 +311,14 @@ void PluginView::setupUi()
     detailEdit_->setReadOnly(true);
     detailEdit_->setObjectName("LogArea");
     detailLayout->addWidget(detailEdit_);
-    detailTabs_->addTab(detailTab, "개요");
+    detailTabs_->addTab(detailTab, "Overview");
 
     auto* componentTab = new QWidget(detailTabs_);
     auto* componentLayout = new QVBoxLayout(componentTab);
     componentLayout->setContentsMargins(8, 8, 8, 8);
     componentLayout->setSpacing(8);
 
-    auto* componentSplitter = new QSplitter(Qt::Horizontal, componentTab);
-
-    auto* editorPane = new QWidget(componentSplitter);
+    auto* editorPane = new QWidget(componentTab);
     auto* editorLayout = new QVBoxLayout(editorPane);
     editorLayout->setContentsMargins(0, 0, 0, 0);
     editorLayout->setSpacing(8);
@@ -317,6 +333,7 @@ void PluginView::setupUi()
     openComponentBtn_ = new QPushButton("파일 열기", editorPane);
     saveComponentBtn_ = new QPushButton("저장", editorPane);
     validateComponentBtn_ = new QPushButton("검증", editorPane);
+    validateOfflineBtn_ = new QPushButton("Validate (offline)", editorPane);
     openInCmdTlmBtn_ = new QPushButton("CMD/TLM 뷰로", editorPane);
     startCmdTlmEditBtn_ = new QPushButton("CMD/TLM 편집 시작", editorPane);
     insertCmdBtn_ = new QPushButton("+ COMMAND", editorPane);
@@ -327,14 +344,29 @@ void PluginView::setupUi()
     refreshStructureBtn_ = new QPushButton("구조 새로고침", editorPane);
     applyStructureBtn_ = new QPushButton("선택 필드 적용", editorPane);
     toggleReferenceBtn_ = new QPushButton("참고 표시", editorPane);
-    toggleReferenceBtn_->setCheckable(true);
+    openComponentBtn_->setText("Open File");
+    saveComponentBtn_->setText("Save");
+    validateComponentBtn_->setText("Validate (CMD/TLM)");
+    validateOfflineBtn_->setText("Validate (offline)");
+    validateOfflineBtn_->setToolTip(
+        "Run the full per-rule offline validator on this file in the Validator view "
+        "(works for cmd_tlm, screen, plugin.txt, target.txt).");
+    openInCmdTlmBtn_->setText("CMD/TLM View");
+    startCmdTlmEditBtn_->setText("Start CMD/TLM Edit");
+    addFieldBtn_->setText("Add Field");
+    addStructureFieldBtn_->setText("Add Row");
+    deleteStructureFieldBtn_->setText("Delete Row");
+    refreshStructureBtn_->setText("Refresh Structure");
+    applyStructureBtn_->setText("Apply Selected");
+    toggleReferenceBtn_->setText("Reference");
     toggleReferenceBtn_->setMinimumWidth(120);
-    toggleReferenceBtn_->setToolTip("Show or hide the CMD/TLM quick reference panel.");
+    toggleReferenceBtn_->setToolTip("Open the CMD/TLM quick reference tab.");
     startCmdTlmEditBtn_->setObjectName("PrimaryButton");
     saveComponentBtn_->setObjectName("PrimaryButton");
     openComponentBtn_->setEnabled(false);
     saveComponentBtn_->setEnabled(false);
     validateComponentBtn_->setEnabled(false);
+    validateOfflineBtn_->setEnabled(false);
     openInCmdTlmBtn_->setEnabled(false);
     startCmdTlmEditBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
@@ -346,7 +378,8 @@ void PluginView::setupUi()
     applyStructureBtn_->setEnabled(false);
     openComponentBtn_->setMinimumWidth(90);
     saveComponentBtn_->setMinimumWidth(80);
-    validateComponentBtn_->setMinimumWidth(130);
+    validateComponentBtn_->setMinimumWidth(150);
+    validateOfflineBtn_->setMinimumWidth(140);
     openInCmdTlmBtn_->setMinimumWidth(130);
     startCmdTlmEditBtn_->setMinimumWidth(150);
     insertCmdBtn_->setMinimumWidth(110);
@@ -364,6 +397,7 @@ void PluginView::setupUi()
     componentFileRow->addWidget(addStructureFieldBtn_);
     componentFileRow->addWidget(deleteStructureFieldBtn_);
     componentFileRow->addWidget(validateComponentBtn_);
+    componentFileRow->addWidget(validateOfflineBtn_);
     componentFileRow->addWidget(applyStructureBtn_);
     componentFileRow->addStretch();
     componentFileRow->addWidget(saveComponentBtn_);
@@ -385,8 +419,16 @@ void PluginView::setupUi()
     componentEditor_->setMinimumHeight(220);
     highlighter_ = new Widgets::CmdTlmHighlighter(componentEditor_->document());
 
+    componentEditorTabs_ = new QTabWidget(editorPane);
+    componentEditorTabs_->setObjectName("PluginDetailTabs");
+
+    auto* structureTab = new QWidget(componentEditorTabs_);
+    auto* structureTabLayout = new QVBoxLayout(structureTab);
+    structureTabLayout->setContentsMargins(0, 0, 0, 0);
+
     auto* structureGroup = new QGroupBox("구조 편집기 (Block / Field)", editorPane);
     auto* structureLayout = new QVBoxLayout(structureGroup);
+    structureGroup->setTitle("Structure Editor (Block / Field)");
 
     // ── Block editor (COMMAND / TELEMETRY header) ────────────────────────────
     // Lets the user retarget / rename / re-describe a whole packet without
@@ -447,28 +489,19 @@ void PluginView::setupUi()
     structureTable_->verticalHeader()->setVisible(false);
     structureTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     structureTable_->setSelectionMode(QAbstractItemView::SingleSelection);
-    structureTable_->setMinimumHeight(140);
-    structureTable_->setMaximumHeight(240);
+    structureTable_->setMinimumHeight(260);
     structureTable_->setColumnWidth(0, 48);   // Line
     structureLayout->addWidget(structureTable_, 1);
+    structureTabLayout->addWidget(structureGroup, 1);
+    componentEditorTabs_->addTab(structureTab, "Structure");
 
     componentDiagnostics_ = new QTextEdit(editorPane);
     componentDiagnostics_->setObjectName("LogArea");
     componentDiagnostics_->setReadOnly(true);
-    componentDiagnostics_->setMaximumHeight(92);
+    componentEditorTabs_->addTab(componentEditor_, "Source");
+    componentEditorTabs_->addTab(componentDiagnostics_, "Output");
 
-    auto* editorVerticalSplitter = new QSplitter(Qt::Vertical, editorPane);
-    editorVerticalSplitter->addWidget(structureGroup);
-    editorVerticalSplitter->addWidget(componentEditor_);
-    editorVerticalSplitter->addWidget(componentDiagnostics_);
-    editorVerticalSplitter->setChildrenCollapsible(false);
-    editorVerticalSplitter->setStretchFactor(0, 0);
-    editorVerticalSplitter->setStretchFactor(1, 1);
-    editorVerticalSplitter->setStretchFactor(2, 0);
-    editorVerticalSplitter->setSizes({300, 330, 84});
-    editorLayout->addWidget(editorVerticalSplitter, 1);
-
-    guideGroup_ = new QGroupBox("참고 (Quick Reference)", componentSplitter);
+    guideGroup_ = new QGroupBox("Quick Reference", componentEditorTabs_);
     auto* guideLayout = new QVBoxLayout(guideGroup_);
     componentGuide_ = new QTextEdit(guideGroup_);
     componentGuide_->setObjectName("LogArea");
@@ -477,18 +510,10 @@ void PluginView::setupUi()
     componentGuide_->setPlainText(syntaxGuideText());
     guideLayout->addWidget(componentGuide_);
 
-    componentSplitter->addWidget(editorPane);
-    componentSplitter->addWidget(guideGroup_);
-    componentSplitter->setChildrenCollapsible(false); // panes must not vanish on drag
-    componentSplitter->setStretchFactor(0, 1);
-    componentSplitter->setStretchFactor(1, 0);
-    componentSplitter->setSizes({820, 260});
-    editorPane->setMinimumWidth(520);
-    guideGroup_->setMinimumWidth(220);
-    guideGroup_->setMaximumWidth(340);
-    guideGroup_->setVisible(false); // collapsed by default; editor gets the space
-    componentLayout->addWidget(componentSplitter, 1);
-    detailTabs_->addTab(componentTab, "파일 편집");
+    componentEditorTabs_->addTab(guideGroup_, "Reference");
+    editorLayout->addWidget(componentEditorTabs_, 1);
+    componentLayout->addWidget(editorPane, 1);
+    detailTabs_->addTab(componentTab, "Edit Files");
 
     mainSplitter->addWidget(leftPane);
     mainSplitter->addWidget(detailTabs_);
@@ -511,6 +536,7 @@ void PluginView::bindViewModel()
     connect(openComponentBtn_, &QPushButton::clicked, this, &PluginView::onOpenComponentClicked);
     connect(saveComponentBtn_, &QPushButton::clicked, this, &PluginView::onSaveComponentClicked);
     connect(validateComponentBtn_, &QPushButton::clicked, this, &PluginView::onValidateComponentClicked);
+    connect(validateOfflineBtn_, &QPushButton::clicked, this, &PluginView::onValidateOfflineClicked);
     connect(openInCmdTlmBtn_, &QPushButton::clicked, this, &PluginView::onOpenInCmdTlmClicked);
     connect(startCmdTlmEditBtn_, &QPushButton::clicked, this, &PluginView::onStartCmdTlmEditClicked);
     connect(insertCmdBtn_, &QPushButton::clicked, this, &PluginView::onInsertCmdClicked);
@@ -688,6 +714,7 @@ void PluginView::bindViewModel()
                 setComponentDirty(false);
                 const bool cmdTlm = isCmdTlmFile(path);
                 validateComponentBtn_->setEnabled(cmdTlm);
+                validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
                 openInCmdTlmBtn_->setEnabled(cmdTlm);
                 insertCmdBtn_->setEnabled(cmdTlm);
                 insertTlmBtn_->setEnabled(cmdTlm);
@@ -702,6 +729,8 @@ void PluginView::bindViewModel()
                 componentDiagnostics_->setPlainText(
                     cmdTlm ? "Loaded CMD/TLM definition." : "Loaded text file.");
                 refreshStructureTable();
+                if (componentEditorTabs_)
+                    componentEditorTabs_->setCurrentIndex(cmdTlm ? 0 : 1);
             });
 
     connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::fileSaved,
@@ -713,6 +742,8 @@ void PluginView::bindViewModel()
                     setComponentDirty(false);
                 componentDiagnostics_->setPlainText(
                     success ? "Saved: " + path : "Save failed: " + path);
+                if (componentEditorTabs_)
+                    componentEditorTabs_->setCurrentWidget(componentDiagnostics_);
             });
 
     connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::fileParsed,
@@ -729,6 +760,8 @@ void PluginView::bindViewModel()
                     lines << QString("Line %1: %2").arg(d.line).arg(d.message);
                 }
                 componentDiagnostics_->setPlainText(lines.join('\n'));
+                if (componentEditorTabs_)
+                    componentEditorTabs_->setCurrentWidget(componentDiagnostics_);
             });
 }
 
@@ -830,6 +863,7 @@ void PluginView::onTableSelectionChanged()
     saveComponentBtn_->setEnabled(false);
     openComponentBtn_->setEnabled(false);
     validateComponentBtn_->setEnabled(false);
+    validateOfflineBtn_->setEnabled(false);
     openInCmdTlmBtn_->setEnabled(false);
     startCmdTlmEditBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
@@ -924,10 +958,18 @@ void PluginView::onValidateComponentClicked()
     if (currentComponentPath_.isEmpty()) return;
     if (!isCmdTlmFile(currentComponentPath_)) {
         componentDiagnostics_->setPlainText("CMD/TLM validation is available for cmd_tlm files.");
+        if (componentEditorTabs_)
+            componentEditorTabs_->setCurrentWidget(componentDiagnostics_);
         return;
     }
     cmdTlmVm_.parseContent(componentEditor_->toPlainText(), currentComponentPath_);
     refreshStructureTable();
+}
+
+void PluginView::onValidateOfflineClicked()
+{
+    if (currentComponentPath_.isEmpty()) return;
+    emit openInValidatorRequested(componentEditor_->toPlainText());
 }
 
 void PluginView::onOpenInCmdTlmClicked()
@@ -1276,9 +1318,8 @@ void PluginView::onApplyBlockClicked()
 
 void PluginView::onToggleReferenceClicked()
 {
-    const bool show = toggleReferenceBtn_->isChecked();
-    guideGroup_->setVisible(show);
-    toggleReferenceBtn_->setText(show ? "참고 숨기기" : "참고 표시");
+    if (componentEditorTabs_)
+        componentEditorTabs_->setCurrentWidget(guideGroup_);
 }
 
 void PluginView::applyStructureRowToEditor(int row)

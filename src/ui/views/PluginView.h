@@ -42,6 +42,7 @@ private slots:
     void onOpenComponentClicked();
     void onSaveComponentClicked();
     void onValidateComponentClicked();
+    void onValidateOfflineClicked();
     void onOpenInCmdTlmClicked();
     void onStartCmdTlmEditClicked();
     void onInsertCmdClicked();
@@ -57,6 +58,9 @@ private slots:
 
 signals:
     void openCmdTlmRequested(const QString& remoteFilePath);
+    /// Hand the current component buffer to the Validator view for full per-rule
+    /// (offline) analysis — distinct from the runtime gem build validation.
+    void openInValidatorRequested(const QString& content);
 
 private:
     void setupUi();
@@ -98,6 +102,7 @@ private:
     QLabel*      statusLabel_{nullptr};
     QLabel*      pluginSummaryLabel_{nullptr};
     QTabWidget*  detailTabs_{nullptr};
+    QTabWidget*  componentEditorTabs_{nullptr};
     QTextEdit*   detailEdit_{nullptr};
     QListWidget* componentList_{nullptr};
     QLabel*      componentHintLabel_{nullptr};
@@ -118,6 +123,7 @@ private:
     QPushButton* openComponentBtn_{nullptr};
     QPushButton* saveComponentBtn_{nullptr};
     QPushButton* validateComponentBtn_{nullptr};
+    QPushButton* validateOfflineBtn_{nullptr};
     QPushButton* openInCmdTlmBtn_{nullptr};
     QPushButton* startCmdTlmEditBtn_{nullptr};
     QPushButton* insertCmdBtn_{nullptr};

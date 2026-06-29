@@ -31,6 +31,9 @@ public slots:
     // validatorId selects a single rule validator by id (e.g. "cmd", "protocol").
     // An empty id means auto-detect the file kind from the content.
     void validateTextWith(const QString& validatorId, const QString& content);
+    // Hub entry point: validate handed-off content with auto-detection. Used when
+    // another view (CMD/TLM editor, Plugin Manager) sends its buffer here.
+    void checkContent(const QString& content);
     void clear();
 
 signals:

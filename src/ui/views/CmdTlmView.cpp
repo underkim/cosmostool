@@ -120,6 +120,7 @@ void CmdTlmView::setupUi()
     insertParamBtn_ = new QPushButton("+ PARAMETER", this);
     addFieldBtn_    = new QPushButton("Add Field...", this);
     validateBtn_    = new QPushButton("Validate", this);
+    openInValidatorBtn_ = new QPushButton("Open in Validator", this);
     saveBtn_        = new QPushButton("Save", this);
     saveBtn_->setObjectName("PrimaryButton");
     saveBtn_->setEnabled(false);
@@ -128,6 +129,10 @@ void CmdTlmView::setupUi()
     insertParamBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     validateBtn_->setEnabled(false);
+    openInValidatorBtn_->setEnabled(false);
+    openInValidatorBtn_->setToolTip(
+        "Run the full per-rule (offline) validator on this content");
+    openInValidatorBtn_->setMinimumWidth(140);
     insertCmdBtn_->setMinimumWidth(110);
     insertTlmBtn_->setMinimumWidth(120);
     insertParamBtn_->setMinimumWidth(120);
@@ -142,6 +147,7 @@ void CmdTlmView::setupUi()
     insertBar->addStretch();
     fileActionBar->addStretch();
     fileActionBar->addWidget(validateBtn_);
+    fileActionBar->addWidget(openInValidatorBtn_);
     fileActionBar->addWidget(saveBtn_);
     actionBlock->addLayout(insertBar);
     actionBlock->addLayout(fileActionBar);
@@ -237,6 +243,7 @@ void CmdTlmView::bindViewModel()
     connect(browseBtn_,     &QPushButton::clicked, this, &CmdTlmView::onBrowseClicked);
     connect(saveBtn_,       &QPushButton::clicked, this, &CmdTlmView::onSaveClicked);
     connect(validateBtn_,   &QPushButton::clicked, this, &CmdTlmView::onValidateClicked);
+    connect(openInValidatorBtn_, &QPushButton::clicked, this, &CmdTlmView::onOpenInValidator);
     connect(insertCmdBtn_,  &QPushButton::clicked, this, &CmdTlmView::onInsertCmd);
     connect(insertTlmBtn_,  &QPushButton::clicked, this, &CmdTlmView::onInsertTlm);
     connect(insertParamBtn_,&QPushButton::clicked, this, &CmdTlmView::onInsertParam);
@@ -289,6 +296,7 @@ void CmdTlmView::bindViewModel()
                 const bool isTxt = path.endsWith(".txt", Qt::CaseInsensitive);
                 saveBtn_->setEnabled(true);
                 validateBtn_->setEnabled(isTxt);
+                openInValidatorBtn_->setEnabled(isTxt);
                 insertCmdBtn_->setEnabled(isTxt);
                 insertTlmBtn_->setEnabled(isTxt);
                 insertParamBtn_->setEnabled(isTxt);
@@ -369,6 +377,11 @@ void CmdTlmView::onSaveClicked()
 void CmdTlmView::onValidateClicked()
 {
     vm_.parseContent(editor_->toPlainText(), currentFile_);
+}
+
+void CmdTlmView::onOpenInValidator()
+{
+    emit openInValidatorRequested(editor_->toPlainText());
 }
 
 void CmdTlmView::onInsertCmd()   { insertTextAtCursor(kCmdTemplate); }

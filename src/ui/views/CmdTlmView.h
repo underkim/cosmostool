@@ -40,11 +40,17 @@ public slots:
     void openDirectory(const QString& remotePath);
     void openFile(const QString& remotePath);
 
+signals:
+    /// Hand the current editor content to the Validator view for full per-rule
+    /// (offline) analysis.
+    void openInValidatorRequested(const QString& content);
+
 private slots:
     void onBrowseClicked();
     void onFileItemDoubleClicked(QListWidgetItem* item);
     void onSaveClicked();
     void onValidateClicked();
+    void onOpenInValidator();
     void onInsertCmd();
     void onInsertTlm();
     void onInsertParam();
@@ -73,6 +79,7 @@ private:
     QPushButton* insertParamBtn_{nullptr};
     QPushButton* addFieldBtn_{nullptr};
     QPushButton* validateBtn_{nullptr};
+    QPushButton* openInValidatorBtn_{nullptr};
     QPushButton* saveBtn_{nullptr};
 
     // ── Left panel — file browser ─────────────────────────────────────────────

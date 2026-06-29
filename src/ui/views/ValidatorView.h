@@ -22,6 +22,10 @@ public:
     explicit ValidatorView(ViewModels::ValidatorViewModel& vm,
                            QWidget*                        parent = nullptr);
 
+    // Hub entry: load handed-off content into the paste box (auto-detect) and
+    // run validation immediately. Called when another view sends its buffer here.
+    void checkContent(const QString& content);
+
 private slots:
     void onValidateFolder();
     void onValidateFile();
