@@ -1,0 +1,172 @@
+name: Build Executable
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    name: Build Linux executable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install common build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config
+
+      - name: Auto-detect and build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Repository files:"
+          find . -maxdepth 3 -type f | sort
+
+          if [ -f CMakeLists.txt ]; then
+            echo "Detected CMake project"
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+            cmake --build build --config Release
+          elif [ -f Makefile ] || [ -f makefile ]; then
+            echo "Detected Makefile project"
+            make -j"$(nproc)"
+          elif [ -f go.mod ]; then
+            echo "Detected Go project"
+            mkdir -p build
+            go build -o build/app ./...
+          elif [ -f Cargo.toml ]; then
+            echo "Detected Rust project"
+            cargo build --release
+          elif [ -f package.json ]; then
+            echo "Detected Node.js project"
+            npm ci
+            npm run build --if-present
+          elif [ -f pyproject.toml ] || [ -f requirements.txt ]; then
+            echo "Detected Python project"
+            python3 -m pip install --upgrade pip pyinstaller
+            if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
+
+            entry=""
+            for candidate in main.py app.py src/main.py; do
+              if [ -f "$candidate" ]; then
+                entry="$candidate"
+                break
+              fi
+            done
+
+            if [ -z "$entry" ]; then
+              echo "No Python entry file found. Expected one of: main.py, app.py, src/main.py"
+              exit 1
+            fi
+
+            pyinstaller --onefile "$entry" --name app
+          else
+            echo "No supported build file found."
+            echo "Add one of: CMakeLists.txt, Makefile, go.mod, Cargo.toml, package.json, pyproject.toml, requirements.txt"
+            exit 1
+          fi
+
+      - name: Collect Linux executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/linux
+          find . \
+            -type f \
+            -not -path './.git/*' \
+            -not -path './artifacts/*' \
+            -not -path './node_modules/*' \
+            -not -path './.venv/*' \
+            -perm -111 \
+            -exec cp --parents '{}' artifacts/linux/ \;
+
+      - name: Upload Linux executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-linux
+          path: artifacts/linux
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows executable
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto-detect and build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          Write-Host "Repository files:"
+          Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName
+
+          if (Test-Path "CMakeLists.txt") {
+            Write-Host "Detected CMake project"
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+            cmake --build build --config Release
+          } elseif (Test-Path "go.mod") {
+            Write-Host "Detected Go project"
+            New-Item -ItemType Directory -Force -Path build | Out-Null
+            go build -o build/app.exe ./...
+          } elseif (Test-Path "Cargo.toml") {
+            Write-Host "Detected Rust project"
+            cargo build --release
+          } elseif (Test-Path "package.json") {
+            Write-Host "Detected Node.js project"
+            npm ci
+            npm run build --if-present
+          } elseif ((Test-Path "pyproject.toml") -or (Test-Path "requirements.txt")) {
+            Write-Host "Detected Python project"
+            python -m pip install --upgrade pip pyinstaller
+            if (Test-Path "requirements.txt") {
+              python -m pip install -r requirements.txt
+            }
+
+            $entry = @("main.py", "app.py", "src/main.py") |
+              Where-Object { Test-Path $_ } |
+              Select-Object -First 1
+
+            if (-not $entry) {
+              throw "No Python entry file found. Expected one of: main.py, app.py, src/main.py"
+            }
+
+            pyinstaller --onefile $entry --name app
+          } else {
+            throw "No supported build file found. Add one of: CMakeLists.txt, Makefile, go.mod, Cargo.toml, package.json, pyproject.toml, requirements.txt"
+          }
+
+      - name: Collect Windows executables
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path artifacts/windows | Out-Null
+
+          $exeFiles = Get-ChildItem -Recurse -File -Include *.exe |
+            Where-Object {
+              $_.FullName -notmatch '\\.git\\|\\artifacts\\|\\node_modules\\|\\.venv\\'
+            }
+
+          foreach ($file in $exeFiles) {
+            $relative = Resolve-Path -Relative $file.FullName
+            $target = Join-Path "artifacts/windows" $relative
+            New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
+            Copy-Item $file.FullName $target -Force
+          }
+
+      - name: Upload Windows executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: executable-windows
+          path: artifacts/windows
+          if-no-files-found: error
