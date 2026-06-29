@@ -36,7 +36,7 @@ jobs:
 
           if [ -f CMakeLists.txt ]; then
             echo "Detected CMake project"
-            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
             cmake --build build --config Release
           elif [ -f Makefile ] || [ -f makefile ]; then
             echo "Detected Makefile project"
@@ -126,7 +126,7 @@ jobs:
 
           if (Test-Path "CMakeLists.txt") {
             Write-Host "Detected CMake project"
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
             cmake --build build --config Release
           } elseif (Test-Path "go.mod") {
             Write-Host "Detected Go project"
