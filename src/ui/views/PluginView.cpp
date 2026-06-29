@@ -3,6 +3,7 @@
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/dialogs/PluginWizard.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
+#include "ui/widgets/CmdTlmSnippets.h"
 
 #include <QAbstractItemView>
 #include <QColor>
@@ -24,19 +25,9 @@ namespace OpenC3::UI::Views {
 
 namespace {
 
-const QString kCmdTemplate =
-    "COMMAND TARGET COMMAND_NAME BIG_ENDIAN \"Command description\"\n"
-    "  APPEND_PARAMETER PARAM_NAME 16 UINT 0 65535 0 \"Parameter description\"\n";
-
-const QString kTlmTemplate =
-    "TELEMETRY TARGET PACKET_NAME BIG_ENDIAN \"Telemetry description\"\n"
-    "  APPEND_ITEM ITEM_NAME 16 UINT \"Item description\"\n";
-
-bool isCmdTlmFile(const QString& path)
-{
-    return path.contains("/cmd_tlm/", Qt::CaseInsensitive)
-        || path.contains("\\cmd_tlm\\", Qt::CaseInsensitive);
-}
+// CMD/TLM insert templates and the cmd_tlm file-kind check are shared with
+// CmdTlmView (ui/widgets/CmdTlmSnippets.h).
+using OpenC3::UI::Widgets::CmdTlmSnippets::isCmdTlmFile;
 
 QString componentKind(const QString& path)
 {
@@ -997,13 +988,13 @@ void PluginView::onStartCmdTlmEditClicked()
 
 void PluginView::onInsertCmdClicked()
 {
-    insertTextAtCursor(kCmdTemplate);
+    insertTextAtCursor(Widgets::CmdTlmSnippets::command());
     refreshStructureTable();
 }
 
 void PluginView::onInsertTlmClicked()
 {
-    insertTextAtCursor(kTlmTemplate);
+    insertTextAtCursor(Widgets::CmdTlmSnippets::telemetry());
     refreshStructureTable();
 }
 

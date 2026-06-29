@@ -1,6 +1,7 @@
 ﻿#include "CmdTlmView.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
+#include "ui/widgets/CmdTlmSnippets.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -18,20 +19,8 @@
 
 namespace OpenC3::UI::Views {
 
-// ── Templates inserted at cursor ──────────────────────────────────────────────
-
-static const QString kCmdTemplate =
-    "COMMAND TARGET_NAME COMMAND_NAME BIG_ENDIAN \"Command description\"\n"
-    "  APPEND_ID_PARAMETER CMD_ID 16 UINT 1 1 1 \"Command ID\"\n"
-    "  APPEND_PARAMETER PARAM1 32 FLOAT 0 100 0.0 \"Parameter description\"\n";
-
-static const QString kTlmTemplate =
-    "TELEMETRY TARGET_NAME PACKET_NAME BIG_ENDIAN \"Telemetry description\"\n"
-    "  APPEND_ITEM SYNC_WORD 32 UINT \"Sync pattern\"\n"
-    "  APPEND_ITEM ITEM1 32 FLOAT \"Item description\"\n";
-
-static const QString kParamTemplate =
-    "  APPEND_PARAMETER PARAM_NAME 32 FLOAT 0.0 100.0 0.0 \"Parameter description\"\n";
+// CMD/TLM insert templates are shared with PluginView (ui/widgets/CmdTlmSnippets.h).
+namespace Snippets = OpenC3::UI::Widgets::CmdTlmSnippets;
 
 // ── Constructor ───────────────────────────────────────────────────────────────
 
@@ -384,9 +373,9 @@ void CmdTlmView::onOpenInValidator()
     emit openInValidatorRequested(editor_->toPlainText());
 }
 
-void CmdTlmView::onInsertCmd()   { insertTextAtCursor(kCmdTemplate); }
-void CmdTlmView::onInsertTlm()   { insertTextAtCursor(kTlmTemplate); }
-void CmdTlmView::onInsertParam() { insertTextAtCursor(kParamTemplate); }
+void CmdTlmView::onInsertCmd()   { insertTextAtCursor(Snippets::command()); }
+void CmdTlmView::onInsertTlm()   { insertTextAtCursor(Snippets::telemetry()); }
+void CmdTlmView::onInsertParam() { insertTextAtCursor(Snippets::parameter()); }
 
 void CmdTlmView::onAddField()
 {
