@@ -8,8 +8,49 @@
 #include <QFont>
 #include <QTimer>
 #include <QUuid>
+#include <QProcess>
+#include <QStringList>
 
 namespace OpenC3::UI::Dialogs {
+
+namespace {
+
+QStringList detectWslDistros()
+{
+    QStringList distros;
+
+    QProcess proc;
+    proc.start(QStringLiteral("wsl.exe"),
+               QStringList{QStringLiteral("--list"), QStringLiteral("--quiet")});
+    if (!proc.waitForFinished(5000)
+        || proc.exitStatus() != QProcess::NormalExit
+        || proc.exitCode() != 0) {
+        return distros;
+    }
+
+    const QByteArray raw = proc.readAllStandardOutput();
+    QString text;
+    if (raw.size() >= 2) {
+        text = QString::fromUtf16(
+            reinterpret_cast<const char16_t*>(raw.constData()),
+            static_cast<qsizetype>(raw.size()) / 2);
+    }
+
+    static const QStringList kSkip = {"docker-desktop", "docker-desktop-data"};
+    for (QString name : text.split('\n')) {
+        name = name.trimmed()
+                   .remove(QChar('\r'))
+                   .remove(QChar('\0'))
+                   .remove(QChar(0xfeff));
+        if (name.isEmpty() || kSkip.contains(name, Qt::CaseInsensitive))
+            continue;
+        distros << name;
+    }
+
+    return distros;
+}
+
+} // namespace
 
 ConnectionDialog::ConnectionDialog(
     ViewModels::SettingsViewModel& vm, QWidget* parent)
@@ -37,12 +78,7 @@ ConnectionDialog::ConnectionDialog(
     statusLabel_->setWordWrap(true);
     layout->addWidget(statusLabel_);
 
-    // One-click WSL setup so a first-time user is never stuck with no profile:
-    // creates a default WSL (Ubuntu) profile, saves it, and connects.
     quickWslBtn_ = new QPushButton("Create WSL profile && Connect", this);
-    quickWslBtn_->setToolTip(
-        "Creates a default WSL profile (Ubuntu, /cosmos) and connects to it.\n"
-        "You can fine-tune it later under Settings.");
     connect(quickWslBtn_, &QPushButton::clicked,
             this, &ConnectionDialog::onCreateWslProfile);
     layout->addWidget(quickWslBtn_);
@@ -64,7 +100,7 @@ ConnectionDialog::ConnectionDialog(
                 const bool connecting = (state == "Connecting");
                 const bool hasProfiles = (profileCombo_->count() > 0);
                 connectBtn_->setEnabled(hasProfiles && !connecting);
-                quickWslBtn_->setEnabled(!connecting);
+                quickWslBtn_->setEnabled(!quickWslDistro_.isEmpty() && !connecting);
                 if (state == "Connected") accept();
             });
 
@@ -84,30 +120,60 @@ ConnectionDialog::ConnectionDialog(
     }
 
     if (n == 0) {
-        statusLabel_->setText(
-            "No saved profiles yet. Click \"Create WSL profile & Connect\" to "
-            "get started in one step, or Skip to explore first.");
+        const QStringList distros = detectWslDistros();
+        if (!distros.isEmpty()) {
+            quickWslDistro_ = distros.first();
+            quickWslBtn_->setText(
+                QStringLiteral("Create WSL profile (%1) && Connect").arg(quickWslDistro_));
+            quickWslBtn_->setToolTip(
+                QStringLiteral("Creates a default WSL profile (%1, /cosmos) and connects to it.\n"
+                               "You can fine-tune it later under Settings.")
+                    .arg(quickWslDistro_));
+            statusLabel_->setText(
+                "No saved profiles yet. Click \"Create WSL profile & Connect\" "
+                "to use the detected WSL distro, or Skip to explore first.");
+        } else {
+            quickWslBtn_->setEnabled(false);
+            statusLabel_->setText(
+                "No saved profiles and no WSL distro detected. Install one with "
+                "wsl --install Ubuntu, or Skip and configure SSH/WSL in Settings.");
+        }
         connectBtn_->setEnabled(false);
+    } else {
+        quickWslBtn_->setVisible(false);
     }
 }
 
 void ConnectionDialog::onCreateWslProfile()
 {
-    // Build a sensible default WSL profile so first-run needs no manual setup.
+    if (quickWslDistro_.isEmpty()) {
+        const QStringList distros = detectWslDistros();
+        if (distros.isEmpty()) {
+            quickWslBtn_->setEnabled(false);
+            statusLabel_->setText(
+                "No WSL distro detected. Install one with wsl --install Ubuntu, "
+                "or Skip and configure SSH/WSL in Settings.");
+            return;
+        }
+        quickWslDistro_ = distros.first();
+    }
+
     Models::ConnectionProfile p;
     p.id              = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
-    p.name            = "WSL (Ubuntu)";
+    p.name            = QStringLiteral("WSL (%1)").arg(quickWslDistro_).toStdString();
     p.mode            = Models::ConnectionMode::WSL;
-    p.isDefault       = true;
-    p.wslDistribution = "Ubuntu";
+    p.isDefault       = false;
+    p.wslDistribution = quickWslDistro_.toStdString();
     p.cosmosRootPath  = "/cosmos";
 
-    vm_.saveProfile(p);   // persists and refreshes the profile model/combo
+    const QString profileId = QString::fromStdString(p.id);
+    vm_.saveProfile(p);
+    vm_.setDefaultProfile(profileId);
 
     quickWslBtn_->setEnabled(false);
     connectBtn_->setEnabled(false);
-    statusLabel_->setText("Connecting…");
-    vm_.connectToProfile(QString::fromStdString(p.id));
+    statusLabel_->setText("Connecting...");
+    vm_.connectToProfile(profileId);
 }
 
 void ConnectionDialog::onConnectClicked()
@@ -117,7 +183,7 @@ void ConnectionDialog::onConnectClicked()
     const auto* p = vm_.profileModel()->profileAt(idx);
     if (!p) return;
     connectBtn_->setEnabled(false);
-    statusLabel_->setText("Connecting…");
+    statusLabel_->setText("Connecting...");
     vm_.connectToProfile(QString::fromStdString(p->id));
 }
 
