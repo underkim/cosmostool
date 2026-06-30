@@ -11,6 +11,7 @@
 #include <QHeaderView>
 #include <QAbstractItemView>
 #include <QTableWidgetItem>
+#include <QTabWidget>
 
 namespace OpenC3::UI::Views {
 
@@ -41,20 +42,40 @@ void PacketToolsView::setupUi()
     connectionHint_->setObjectName("SubLabel");
     root->addWidget(connectionHint_);
 
+    // ── Tabs: keep log analysis and the simulator on separate pages ────────────
+    auto* tabs = new QTabWidget(this);
+    tabs->addTab(buildLogsTab(),      "Logs");
+    tabs->addTab(buildSimulatorTab(), "Simulator");
+    tabs->setCurrentIndex(0); // default to Logs
+    root->addWidget(tabs, 1);
+
+    // ── Status ────────────────────────────────────────────────────────────────
+    statusLabel_ = new QLabel(this);
+    statusLabel_->setObjectName("SubLabel");
+    root->addWidget(statusLabel_);
+}
+
+QWidget* PacketToolsView::buildLogsTab()
+{
+    auto* tab    = new QWidget(this);
+    auto* layout = new QVBoxLayout(tab);
+    layout->setContentsMargins(0, 12, 0, 0);
+    layout->setSpacing(12);
+
     // ── Toolbar ───────────────────────────────────────────────────────────────
     auto* toolbar = new QHBoxLayout;
-    refreshBtn_  = new QPushButton("↻  Refresh Logs", this);
-    progressBar_ = new QProgressBar(this);
+    refreshBtn_  = new QPushButton("↻  Refresh Logs", tab);
+    progressBar_ = new QProgressBar(tab);
     progressBar_->setRange(0, 0);
     progressBar_->setVisible(false);
     progressBar_->setFixedWidth(120);
     toolbar->addWidget(refreshBtn_);
     toolbar->addStretch();
     toolbar->addWidget(progressBar_);
-    root->addLayout(toolbar);
+    layout->addLayout(toolbar);
 
     // ── Splitter: log list / content + analysis ───────────────────────────────
-    auto* splitter = new QSplitter(Qt::Horizontal, this);
+    auto* splitter = new QSplitter(Qt::Horizontal, tab);
 
     auto* leftGroup  = new QGroupBox("Packet Logs (/cosmos/outputs/logs/tlm/)", splitter);
     auto* leftLayout = new QVBoxLayout(leftGroup);
@@ -98,60 +119,100 @@ void PacketToolsView::setupUi()
     leftGroup->setMinimumWidth(200);
     rightPane->setMinimumWidth(320);
     splitter->setSizes({280, 900});
-    root->addWidget(splitter);
+    layout->addWidget(splitter, 1);
 
-    // ── Simulator controls ───────────────────────────────────────────────────
-    auto* simulatorGroup = new QGroupBox("Peer Equipment Simulator", this);
-    auto* simulatorLayout = new QVBoxLayout(simulatorGroup);
+    return tab;
+}
 
-    auto* simulatorControlRow = new QHBoxLayout;
-    simulatorMode_ = new QComboBox(simulatorGroup);
+QWidget* PacketToolsView::buildSimulatorTab()
+{
+    auto* tab    = new QWidget(this);
+    auto* layout = new QVBoxLayout(tab);
+    layout->setContentsMargins(0, 12, 0, 0);
+    layout->setSpacing(12);
+
+    // ── Server: choose transport, bind address/port, start/stop ────────────────
+    auto* serverGroup = new QGroupBox("Server", tab);
+    auto* serverRow   = new QHBoxLayout(serverGroup);
+    simulatorMode_ = new QComboBox(serverGroup);
     simulatorMode_->addItem("UDP Listener", QStringLiteral("udp"));
     simulatorMode_->addItem("TCP Server", QStringLiteral("tcp"));
 
-    simulatorBindAddress_ = new QLineEdit(simulatorGroup);
+    simulatorBindAddress_ = new QLineEdit(serverGroup);
     simulatorBindAddress_->setPlaceholderText("Bind address");
     simulatorBindAddress_->setText("0.0.0.0");
 
-    simulatorBindPort_ = new QSpinBox(simulatorGroup);
+    simulatorBindPort_ = new QSpinBox(serverGroup);
     simulatorBindPort_->setRange(1, 65535);
     simulatorBindPort_->setValue(8080);
 
-    simulatorStartBtn_ = new QPushButton("Start", simulatorGroup);
-    simulatorStopBtn_ = new QPushButton("Stop", simulatorGroup);
+    simulatorStartBtn_ = new QPushButton("Start", serverGroup);
+    simulatorStopBtn_  = new QPushButton("Stop", serverGroup);
     simulatorStopBtn_->setEnabled(false);
 
-    simulatorControlRow->addWidget(new QLabel("Mode:", simulatorGroup));
-    simulatorControlRow->addWidget(simulatorMode_);
-    simulatorControlRow->addWidget(new QLabel("Bind:", simulatorGroup));
-    simulatorControlRow->addWidget(simulatorBindAddress_);
-    simulatorControlRow->addWidget(simulatorBindPort_);
-    simulatorControlRow->addWidget(simulatorStartBtn_);
-    simulatorControlRow->addWidget(simulatorStopBtn_);
+    serverRow->addWidget(new QLabel("Mode:", serverGroup));
+    serverRow->addWidget(simulatorMode_);
+    serverRow->addWidget(new QLabel("Bind:", serverGroup));
+    serverRow->addWidget(simulatorBindAddress_);
+    serverRow->addWidget(simulatorBindPort_);
+    serverRow->addWidget(simulatorStartBtn_);
+    serverRow->addWidget(simulatorStopBtn_);
+    layout->addWidget(serverGroup);
 
-    auto* simulatorSendRow = new QHBoxLayout;
-    simulatorSendHost_ = new QLineEdit(simulatorGroup);
+    // ── Send: payload + (UDP) destination, with quick example payloads ─────────
+    auto* sendGroup  = new QGroupBox("Send", tab);
+    auto* sendLayout = new QVBoxLayout(sendGroup);
+
+    auto* sendRow = new QHBoxLayout;
+    simulatorSendHostLabel_ = new QLabel("Destination host:", sendGroup);
+    simulatorSendHost_ = new QLineEdit(sendGroup);
     simulatorSendHost_->setPlaceholderText("Destination host");
     simulatorSendHost_->setText("127.0.0.1");
 
-    simulatorSendPort_ = new QSpinBox(simulatorGroup);
+    simulatorSendPortLabel_ = new QLabel("Port:", sendGroup);
+    simulatorSendPort_ = new QSpinBox(sendGroup);
     simulatorSendPort_->setRange(1, 65535);
     simulatorSendPort_->setValue(8080);
 
-    simulatorPayload_ = new QLineEdit(simulatorGroup);
+    simulatorPayload_ = new QLineEdit(sendGroup);
     simulatorPayload_->setPlaceholderText("Hex payload, e.g. 01 02 A0 FF");
 
-    simulatorSendBtn_ = new QPushButton("Send", simulatorGroup);
+    simulatorSendBtn_ = new QPushButton("Send", sendGroup);
 
-    simulatorSendRow->addWidget(new QLabel("Send UDP host:", simulatorGroup));
-    simulatorSendRow->addWidget(simulatorSendHost_);
-    simulatorSendRow->addWidget(new QLabel("Port:", simulatorGroup));
-    simulatorSendRow->addWidget(simulatorSendPort_);
-    simulatorSendRow->addWidget(new QLabel("Hex:", simulatorGroup));
-    simulatorSendRow->addWidget(simulatorPayload_, 1);
-    simulatorSendRow->addWidget(simulatorSendBtn_);
+    sendRow->addWidget(simulatorSendHostLabel_);
+    sendRow->addWidget(simulatorSendHost_);
+    sendRow->addWidget(simulatorSendPortLabel_);
+    sendRow->addWidget(simulatorSendPort_);
+    sendRow->addWidget(new QLabel("Hex:", sendGroup));
+    sendRow->addWidget(simulatorPayload_, 1);
+    sendRow->addWidget(simulatorSendBtn_);
+    sendLayout->addLayout(sendRow);
 
-    simulatorPackets_ = new QTableWidget(0, 4, simulatorGroup);
+    // Quick example payloads — one click fills the hex field.
+    auto* exampleRow = new QHBoxLayout;
+    exampleRow->addWidget(new QLabel("Examples:", sendGroup));
+    auto addExample = [&](const QString& hex) {
+        auto* btn = new QPushButton(hex, sendGroup);
+        btn->setToolTip("Use this payload");
+        connect(btn, &QPushButton::clicked, this,
+                [this, hex] { simulatorPayload_->setText(hex); });
+        exampleRow->addWidget(btn);
+    };
+    addExample("01 02 A0 FF");
+    addExample("CA FE");
+    addExample("50 49 4E 47"); // "PING"
+    exampleRow->addStretch();
+    sendLayout->addLayout(exampleRow);
+
+    simulatorSendHint_ = new QLabel(sendGroup);
+    simulatorSendHint_->setObjectName("SubLabel");
+    simulatorSendHint_->setWordWrap(true);
+    sendLayout->addWidget(simulatorSendHint_);
+
+    layout->addWidget(sendGroup);
+
+    // ── Packet table ───────────────────────────────────────────────────────────
+    simulatorPackets_ = new QTableWidget(0, 4, tab);
     simulatorPackets_->setHorizontalHeaderLabels({"Direction", "Peer", "Hex", "ASCII"});
     simulatorPackets_->horizontalHeader()->setStretchLastSection(true);
     simulatorPackets_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
@@ -160,16 +221,27 @@ void PacketToolsView::setupUi()
     simulatorPackets_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     simulatorPackets_->setSelectionBehavior(QAbstractItemView::SelectRows);
     simulatorPackets_->setMinimumHeight(140);
+    layout->addWidget(simulatorPackets_, 1);
 
-    simulatorLayout->addLayout(simulatorControlRow);
-    simulatorLayout->addLayout(simulatorSendRow);
-    simulatorLayout->addWidget(simulatorPackets_);
-    root->addWidget(simulatorGroup);
+    updateSimulatorSendMode(); // set initial labels for the default (UDP) mode
+    return tab;
+}
 
-    // ── Status ────────────────────────────────────────────────────────────────
-    statusLabel_ = new QLabel(this);
-    statusLabel_->setObjectName("SubLabel");
-    root->addWidget(statusLabel_);
+void PacketToolsView::updateSimulatorSendMode()
+{
+    const bool udp = (simulatorMode_->currentData().toString() == QStringLiteral("udp"));
+
+    // UDP datagrams go to an explicit destination; TCP sends to the connected
+    // client, so the host/port fields don't apply there.
+    simulatorSendHostLabel_->setVisible(udp);
+    simulatorSendHost_->setVisible(udp);
+    simulatorSendPortLabel_->setVisible(udp);
+    simulatorSendPort_->setVisible(udp);
+
+    simulatorSendHint_->setText(udp
+        ? "UDP: the payload is sent to the destination host/port above."
+        : "TCP: the payload is sent to the connected client (start the server "
+          "and let a client connect first).");
 }
 
 void PacketToolsView::bindViewModel()
@@ -225,6 +297,9 @@ void PacketToolsView::bindViewModel()
 
     connect(simulatorSendBtn_, &QPushButton::clicked,
             this, &PacketToolsView::onSimulatorSendClicked);
+
+    connect(simulatorMode_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this] { updateSimulatorSendMode(); });
 
     connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorStateChanged,
             this, [this] {

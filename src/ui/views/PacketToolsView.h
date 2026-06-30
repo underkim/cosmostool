@@ -32,6 +32,11 @@ private slots:
 private:
     void setupUi();
     void bindViewModel();
+    QWidget* buildLogsTab();      // log list, file content, filter/analyze
+    QWidget* buildSimulatorTab(); // UDP/TCP server, send controls, packet table
+    // Adjust the send-row labels/fields to match the selected transport so the
+    // controls never imply UDP semantics while in TCP mode (or vice versa).
+    void updateSimulatorSendMode();
 
     ViewModels::PacketToolsViewModel& vm_;
 
@@ -47,9 +52,12 @@ private:
     QComboBox*    simulatorMode_{nullptr};
     QLineEdit*    simulatorBindAddress_{nullptr};
     QSpinBox*     simulatorBindPort_{nullptr};
+    QLabel*       simulatorSendHostLabel_{nullptr};
     QLineEdit*    simulatorSendHost_{nullptr};
+    QLabel*       simulatorSendPortLabel_{nullptr};
     QSpinBox*     simulatorSendPort_{nullptr};
     QLineEdit*    simulatorPayload_{nullptr};
+    QLabel*       simulatorSendHint_{nullptr};
     QPushButton*  simulatorStartBtn_{nullptr};
     QPushButton*  simulatorStopBtn_{nullptr};
     QPushButton*  simulatorSendBtn_{nullptr};
