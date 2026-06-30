@@ -126,6 +126,7 @@ ValidationReport ConfigValidator::validateFolder(const QString& dir)
     QDirIterator it(dir, QStringList{ QStringLiteral("*.txt") },
                     QDir::Files, QDirIterator::Subdirectories);
 
+    int recognised = 0;
     while (it.hasNext()) {
         const QString path = it.next();
 
@@ -137,6 +138,7 @@ ValidationReport ConfigValidator::validateFolder(const QString& dir)
         if (kind == FileKind::Unknown)
             continue;
 
+        ++recognised;
         ValidationReport one = validateContent(kind, content);
         one.setFilePath(path);
         report.merge(one);
@@ -167,10 +169,15 @@ ValidationReport ConfigValidator::validateFolder(const QString& dir)
         }
     }
 
-    if (report.diagnostics.isEmpty())
+    if (recognised == 0)
         report.add(Diagnostic::info(
             0, QStringLiteral("No COSMOS config files found under this folder"),
             QStringLiteral("folder.empty")));
+    else if (report.diagnostics.isEmpty())
+        report.add(Diagnostic::info(
+            0, QStringLiteral("%1 COSMOS config file%2 validated; no issues found")
+                   .arg(recognised).arg(recognised == 1 ? "" : "s"),
+            QStringLiteral("folder.clean")));
 
     return report;
 }
