@@ -15,6 +15,50 @@
 
 namespace OpenC3::UI::Views {
 
+namespace {
+
+// Colour used for inline error text (matches the simulator-error styling).
+constexpr const char* kErrorStyle = "color:#f48771;"; // soft red
+
+// Lightweight, immediate check of a hex payload for UI feedback. The
+// authoritative parse still lives in PacketSimulator::parseHexPayload; this just
+// mirrors its rules so the user gets feedback while typing, before sending.
+struct HexCheck {
+    enum class State { Empty, Invalid, Valid };
+    State   state{State::Empty};
+    QString error;
+};
+
+HexCheck checkHexPayload(const QString& raw)
+{
+    QString s = raw;
+    s.remove(' ');
+    s.remove('\t');
+    s.remove('\n');
+    s.remove('\r');
+    s.remove(QStringLiteral("0x"), Qt::CaseInsensitive);
+
+    if (s.isEmpty())
+        return {HexCheck::State::Empty, {}};
+
+    const auto isHexDigit = [](QChar c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    };
+    for (const QChar c : s) {
+        if (!isHexDigit(c)) {
+            return {HexCheck::State::Invalid,
+                    QStringLiteral("Hex can only contain 0-9 and A-F (e.g. 01 02 A0 FF).")};
+        }
+    }
+    if ((s.size() % 2) != 0) {
+        return {HexCheck::State::Invalid,
+                QStringLiteral("Hex needs an even number of digits — use byte pairs like 01 02 A0 FF.")};
+    }
+    return {HexCheck::State::Valid, {}};
+}
+
+} // namespace
+
 PacketToolsView::PacketToolsView(
     ViewModels::PacketToolsViewModel& vm, QWidget* parent)
     : QWidget(parent)
@@ -255,23 +299,30 @@ void PacketToolsView::updateSimulatorSendMode()
 
 void PacketToolsView::updateSimulatorSendState()
 {
-    const bool udp = (simulatorMode_->currentData().toString() == QStringLiteral("udp"));
-    const bool running      = vm_.simulatorRunning();
-    const bool payloadEmpty = simulatorPayload_->text().trimmed().isEmpty();
+    const bool      udp     = (simulatorMode_->currentData().toString() == QStringLiteral("udp"));
+    const bool      running = vm_.simulatorRunning();
+    const HexCheck  hex     = checkHexPayload(simulatorPayload_->text());
+    const bool      empty   = (hex.state == HexCheck::State::Empty);
 
     bool    canSend = false;
+    bool    isError = false;
     QString status;
 
-    if (udp) {
-        // A UDP datagram is fire-and-forget; it only needs a payload.
-        canSend = !payloadEmpty;
-        status  = payloadEmpty ? QStringLiteral("Enter a hex payload to send.")
-                               : QStringLiteral("Ready to send a UDP datagram.");
+    if (hex.state == HexCheck::State::Invalid) {
+        // A malformed payload can never be sent, whatever the transport — flag it
+        // immediately so the user can fix it before pressing Send.
+        isError = true;
+        status  = hex.error;
+    } else if (udp) {
+        // A UDP datagram is fire-and-forget; it only needs a valid payload.
+        canSend = !empty;
+        status  = empty ? QStringLiteral("Enter a hex payload to send.")
+                        : QStringLiteral("Ready to send a UDP datagram.");
     } else if (!running) {
         status = QStringLiteral("Start the TCP server, then wait for a client to connect.");
     } else if (tcpClientCount_ <= 0) {
         status = QStringLiteral("Waiting for a TCP client to connect…");
-    } else if (payloadEmpty) {
+    } else if (empty) {
         status = QStringLiteral("%1 client(s) connected. Enter a hex payload to send.")
                      .arg(tcpClientCount_);
     } else {
@@ -281,7 +332,7 @@ void PacketToolsView::updateSimulatorSendState()
     }
 
     simulatorSendBtn_->setEnabled(canSend);
-    simulatorSendStatus_->setStyleSheet(QString()); // clear any error styling
+    simulatorSendStatus_->setStyleSheet(isError ? QString::fromLatin1(kErrorStyle) : QString());
     simulatorSendStatus_->setText(status);
 }
 
@@ -365,8 +416,8 @@ void PacketToolsView::bindViewModel()
 
     connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorError,
             this, [this](const QString& reason) {
-                // Friendly inline message (e.g. empty/invalid hex, no client)…
-                simulatorSendStatus_->setStyleSheet("color:#f48771;"); // soft red
+                // Friendly inline message (e.g. send failure, no client)…
+                simulatorSendStatus_->setStyleSheet(QString::fromLatin1(kErrorStyle));
                 simulatorSendStatus_->setText(reason);
                 // …plus a row in the packet table for the running history.
                 const int row = simulatorPackets_->rowCount();
