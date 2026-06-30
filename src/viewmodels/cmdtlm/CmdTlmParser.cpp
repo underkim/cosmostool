@@ -37,7 +37,15 @@ static const QSet<QString> kSubKeywords = {
     "ALLOW_SHORT", "HAZARDOUS", "DISABLE_MESSAGES",
     "ACCESSOR", "TEMPLATE", "VARIABLE_BIT_SIZE",
     "IGNORE_OVERLAP", "CCSDS_VER",
-    "LIMITS_GROUP", "LIMITS_GROUP_ITEM"
+    "LIMITS_GROUP", "LIMITS_GROUP_ITEM",
+    // SELECT_*/DELETE_* edit an existing packet (used after SELECT_COMMAND /
+    // SELECT_TELEMETRY); PROCESSOR/RELATED_ITEM/KEY/OBFUSCATE/VIRTUAL are
+    // additional packet/item modifiers. They are valid COSMOS keywords, so
+    // recognise them here rather than flagging them as unknown.
+    "SELECT_PARAMETER", "SELECT_ITEM",
+    "DELETE_PARAMETER", "DELETE_ITEM",
+    "PROCESSOR", "RELATED_ITEM", "KEY",
+    "OBFUSCATE", "VIRTUAL"
 };
 
 // Map a block kind to the diagnostic scope so CMD-only / TLM-only views can

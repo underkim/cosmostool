@@ -172,6 +172,22 @@ TEST(CmdTlmParserTest, SelectTelemetryWithoutItemsIsOk)
     EXPECT_EQ(result.warningCount(), 0);
 }
 
+TEST(CmdTlmParserTest, RecognisesSelectAndModifierKeywords)
+{
+    // SELECT_TELEMETRY then SELECT_ITEM to override an item, plus PROCESSOR
+    // and other valid modifiers. None of these should be flagged as unknown.
+    const QString src =
+        "SELECT_TELEMETRY T H\n"
+        "  SELECT_ITEM TEMP1\n"
+        "    LIMITS DEFAULT 1 ENABLED -80 -70 60 80\n"
+        "  PROCESSOR TEMP1STAT statistics_processor.rb TEMP1 100\n"
+        "  DELETE_ITEM JUNK\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.warningCount(), 0);
+    EXPECT_EQ(result.errorCount(), 0);
+}
+
 TEST(CmdTlmParserTest, LimitsWrongArgumentCountProducesError)
 {
     const QString src =
