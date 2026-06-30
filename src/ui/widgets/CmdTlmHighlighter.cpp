@@ -93,7 +93,8 @@ void CmdTlmHighlighter::highlightBlock(const QString& text)
         auto it = rule.pattern.globalMatch(text);
         while (it.hasNext()) {
             const auto m = it.next();
-            setFormat(m.capturedStart(), m.capturedLength(), rule.format);
+            setFormat(static_cast<int>(m.capturedStart()),
+                      static_cast<int>(m.capturedLength()), rule.format);
         }
     }
 }

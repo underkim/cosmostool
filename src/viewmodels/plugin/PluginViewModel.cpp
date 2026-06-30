@@ -116,7 +116,7 @@ QString PluginViewModel::pluginRootPath() const noexcept
         path.chop(1);
 
     if (path.endsWith("/openc3.sh") || path == "openc3.sh") {
-        const int slash = path.lastIndexOf('/');
+        const qsizetype slash = path.lastIndexOf('/');
         return slash > 0 ? path.left(slash) : ".";
     }
 

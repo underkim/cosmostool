@@ -38,6 +38,17 @@
       "cacheVariables": {
         "ENABLE_CLANG_TIDY": "ON"
       }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux/Unix · Debug (system compiler + packages)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
     }
   ],
 
@@ -53,6 +64,12 @@
       "displayName": "Build Release",
       "configurePreset": "release",
       "jobs": 0
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Build Linux/Unix Debug",
+      "configurePreset": "linux-debug",
+      "jobs": 0
     }
   ],
 
@@ -61,6 +78,13 @@
       "name": "unit",
       "displayName": "Unit Tests",
       "configurePreset": "debug",
+      "output": { "outputOnFailure": true },
+      "execution": { "jobs": 4, "timeout": 60 }
+    },
+    {
+      "name": "linux-unit",
+      "displayName": "Unit Tests (Linux/Unix)",
+      "configurePreset": "linux-debug",
       "output": { "outputOnFailure": true },
       "execution": { "jobs": 4, "timeout": 60 }
     }

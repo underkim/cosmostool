@@ -40,7 +40,7 @@ QString CmdTlmViewModel::defaultCmdTlmPath() const
         root.chop(1);
 
     if (root.endsWith("/openc3.sh", Qt::CaseInsensitive)) {
-        const int slash = root.lastIndexOf('/');
+        const qsizetype slash = root.lastIndexOf('/');
         root = slash > 0 ? root.left(slash) : QString{};
     } else if (root.compare("openc3.sh", Qt::CaseInsensitive) == 0) {
         root.clear();
