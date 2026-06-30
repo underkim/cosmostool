@@ -40,6 +40,16 @@ void DashboardView::setupUi()
     guidanceLabel_->setWordWrap(true);
     root->addWidget(guidanceLabel_);
 
+    auto* recommendedRow = new QHBoxLayout;
+    recommendedActionBtn_ = new QPushButton(this);
+    recommendedActionBtn_->setObjectName("PrimaryButton");
+    recommendedActionBtn_->setMinimumWidth(160);
+    connect(recommendedActionBtn_, &QPushButton::clicked,
+            this, &DashboardView::onRecommendedActionClicked);
+    recommendedRow->addWidget(recommendedActionBtn_);
+    recommendedRow->addStretch();
+    root->addLayout(recommendedRow);
+
     // ── Quick actions ──────────────────────────────────────────────────────────
     auto* actionsGroup  = new QGroupBox("Quick Actions", this);
     auto* actionsLayout = new QHBoxLayout(actionsGroup);
@@ -53,7 +63,7 @@ void DashboardView::setupUi()
         return btn;
     };
 
-    addAction("Connect",      true,  &DashboardView::connectRequested);
+    addAction("Connect",      false, &DashboardView::connectRequested);
     addAction("Run Doctor",   false, &DashboardView::runDoctorRequested);
     addAction("Workspace",    false, &DashboardView::openWorkspaceRequested);
     addAction("CMD / TLM",    false, &DashboardView::openCmdTlmRequested);
@@ -127,6 +137,7 @@ void DashboardView::bindViewModel()
                 "Not connected. Click Connect to choose a profile — or create a "
                 "WSL profile in one step — then run Doctor to check your setup.");
         }
+        updateHomeGuidance();
     };
 
     auto updateDocker = [this] {
@@ -136,6 +147,7 @@ void DashboardView::bindViewModel()
             : Widgets::BadgeStyle::Error;
         dockerBadge_->setStyle(style, s);
         containerLabel_->setText(QString::number(vm_.containerCount()));
+        updateHomeGuidance();
     };
 
     auto updateVersion = [this] {
@@ -164,6 +176,46 @@ void DashboardView::bindViewModel()
     updateDocker();
     updateVersion();
     updateMetrics();
+}
+
+void DashboardView::updateHomeGuidance()
+{
+    const QString connection = vm_.connectionStatus();
+    const QString docker = vm_.dockerStatus();
+    const bool connected = connection.startsWith("Connected");
+    const bool dockerRunning = docker.startsWith("Running");
+
+    if (!connected) {
+        guidanceLabel_->setText(
+            "Connect to an OpenC3 environment to enable workspace tools.");
+        recommendedActionBtn_->setText("Connect");
+        return;
+    }
+
+    if (!dockerRunning) {
+        guidanceLabel_->setText(
+            "Connected. Run Doctor to check Docker and OpenC3 before editing.");
+        recommendedActionBtn_->setText("Run Doctor");
+        return;
+    }
+
+    guidanceLabel_->setText(
+        "Ready. Open Workspace, or jump into CMD / TLM, Packet Tools, or Logs.");
+    recommendedActionBtn_->setText("Open Workspace");
+}
+
+void DashboardView::onRecommendedActionClicked()
+{
+    const bool connected = vm_.connectionStatus().startsWith("Connected");
+    const bool dockerRunning = vm_.dockerStatus().startsWith("Running");
+
+    if (!connected) {
+        emit connectRequested();
+    } else if (!dockerRunning) {
+        emit runDoctorRequested();
+    } else {
+        emit openWorkspaceRequested();
+    }
 }
 
 } // namespace OpenC3::UI::Views

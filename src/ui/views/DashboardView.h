@@ -6,6 +6,7 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QPushButton>
 
 namespace OpenC3::UI::Views {
 
@@ -30,10 +31,13 @@ signals:
 private:
     void setupUi();
     void bindViewModel();
+    void updateHomeGuidance();
+    void onRecommendedActionClicked();
 
     ViewModels::DashboardViewModel& vm_;
 
     QLabel*               guidanceLabel_{nullptr};
+    QPushButton*          recommendedActionBtn_{nullptr};
     Widgets::StatusBadge* connectionBadge_{nullptr};
     Widgets::StatusBadge* dockerBadge_{nullptr};
     QLabel*               versionLabel_{nullptr};
