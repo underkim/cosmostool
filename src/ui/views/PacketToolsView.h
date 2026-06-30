@@ -37,6 +37,9 @@ private:
     // Adjust the send-row labels/fields to match the selected transport so the
     // controls never imply UDP semantics while in TCP mode (or vice versa).
     void updateSimulatorSendMode();
+    // Enable/disable Send and show a readiness line based on transport, server
+    // state, connected TCP clients, and whether a payload has been entered.
+    void updateSimulatorSendState();
 
     ViewModels::PacketToolsViewModel& vm_;
 
@@ -58,10 +61,13 @@ private:
     QSpinBox*     simulatorSendPort_{nullptr};
     QLineEdit*    simulatorPayload_{nullptr};
     QLabel*       simulatorSendHint_{nullptr};
+    QLabel*       simulatorSendStatus_{nullptr};
     QPushButton*  simulatorStartBtn_{nullptr};
     QPushButton*  simulatorStopBtn_{nullptr};
     QPushButton*  simulatorSendBtn_{nullptr};
     QTableWidget* simulatorPackets_{nullptr};
+
+    int           tcpClientCount_{0};
 };
 
 } // namespace OpenC3::UI::Views

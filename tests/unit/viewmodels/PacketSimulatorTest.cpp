@@ -115,3 +115,36 @@ TEST(PacketSimulatorTest, AcceptsTcpClientReceivesAndSendsHexPayload)
     ASSERT_TRUE(client.waitForReadyRead(1000));
     EXPECT_EQ(client.readAll(), QByteArray::fromHex("CAFE"));
 }
+
+TEST(PacketSimulatorTest, TracksTcpClientCount)
+{
+    ensureQtApplication();
+    PacketSimulator simulator;
+    QSignalSpy started(&simulator, &PacketSimulator::started);
+    QSignalSpy countChanged(&simulator, &PacketSimulator::tcpClientCountChanged);
+
+    ASSERT_TRUE(simulator.startTcpServer(QStringLiteral("127.0.0.1"), 0));
+    EXPECT_EQ(simulator.tcpClientCount(), 0);
+
+    const QString startedText = started.takeFirst().at(0).toString();
+    const int colon = startedText.lastIndexOf(':');
+    ASSERT_GT(colon, 0);
+    bool ok = false;
+    const quint16 port = startedText.mid(colon + 1).toUShort(&ok);
+    ASSERT_TRUE(ok);
+
+    QTcpSocket client;
+    client.connectToHost(QHostAddress::LocalHost, port);
+    ASSERT_TRUE(client.waitForConnected(1000));
+
+    // The server emits tcpClientCountChanged and reports one connected client.
+    ASSERT_TRUE(countChanged.wait(1000));
+    EXPECT_EQ(simulator.tcpClientCount(), 1);
+    EXPECT_EQ(countChanged.takeLast().at(0).toInt(), 1);
+
+    // Dropping the client brings the count back to zero.
+    client.disconnectFromHost();
+    client.close();
+    ASSERT_TRUE(countChanged.wait(1000));
+    EXPECT_EQ(simulator.tcpClientCount(), 0);
+}

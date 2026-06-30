@@ -26,6 +26,18 @@ bool PacketSimulator::isRunning() const noexcept
     return mode_ != Mode::Stopped;
 }
 
+int PacketSimulator::tcpClientCount() const noexcept
+{
+    int n = 0;
+    for (const auto& clientRef : tcpClients_)
+    {
+        const QTcpSocket* client = clientRef.data();
+        if (client && client->state() == QAbstractSocket::ConnectedState)
+            ++n;
+    }
+    return n;
+}
+
 bool PacketSimulator::startUdpListener(const QString& bindAddress, quint16 port)
 {
     stop();
@@ -208,11 +220,21 @@ void PacketSimulator::acceptTcpClient()
         client->setParent(this);
         tcpClients_.append(QPointer<QTcpSocket>(client));
         connect(client, &QTcpSocket::readyRead, this, &PacketSimulator::readTcpClient);
+        connect(client, &QTcpSocket::disconnected,
+                this, &PacketSimulator::handleTcpClientDisconnected);
         connect(client, &QTcpSocket::disconnected, client, &QTcpSocket::deleteLater);
         emit started(QString("TCP client connected: %1:%2")
                          .arg(client->peerAddress().toString())
                          .arg(client->peerPort()));
     }
+    emit tcpClientCountChanged(tcpClientCount());
+}
+
+void PacketSimulator::handleTcpClientDisconnected()
+{
+    // A client just dropped; its socket is no longer in ConnectedState, so the
+    // recomputed count excludes it. (The socket itself is freed via deleteLater.)
+    emit tcpClientCountChanged(tcpClientCount());
 }
 
 void PacketSimulator::readTcpClient()
@@ -330,6 +352,7 @@ void PacketSimulator::emitReceived(const QString& transport, const QString& peer
 
 void PacketSimulator::clearTcpClients()
 {
+    const bool hadClients = !tcpClients_.isEmpty();
     for (const auto& clientRef : tcpClients_)
     {
         QTcpSocket* client = clientRef.data();
@@ -340,6 +363,8 @@ void PacketSimulator::clearTcpClients()
         client->deleteLater();
     }
     tcpClients_.clear();
+    if (hadClients)
+        emit tcpClientCountChanged(0);
 }
 
 } // namespace OpenC3::ViewModels

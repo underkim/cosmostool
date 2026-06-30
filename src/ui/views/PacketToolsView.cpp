@@ -209,6 +209,12 @@ QWidget* PacketToolsView::buildSimulatorTab()
     simulatorSendHint_->setWordWrap(true);
     sendLayout->addWidget(simulatorSendHint_);
 
+    // Live readiness / connection state (and friendly send errors, in red).
+    simulatorSendStatus_ = new QLabel(sendGroup);
+    simulatorSendStatus_->setObjectName("SubLabel");
+    simulatorSendStatus_->setWordWrap(true);
+    sendLayout->addWidget(simulatorSendStatus_);
+
     layout->addWidget(sendGroup);
 
     // ── Packet table ───────────────────────────────────────────────────────────
@@ -223,7 +229,8 @@ QWidget* PacketToolsView::buildSimulatorTab()
     simulatorPackets_->setMinimumHeight(140);
     layout->addWidget(simulatorPackets_, 1);
 
-    updateSimulatorSendMode(); // set initial labels for the default (UDP) mode
+    updateSimulatorSendMode();  // set initial labels for the default (UDP) mode
+    updateSimulatorSendState(); // set initial Send-button + readiness text
     return tab;
 }
 
@@ -242,6 +249,40 @@ void PacketToolsView::updateSimulatorSendMode()
         ? "UDP: the payload is sent to the destination host/port above."
         : "TCP: the payload is sent to the connected client (start the server "
           "and let a client connect first).");
+
+    updateSimulatorSendState(); // readiness depends on the transport too
+}
+
+void PacketToolsView::updateSimulatorSendState()
+{
+    const bool udp = (simulatorMode_->currentData().toString() == QStringLiteral("udp"));
+    const bool running      = vm_.simulatorRunning();
+    const bool payloadEmpty = simulatorPayload_->text().trimmed().isEmpty();
+
+    bool    canSend = false;
+    QString status;
+
+    if (udp) {
+        // A UDP datagram is fire-and-forget; it only needs a payload.
+        canSend = !payloadEmpty;
+        status  = payloadEmpty ? QStringLiteral("Enter a hex payload to send.")
+                               : QStringLiteral("Ready to send a UDP datagram.");
+    } else if (!running) {
+        status = QStringLiteral("Start the TCP server, then wait for a client to connect.");
+    } else if (tcpClientCount_ <= 0) {
+        status = QStringLiteral("Waiting for a TCP client to connect…");
+    } else if (payloadEmpty) {
+        status = QStringLiteral("%1 client(s) connected. Enter a hex payload to send.")
+                     .arg(tcpClientCount_);
+    } else {
+        canSend = true;
+        status  = QStringLiteral("%1 client(s) connected. Ready to send.")
+                     .arg(tcpClientCount_);
+    }
+
+    simulatorSendBtn_->setEnabled(canSend);
+    simulatorSendStatus_->setStyleSheet(QString()); // clear any error styling
+    simulatorSendStatus_->setText(status);
 }
 
 void PacketToolsView::bindViewModel()
@@ -301,6 +342,15 @@ void PacketToolsView::bindViewModel()
     connect(simulatorMode_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this] { updateSimulatorSendMode(); });
 
+    connect(simulatorPayload_, &QLineEdit::textChanged,
+            this, [this] { updateSimulatorSendState(); });
+
+    connect(&vm_, &ViewModels::PacketToolsViewModel::tcpClientCountChanged,
+            this, [this](int count) {
+                tcpClientCount_ = count;
+                updateSimulatorSendState();
+            });
+
     connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorStateChanged,
             this, [this] {
                 const bool running = vm_.simulatorRunning();
@@ -309,10 +359,16 @@ void PacketToolsView::bindViewModel()
                 simulatorMode_->setEnabled(!running);
                 simulatorBindAddress_->setEnabled(!running);
                 simulatorBindPort_->setEnabled(!running);
+                tcpClientCount_ = vm_.tcpClientCount();
+                updateSimulatorSendState();
             });
 
     connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorError,
             this, [this](const QString& reason) {
+                // Friendly inline message (e.g. empty/invalid hex, no client)…
+                simulatorSendStatus_->setStyleSheet("color:#f48771;"); // soft red
+                simulatorSendStatus_->setText(reason);
+                // …plus a row in the packet table for the running history.
                 const int row = simulatorPackets_->rowCount();
                 simulatorPackets_->insertRow(row);
                 simulatorPackets_->setItem(row, 0, new QTableWidgetItem("ERROR"));

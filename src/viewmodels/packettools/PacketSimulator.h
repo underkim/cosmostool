@@ -32,6 +32,9 @@ class PacketSimulator final : public QObject
 
     [[nodiscard]] Mode mode() const noexcept;
     [[nodiscard]] bool isRunning() const noexcept;
+    // Number of currently connected TCP clients (always 0 unless a TCP server
+    // is running). Lets the UI tell the user whether a TCP send can succeed.
+    [[nodiscard]] int  tcpClientCount() const noexcept;
 
   public slots:
     bool startUdpListener(const QString& bindAddress, quint16 port);
@@ -45,6 +48,7 @@ class PacketSimulator final : public QObject
     void started(const QString& description);
     void stopped();
     void errorOccurred(const QString& reason);
+    void tcpClientCountChanged(int count);
     void packetReceived(const QString& transport, const QString& peer,
                         const QString& hexPayload, const QString& asciiPreview);
     void packetSent(const QString& transport, const QString& peer,
@@ -54,6 +58,7 @@ class PacketSimulator final : public QObject
     void acceptTcpClient();
     void readTcpClient();
     void readUdpDatagrams();
+    void handleTcpClientDisconnected();
 
   private:
     [[nodiscard]] static QByteArray parseHexPayload(const QString& hexPayload,

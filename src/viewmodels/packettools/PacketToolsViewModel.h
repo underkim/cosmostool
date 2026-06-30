@@ -28,6 +28,7 @@ public:
     [[nodiscard]] bool    isBusy()        const noexcept;
     [[nodiscard]] QString statusMessage() const noexcept;
     [[nodiscard]] bool    simulatorRunning() const noexcept;
+    [[nodiscard]] int     tcpClientCount()  const noexcept;
 
 public slots:
     void refreshLogList();
@@ -47,6 +48,7 @@ signals:
     void logContentReady(const QString& path, const QString& content);
     void analysisReady(const QString& summary);
     void simulatorStateChanged();
+    void tcpClientCountChanged(int count);
     void simulatorError(const QString& reason);
     void simulatorPacketReceived(const QString& transport,
                                  const QString& peer,

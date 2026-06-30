@@ -26,6 +26,8 @@ PacketToolsViewModel::PacketToolsViewModel(
         setStatus(reason);
         emit simulatorError(reason);
     });
+    connect(&simulator_, &PacketSimulator::tcpClientCountChanged,
+            this, &PacketToolsViewModel::tcpClientCountChanged);
     connect(&simulator_, &PacketSimulator::packetReceived,
             this, &PacketToolsViewModel::simulatorPacketReceived);
     connect(&simulator_, &PacketSimulator::packetSent,
@@ -52,6 +54,11 @@ QString PacketToolsViewModel::statusMessage() const noexcept { return status_; }
 bool PacketToolsViewModel::simulatorRunning() const noexcept
 {
     return simulator_.isRunning();
+}
+
+int PacketToolsViewModel::tcpClientCount() const noexcept
+{
+    return simulator_.tcpClientCount();
 }
 
 void PacketToolsViewModel::setBusy(bool busy)
