@@ -353,6 +353,51 @@ Notable completed work:
 - Doctor checks now support configured COSMOS root path behavior.
 - Tests were expanded for shell quoting, Docker quoting, Doctor path handling, PluginService, CmdTlmParser, and PluginTemplateEngine.
 
+### Later improvement pass (validation + service correctness)
+
+- `ConfigValidator::validateFolder` no longer reports "No COSMOS config files
+  found" when a folder full of valid files is scanned; it now distinguishes an
+  empty folder (`folder.empty`) from a clean scan (`folder.clean`) and reports
+  how many files validated.
+- The CMD/TLM parser recognises the valid COSMOS keywords `SELECT_PARAMETER`,
+  `SELECT_ITEM`, `DELETE_PARAMETER`, `DELETE_ITEM`, `PROCESSOR`,
+  `RELATED_ITEM`, `KEY`, `OBFUSCATE`, and `VIRTUAL`, instead of flagging them
+  as "Unknown keyword".
+- `DockerService::getStats` no longer throws `std::out_of_range` when Docker
+  reports a CPU value without a trailing `%`.
+- Added regression tests for each of the above.
+
+### Building and testing on Linux (developer/CI environments)
+
+The CMake build pulls spdlog / nlohmann_json / GoogleTest / libssh2 via
+`FetchContent` from GitHub, which is unavailable in network-restricted
+environments. On Debian/Ubuntu the same dependencies are available as system
+packages and the pure-logic layers can be compiled directly with `g++`
+(no Qt MOC needed):
+
+```bash
+sudo apt-get install -y qt6-base-dev libspdlog-dev nlohmann-json3-dev \
+    libgtest-dev libgmock-dev libssh2-1-dev
+
+# Validation / parser unit tests (Qt Core only):
+g++ -std=c++20 -I src $(ls src/viewmodels/validation/*.cpp) \
+    src/viewmodels/cmdtlm/CmdTlmParser.cpp \
+    src/viewmodels/plugin/PluginTemplateEngine.cpp \
+    tests/unit/viewmodels/*Validator*Test.cpp \
+    tests/unit/viewmodels/CmdTlmParserTest.cpp \
+    $(pkg-config --cflags --libs Qt6Core gtest gtest_main) -o /tmp/vmtests
+
+# Service unit tests that avoid libssh2 (Docker/Doctor/Plugin):
+g++ -std=c++20 -I src -I tests \
+    src/services/docker/DockerService.cpp src/core/connection/ShellQuote.cpp \
+    src/core/logging/Logger.cpp tests/unit/services/DockerServiceTest.cpp \
+    $(pkg-config --cflags --libs gtest gtest_main gmock) -lspdlog -lfmt \
+    -o /tmp/dockertest
+```
+
+This is a verification convenience; the canonical build remains CMake +
+`opencosmos_tests`.
+
 Manual validation checklist:
 
 1. Launch `build/local-debug/bin/OpenC3DevToolkit.exe`.
