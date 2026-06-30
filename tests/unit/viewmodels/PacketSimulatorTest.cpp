@@ -20,6 +20,11 @@ void ensureQtApplication()
     static QCoreApplication app(argc, argv);
 }
 
+bool waitForSignalAfter(QSignalSpy& spy, int previousCount, int timeoutMs = 1000)
+{
+    return spy.count() > previousCount || spy.wait(timeoutMs);
+}
+
 } // namespace
 
 TEST(PacketSimulatorTest, ReportsInvalidUdpBindAddress)
@@ -134,17 +139,19 @@ TEST(PacketSimulatorTest, TracksTcpClientCount)
     ASSERT_TRUE(ok);
 
     QTcpSocket client;
+    const int beforeConnectSignals = countChanged.count();
     client.connectToHost(QHostAddress::LocalHost, port);
     ASSERT_TRUE(client.waitForConnected(1000));
 
     // The server emits tcpClientCountChanged and reports one connected client.
-    ASSERT_TRUE(countChanged.wait(1000));
+    ASSERT_TRUE(waitForSignalAfter(countChanged, beforeConnectSignals));
     EXPECT_EQ(simulator.tcpClientCount(), 1);
     EXPECT_EQ(countChanged.takeLast().at(0).toInt(), 1);
 
     // Dropping the client brings the count back to zero.
+    const int beforeDisconnectSignals = countChanged.count();
     client.disconnectFromHost();
     client.close();
-    ASSERT_TRUE(countChanged.wait(1000));
+    ASSERT_TRUE(waitForSignalAfter(countChanged, beforeDisconnectSignals));
     EXPECT_EQ(simulator.tcpClientCount(), 0);
 }
