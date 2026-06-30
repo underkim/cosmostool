@@ -5,6 +5,7 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QString>
 
 namespace OpenC3::UI::Dialogs {
 
@@ -26,6 +27,7 @@ private:
     QPushButton* connectBtn_{nullptr};
     QPushButton* quickWslBtn_{nullptr};
     QLabel*      statusLabel_{nullptr};
+    QString      quickWslDistro_;
 };
 
 } // namespace OpenC3::UI::Dialogs
