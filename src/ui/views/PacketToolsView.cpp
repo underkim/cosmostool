@@ -388,7 +388,7 @@ void PacketToolsView::onSimulatorStopClicked()
 void PacketToolsView::onSimulatorSendClicked()
 {
     const QString mode = simulatorMode_->currentData().toString();
-    if (mode == QStringLiteral("tcp") && vm_.simulatorRunning()) {
+    if (mode == QStringLiteral("tcp")) {
         vm_.sendTcpSimulatorPacket(simulatorPayload_->text().trimmed());
         return;
     }
