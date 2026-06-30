@@ -24,7 +24,7 @@ signals:
     void runDoctorRequested();
     void openWorkspaceRequested();
     void openCmdTlmRequested();
-    void openSimulatorRequested();
+    void openPacketToolsRequested();
     void openLogsRequested();
 
 private:
