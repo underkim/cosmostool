@@ -56,6 +56,7 @@ private:
     void setupNavigation();
     void setupViews();
     void connectSignals();
+    void showConnectionDialog();
 
     ViewModels::DashboardViewModel&    dashboardVm_;
     ViewModels::DockerViewModel&       dockerVm_;

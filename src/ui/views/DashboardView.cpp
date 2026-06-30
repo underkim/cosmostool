@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QFont>
 
 namespace OpenC3::UI::Views {
@@ -25,13 +26,42 @@ void DashboardView::setupUi()
     root->setSpacing(16);
 
     // ── Page title ────────────────────────────────────────────────────────────
-    auto* title = new QLabel("Dashboard", this);
+    auto* title = new QLabel("Home", this);
     QFont tf = title->font();
     tf.setPointSize(18);
     tf.setBold(true);
     title->setFont(tf);
     title->setObjectName("PageTitle");
     root->addWidget(title);
+
+    // ── Guidance line — tells a first-time user what to do next ────────────────
+    guidanceLabel_ = new QLabel(this);
+    guidanceLabel_->setObjectName("SubLabel");
+    guidanceLabel_->setWordWrap(true);
+    root->addWidget(guidanceLabel_);
+
+    // ── Quick actions ──────────────────────────────────────────────────────────
+    auto* actionsGroup  = new QGroupBox("Quick Actions", this);
+    auto* actionsLayout = new QHBoxLayout(actionsGroup);
+    actionsLayout->setSpacing(8);
+
+    auto addAction = [&](const QString& text, bool primary, auto signal) {
+        auto* btn = new QPushButton(text, actionsGroup);
+        if (primary) btn->setObjectName("PrimaryButton");
+        connect(btn, &QPushButton::clicked, this, signal);
+        actionsLayout->addWidget(btn);
+        return btn;
+    };
+
+    addAction("Connect",   true,  &DashboardView::connectRequested);
+    addAction("Run Doctor", false, &DashboardView::runDoctorRequested);
+    addAction("Workspace", false, &DashboardView::openWorkspaceRequested);
+    addAction("CMD / TLM", false, &DashboardView::openCmdTlmRequested);
+    addAction("Simulator", false, &DashboardView::openSimulatorRequested);
+    addAction("Logs",      false, &DashboardView::openLogsRequested);
+    actionsLayout->addStretch();
+
+    root->addWidget(actionsGroup);
 
     // ── Status row ────────────────────────────────────────────────────────────
     auto* statusGroup  = new QGroupBox("System Status", this);
@@ -86,6 +116,17 @@ void DashboardView::bindViewModel()
                 ? Widgets::BadgeStyle::Error
                 : Widgets::BadgeStyle::Neutral;
         connectionBadge_->setStyle(style, s);
+
+        // Guide the user toward the right next step based on connection state.
+        if (s.startsWith("Connected")) {
+            guidanceLabel_->setText(
+                "Connected. Open the Workspace to manage plugins, or jump to "
+                "CMD / TLM, Simulator, or Logs.");
+        } else {
+            guidanceLabel_->setText(
+                "Not connected. Click Connect to choose a profile — or create a "
+                "WSL profile in one step — then run Doctor to check your setup.");
+        }
     };
 
     auto updateDocker = [this] {

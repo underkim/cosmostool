@@ -11,6 +11,7 @@
 #include "views/ValidatorView.h"
 #include "dialogs/AboutDialog.h"
 #include "dialogs/UserGuideDialog.h"
+#include "dialogs/ConnectionDialog.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -24,6 +25,20 @@
 #include <QTabWidget>
 
 namespace OpenC3::UI {
+
+namespace {
+// Row/stack indices for the navigation rail. Kept in one place so the rail,
+// the content stack, and the quick-action handlers cannot drift apart.
+enum NavIndex {
+    NavHome = 0,
+    NavWorkspace,
+    NavCmdTlm,
+    NavSimulator,
+    NavLogs,
+    NavSettings,
+    NavAdvanced,
+};
+} // namespace
 
 MainWindow::MainWindow(
     ViewModels::DashboardViewModel&    dashboard,
@@ -101,12 +116,13 @@ void MainWindow::setupNavigation()
         navRail_->addItem(item);
     };
 
-    addItem("Dashboard"); // 0
+    addItem("Home");      // 0
     addItem("Workspace"); // 1
-    addItem("Simulator"); // 2
-    addItem("Logs");      // 3
-    addItem("Settings");  // 4
-    addItem("Advanced");  // 5
+    addItem("CMD / TLM"); // 2
+    addItem("Simulator"); // 3
+    addItem("Logs");      // 4
+    addItem("Settings");  // 5
+    addItem("Advanced");  // 6
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -117,41 +133,75 @@ void MainWindow::setupNavigation()
 
 void MainWindow::setupViews()
 {
+    auto* dashboardView = new Views::DashboardView(dashboardVm_, this);
     auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, this);
     auto* cmdTlmView    = new Views::CmdTlmView(cmdTlmVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
 
+    // Advanced groups the less-common tools so the main rail stays short. The
+    // features are not removed — just tucked behind one entry.
     auto* advancedTabs = new QTabWidget(this);
     advancedTabs->setObjectName("PluginDetailTabs");
-    advancedTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");
-    advancedTabs->addTab(new Views::InfraView(infraVm_, this), "Infra");
-    advancedTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");
-    advancedTabs->addTab(cmdTlmView, "CMD / TLM");
-    advancedTabs->addTab(validatorView, "Validator");
+    advancedTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker"); // 0
+    advancedTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");  // 1
+    advancedTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor"); // 2
+    advancedTabs->addTab(validatorView,                          "Validator"); // 3
+    constexpr int kAdvancedDoctorTab    = 2;
+    constexpr int kAdvancedValidatorTab = 3;
 
+    // ── Navigation helpers ──────────────────────────────────────────────────
+    auto goTo = [this](int row) {
+        navRail_->setCurrentRow(row);   // also switches the stack via the signal
+        contentStack_->setCurrentIndex(row);
+    };
+
+    // CMD / TLM is now a top-level page (index 2).
     connect(pluginView, &Views::PluginView::openCmdTlmRequested,
-            this, [this, cmdTlmView, advancedTabs](const QString& remoteFilePath) {
-                contentStack_->setCurrentIndex(5);
-                navRail_->setCurrentRow(5);
-                advancedTabs->setCurrentIndex(3);
+            this, [goTo, cmdTlmView](const QString& remoteFilePath) {
+                goTo(NavCmdTlm);
                 cmdTlmView->openFile(remoteFilePath);
             });
 
-    auto toValidator = [this, validatorView, advancedTabs](const QString& content) {
-        contentStack_->setCurrentIndex(5);
-        navRail_->setCurrentRow(5);
-        advancedTabs->setCurrentIndex(4);
+    auto toValidator = [this, goTo, validatorView, advancedTabs,
+                        kAdvancedValidatorTab](const QString& content) {
+        goTo(NavAdvanced);
+        advancedTabs->setCurrentIndex(kAdvancedValidatorTab);
         validatorView->checkContent(content);
     };
     connect(cmdTlmView, &Views::CmdTlmView::openInValidatorRequested, this, toValidator);
     connect(pluginView, &Views::PluginView::openInValidatorRequested, this, toValidator);
 
-    contentStack_->addWidget(new Views::DashboardView(dashboardVm_, this)); // 0
-    contentStack_->addWidget(pluginView); // 1
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 2
-    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this)); // 3
-    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this)); // 4
-    contentStack_->addWidget(advancedTabs); // 5
+    // ── Home (Dashboard) quick actions ──────────────────────────────────────
+    connect(dashboardView, &Views::DashboardView::connectRequested,
+            this, &MainWindow::showConnectionDialog);
+    connect(dashboardView, &Views::DashboardView::runDoctorRequested,
+            this, [this, goTo, advancedTabs, kAdvancedDoctorTab] {
+                goTo(NavAdvanced);
+                advancedTabs->setCurrentIndex(kAdvancedDoctorTab);
+                doctorVm_.runAllChecks();
+            });
+    connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
+            this, [goTo] { goTo(NavWorkspace); });
+    connect(dashboardView, &Views::DashboardView::openCmdTlmRequested,
+            this, [goTo] { goTo(NavCmdTlm); });
+    connect(dashboardView, &Views::DashboardView::openSimulatorRequested,
+            this, [goTo] { goTo(NavSimulator); });
+    connect(dashboardView, &Views::DashboardView::openLogsRequested,
+            this, [goTo] { goTo(NavLogs); });
+
+    contentStack_->addWidget(dashboardView);                                    // 0 Home
+    contentStack_->addWidget(pluginView);                                       // 1 Workspace
+    contentStack_->addWidget(cmdTlmView);                                       // 2 CMD / TLM
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 3 Simulator
+    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 4 Logs
+    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 5 Settings
+    contentStack_->addWidget(advancedTabs);                                     // 6 Advanced
+}
+
+void MainWindow::showConnectionDialog()
+{
+    Dialogs::ConnectionDialog dlg(settingsVm_, this);
+    dlg.exec();
 }
 
 void MainWindow::setupMenuBar()

@@ -1,10 +1,13 @@
 #include "ConnectionDialog.h"
 
+#include "models/ConnectionProfile.h"
+
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QFont>
 #include <QTimer>
+#include <QUuid>
 
 namespace OpenC3::UI::Dialogs {
 
@@ -34,6 +37,16 @@ ConnectionDialog::ConnectionDialog(
     statusLabel_->setWordWrap(true);
     layout->addWidget(statusLabel_);
 
+    // One-click WSL setup so a first-time user is never stuck with no profile:
+    // creates a default WSL (Ubuntu) profile, saves it, and connects.
+    quickWslBtn_ = new QPushButton("Create WSL profile && Connect", this);
+    quickWslBtn_->setToolTip(
+        "Creates a default WSL profile (Ubuntu, /cosmos) and connects to it.\n"
+        "You can fine-tune it later under Settings.");
+    connect(quickWslBtn_, &QPushButton::clicked,
+            this, &ConnectionDialog::onCreateWslProfile);
+    layout->addWidget(quickWslBtn_);
+
     auto* btnRow  = new QHBoxLayout;
     connectBtn_   = new QPushButton("Connect", this);
     connectBtn_->setObjectName("PrimaryButton");
@@ -51,6 +64,7 @@ ConnectionDialog::ConnectionDialog(
                 const bool connecting = (state == "Connecting");
                 const bool hasProfiles = (profileCombo_->count() > 0);
                 connectBtn_->setEnabled(hasProfiles && !connecting);
+                quickWslBtn_->setEnabled(!connecting);
                 if (state == "Connected") accept();
             });
 
@@ -70,9 +84,30 @@ ConnectionDialog::ConnectionDialog(
     }
 
     if (n == 0) {
-        statusLabel_->setText("저장된 프로필이 없습니다. 설정에서 프로필을 추가하세요.");
+        statusLabel_->setText(
+            "No saved profiles yet. Click \"Create WSL profile & Connect\" to "
+            "get started in one step, or Skip to explore first.");
         connectBtn_->setEnabled(false);
     }
+}
+
+void ConnectionDialog::onCreateWslProfile()
+{
+    // Build a sensible default WSL profile so first-run needs no manual setup.
+    Models::ConnectionProfile p;
+    p.id              = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    p.name            = "WSL (Ubuntu)";
+    p.mode            = Models::ConnectionMode::WSL;
+    p.isDefault       = true;
+    p.wslDistribution = "Ubuntu";
+    p.cosmosRootPath  = "/cosmos";
+
+    vm_.saveProfile(p);   // persists and refreshes the profile model/combo
+
+    quickWslBtn_->setEnabled(false);
+    connectBtn_->setEnabled(false);
+    statusLabel_->setText("Connecting…");
+    vm_.connectToProfile(QString::fromStdString(p.id));
 }
 
 void ConnectionDialog::onConnectClicked()

@@ -16,12 +16,24 @@ public:
         ViewModels::DashboardViewModel& vm,
         QWidget* parent = nullptr);
 
+signals:
+    // Quick-action requests. The MainWindow owns navigation and the connection
+    // dialog, so the Home page only asks for these actions; it does not perform
+    // navigation itself.
+    void connectRequested();
+    void runDoctorRequested();
+    void openWorkspaceRequested();
+    void openCmdTlmRequested();
+    void openSimulatorRequested();
+    void openLogsRequested();
+
 private:
     void setupUi();
     void bindViewModel();
 
     ViewModels::DashboardViewModel& vm_;
 
+    QLabel*               guidanceLabel_{nullptr};
     Widgets::StatusBadge* connectionBadge_{nullptr};
     Widgets::StatusBadge* dockerBadge_{nullptr};
     QLabel*               versionLabel_{nullptr};

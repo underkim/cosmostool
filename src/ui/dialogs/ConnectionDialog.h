@@ -18,11 +18,13 @@ public:
 
 private slots:
     void onConnectClicked();
+    void onCreateWslProfile();
 
 private:
     ViewModels::SettingsViewModel& vm_;
     QComboBox*   profileCombo_{nullptr};
     QPushButton* connectBtn_{nullptr};
+    QPushButton* quickWslBtn_{nullptr};
     QLabel*      statusLabel_{nullptr};
 };
 

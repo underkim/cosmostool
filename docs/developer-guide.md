@@ -82,10 +82,17 @@ place and every module below is registered in `Application.cpp` and reachable
 from `MainWindow`'s navigation rail. The table reflects the current state of
 each area rather than the original phase plan.
 
+The navigation rail is kept short — **Home, Workspace, CMD / TLM, Simulator,
+Logs, Settings** — with the less-frequently used tools (Docker, Infra, Doctor,
+Validator) grouped under a single **Advanced** entry. No feature is removed by
+this grouping; everything remains reachable. The **Home** page summarises
+Connection / Docker / OpenC3 status and offers one-click quick actions
+(Connect, Run Doctor, Workspace, CMD / TLM, Simulator, Logs).
+
 | Module          | Status         | Notes                                                              |
 |-----------------|----------------|--------------------------------------------------------------------|
 | Architecture    | Implemented    | Layered app -> ui -> viewmodels -> services -> core/models         |
-| Dashboard       | Implemented    | Connection / Docker / system metric polling                        |
+| Home (Dashboard)| Implemented    | Status summary, quick actions, Connection / Docker / system metrics |
 | Docker Manager  | Needs hardening| Container list/control works; shell commands built by string concat |
 | Infra Manager   | Implemented    | ENV/Compose editing, volume overrides, plugin scaffolding          |
 | Doctor          | Needs hardening| Health checks run; some OpenC3 paths are hardcoded (e.g. `/cosmos`) |
