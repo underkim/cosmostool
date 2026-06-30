@@ -33,7 +33,7 @@ enum NavIndex {
     NavHome = 0,
     NavWorkspace,
     NavCmdTlm,
-    NavSimulator,
+    NavPacketTools,
     NavLogs,
     NavSettings,
     NavAdvanced,
@@ -116,13 +116,13 @@ void MainWindow::setupNavigation()
         navRail_->addItem(item);
     };
 
-    addItem("Home");      // 0
-    addItem("Workspace"); // 1
-    addItem("CMD / TLM"); // 2
-    addItem("Simulator"); // 3
-    addItem("Logs");      // 4
-    addItem("Settings");  // 5
-    addItem("Advanced");  // 6
+    addItem("Home");         // 0
+    addItem("Workspace");    // 1
+    addItem("CMD / TLM");    // 2
+    addItem("Packet Tools"); // 3
+    addItem("Logs");         // 4
+    addItem("Settings");     // 5
+    addItem("Advanced");     // 6
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -176,6 +176,11 @@ void MainWindow::setupViews()
             this, &MainWindow::showConnectionDialog);
     connect(dashboardView, &Views::DashboardView::runDoctorRequested,
             this, [this, goTo, advancedTabs, kAdvancedDoctorTab] {
+                if (!settingsVm_.isConnected()) {
+                    showConnectionDialog();
+                    if (!settingsVm_.isConnected())
+                        return;
+                }
                 goTo(NavAdvanced);
                 advancedTabs->setCurrentIndex(kAdvancedDoctorTab);
                 doctorVm_.runAllChecks();
@@ -184,15 +189,15 @@ void MainWindow::setupViews()
             this, [goTo] { goTo(NavWorkspace); });
     connect(dashboardView, &Views::DashboardView::openCmdTlmRequested,
             this, [goTo] { goTo(NavCmdTlm); });
-    connect(dashboardView, &Views::DashboardView::openSimulatorRequested,
-            this, [goTo] { goTo(NavSimulator); });
+    connect(dashboardView, &Views::DashboardView::openPacketToolsRequested,
+            this, [goTo] { goTo(NavPacketTools); });
     connect(dashboardView, &Views::DashboardView::openLogsRequested,
             this, [goTo] { goTo(NavLogs); });
 
     contentStack_->addWidget(dashboardView);                                    // 0 Home
     contentStack_->addWidget(pluginView);                                       // 1 Workspace
     contentStack_->addWidget(cmdTlmView);                                       // 2 CMD / TLM
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 3 Simulator
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 3 Packet Tools
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 4 Logs
     contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 5 Settings
     contentStack_->addWidget(advancedTabs);                                     // 6 Advanced
