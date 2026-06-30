@@ -82,12 +82,12 @@ place and every module below is registered in `Application.cpp` and reachable
 from `MainWindow`'s navigation rail. The table reflects the current state of
 each area rather than the original phase plan.
 
-The navigation rail is kept short — **Home, Workspace, CMD / TLM, Simulator,
+The navigation rail is kept short — **Home, Workspace, CMD / TLM, Packet Tools,
 Logs, Settings** — with the less-frequently used tools (Docker, Infra, Doctor,
 Validator) grouped under a single **Advanced** entry. No feature is removed by
 this grouping; everything remains reachable. The **Home** page summarises
 Connection / Docker / OpenC3 status and offers one-click quick actions
-(Connect, Run Doctor, Workspace, CMD / TLM, Simulator, Logs).
+(Connect, Run Doctor, Workspace, CMD / TLM, Packet Tools, Logs).
 
 | Module          | Status         | Notes                                                              |
 |-----------------|----------------|--------------------------------------------------------------------|
