@@ -93,3 +93,27 @@ TEST_F(DockerServiceTest, GetLogsReturnsOutputOnSuccess)
     const auto logs = sut_.getLogs("mycontainer", 100);
     EXPECT_EQ(logs, expected);
 }
+
+TEST_F(DockerServiceTest, GetStatsParsesCpuAndMemory)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker stats")))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"CPUPerc":"12.5%","MemUsage":"2GiB / 4GiB"})")));
+
+    const auto stats = sut_.getStats("mycontainer");
+    EXPECT_DOUBLE_EQ(stats.cpuPercent, 12.5);
+    EXPECT_DOUBLE_EQ(stats.memUsageMb, 2048.0);  // 2 GiB -> MiB
+}
+
+TEST_F(DockerServiceTest, GetStatsHandlesCpuWithoutPercentSign)
+{
+    // Docker can emit "--" (or other non-percentage text) for a container that
+    // is not running. The parser must not throw on a missing '%'.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker stats")))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"CPUPerc":"0","MemUsage":"100MiB / 4GiB"})")));
+
+    const auto stats = sut_.getStats("mycontainer");
+    EXPECT_DOUBLE_EQ(stats.cpuPercent, 0.0);
+    EXPECT_DOUBLE_EQ(stats.memUsageMb, 100.0);
+}

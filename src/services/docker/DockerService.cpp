@@ -100,7 +100,9 @@ Models::ContainerStats DockerService::getStats(const std::string& nameOrId)
         const auto j = json::parse(r.stdOut);
         // Docker stats output: CPUPerc "0.5%", MemUsage "100MiB / 4GiB"
         std::string cpu = j.value("CPUPerc", "0%");
-        cpu.erase(cpu.find('%'));
+        // Drop a trailing '%' if present. erase(npos) throws, so guard the find.
+        if (const auto pct = cpu.find('%'); pct != std::string::npos)
+            cpu.erase(pct);
         stats.cpuPercent = std::stod(cpu);
 
         std::string mem = j.value("MemUsage", "0MiB / 0GiB");
