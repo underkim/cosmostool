@@ -53,12 +53,12 @@ void DashboardView::setupUi()
         return btn;
     };
 
-    addAction("Connect",   true,  &DashboardView::connectRequested);
-    addAction("Run Doctor", false, &DashboardView::runDoctorRequested);
-    addAction("Workspace", false, &DashboardView::openWorkspaceRequested);
-    addAction("CMD / TLM", false, &DashboardView::openCmdTlmRequested);
-    addAction("Simulator", false, &DashboardView::openSimulatorRequested);
-    addAction("Logs",      false, &DashboardView::openLogsRequested);
+    addAction("Connect",      true,  &DashboardView::connectRequested);
+    addAction("Run Doctor",   false, &DashboardView::runDoctorRequested);
+    addAction("Workspace",    false, &DashboardView::openWorkspaceRequested);
+    addAction("CMD / TLM",    false, &DashboardView::openCmdTlmRequested);
+    addAction("Packet Tools", false, &DashboardView::openPacketToolsRequested);
+    addAction("Logs",         false, &DashboardView::openLogsRequested);
     actionsLayout->addStretch();
 
     root->addWidget(actionsGroup);
@@ -121,7 +121,7 @@ void DashboardView::bindViewModel()
         if (s.startsWith("Connected")) {
             guidanceLabel_->setText(
                 "Connected. Open the Workspace to manage plugins, or jump to "
-                "CMD / TLM, Simulator, or Logs.");
+                "CMD / TLM, Packet Tools, or Logs.");
         } else {
             guidanceLabel_->setText(
                 "Not connected. Click Connect to choose a profile — or create a "
