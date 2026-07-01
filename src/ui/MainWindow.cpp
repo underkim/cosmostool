@@ -23,6 +23,8 @@
 #include <QApplication>
 #include <QFont>
 #include <QTabWidget>
+#include <QShortcut>
+#include <QKeySequence>
 
 namespace OpenC3::UI {
 
@@ -108,21 +110,30 @@ void MainWindow::setupNavigation()
     navRail_->setSpacing(2);
 
     auto addItem = [&](const QString& text) {
+        const int row = navRail_->count();
         auto* item = new QListWidgetItem(text);
         item->setSizeHint(QSize(200, 40));
         QFont f = item->font();
         f.setPointSize(11);
         item->setFont(f);
+        // Surface the keyboard shortcut so it is discoverable on hover.
+        item->setToolTip(QStringLiteral("%1  (Ctrl+%2)").arg(text).arg(row + 1));
         navRail_->addItem(item);
+
+        // Ctrl+<n> jumps straight to this section from anywhere in the app.
+        auto* shortcut = new QShortcut(
+            QKeySequence(QStringLiteral("Ctrl+%1").arg(row + 1)), this);
+        connect(shortcut, &QShortcut::activated,
+                this, [this, row] { navRail_->setCurrentRow(row); });
     };
 
-    addItem("Home");         // 0
-    addItem("Workspace");    // 1
-    addItem("CMD / TLM");    // 2
-    addItem("Packet Tools"); // 3
-    addItem("Logs");         // 4
-    addItem("Settings");     // 5
-    addItem("Advanced");     // 6
+    addItem("Home");         // 0  (Ctrl+1)
+    addItem("Workspace");    // 1  (Ctrl+2)
+    addItem("CMD / TLM");    // 2  (Ctrl+3)
+    addItem("Packet Tools"); // 3  (Ctrl+4)
+    addItem("Logs");         // 4  (Ctrl+5)
+    addItem("Settings");     // 5  (Ctrl+6)
+    addItem("Advanced");     // 6  (Ctrl+7)
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
