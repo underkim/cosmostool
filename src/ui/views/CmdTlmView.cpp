@@ -1,4 +1,4 @@
-﻿#include "CmdTlmView.h"
+#include "CmdTlmView.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
 #include "ui/widgets/CmdTlmSnippets.h"
@@ -16,6 +16,7 @@
 #include <QMessageBox>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QTabWidget>
 
 namespace OpenC3::UI::Views {
 
@@ -86,11 +87,11 @@ void CmdTlmView::setupUi()
 
     // ── Connection hint ───────────────────────────────────────────────────────
     connectionHint_ = new QLabel(
-        "Connect to a remote environment to browse and edit definition files.", this);
+        "Connect to a remote environment, then click Browse to choose a file from /cosmos/targets.", this);
     connectionHint_->setObjectName("SubLabel");
     root->addWidget(connectionHint_);
 
-    // ── Toolbar row 1 — path ──────────────────────────────────────
+    // ── Toolbar — path ────────────────────────────────────────────────────────
     auto* pathBar = new QHBoxLayout;
     pathEdit_  = new QLineEdit(this);
     browseBtn_ = new QPushButton("Browse", this);
@@ -99,53 +100,10 @@ void CmdTlmView::setupUi()
     pathBar->addWidget(browseBtn_);
     root->addLayout(pathBar);
 
-    // ── Toolbar row 2 — editor actions ────────────────────────────
-    auto* actionBlock = new QVBoxLayout;
-    actionBlock->setSpacing(6);
-    auto* insertBar = new QHBoxLayout;
-    auto* fileActionBar = new QHBoxLayout;
-    insertCmdBtn_   = new QPushButton("+ COMMAND",   this);
-    insertTlmBtn_   = new QPushButton("+ TELEMETRY", this);
-    insertParamBtn_ = new QPushButton("+ PARAMETER", this);
-    addFieldBtn_    = new QPushButton("Add Field...", this);
-    validateBtn_    = new QPushButton("Validate", this);
-    openInValidatorBtn_ = new QPushButton("Open in Validator", this);
-    saveBtn_        = new QPushButton("Save", this);
-    saveBtn_->setObjectName("PrimaryButton");
-    saveBtn_->setEnabled(false);
-    insertCmdBtn_->setEnabled(false);
-    insertTlmBtn_->setEnabled(false);
-    insertParamBtn_->setEnabled(false);
-    addFieldBtn_->setEnabled(false);
-    validateBtn_->setEnabled(false);
-    openInValidatorBtn_->setEnabled(false);
-    openInValidatorBtn_->setToolTip(
-        "Run the full per-rule (offline) validator on this content");
-    openInValidatorBtn_->setMinimumWidth(140);
-    insertCmdBtn_->setMinimumWidth(110);
-    insertTlmBtn_->setMinimumWidth(120);
-    insertParamBtn_->setMinimumWidth(120);
-    addFieldBtn_->setMinimumWidth(110);
-    validateBtn_->setMinimumWidth(90);
-    saveBtn_->setMinimumWidth(80);
-
-    insertBar->addWidget(insertCmdBtn_);
-    insertBar->addWidget(insertTlmBtn_);
-    insertBar->addWidget(insertParamBtn_);
-    insertBar->addWidget(addFieldBtn_);
-    insertBar->addStretch();
-    fileActionBar->addStretch();
-    fileActionBar->addWidget(validateBtn_);
-    fileActionBar->addWidget(openInValidatorBtn_);
-    fileActionBar->addWidget(saveBtn_);
-    actionBlock->addLayout(insertBar);
-    actionBlock->addLayout(fileActionBar);
-    root->addLayout(actionBlock);
-
     // ── Main splitter (vertical) ──────────────────────────────────────────────
     auto* vSplit = new QSplitter(Qt::Vertical, this);
 
-    // ── Top: file browser | editor ────────────────────────────────────────────
+    // ── Top: file browser | editor-first workspace ────────────────────────────
     auto* hSplit = new QSplitter(Qt::Horizontal, vSplit);
 
     // File list (left)
@@ -157,17 +115,59 @@ void CmdTlmView::setupUi()
     // Editor (right)
     auto* editorGroup  = new QGroupBox("Editor", hSplit);
     auto* editorLayout = new QVBoxLayout(editorGroup);
+
+    auto* editorHeader = new QHBoxLayout;
     fileLabel_ = new QLabel("(no file open)", editorGroup);
     fileLabel_->setObjectName("SubLabel");
+    auto* referenceBtn = new QPushButton("Reference", editorGroup);
+    referenceBtn->setCheckable(true);
+    validateBtn_    = new QPushButton("Validate", editorGroup);
+    openInValidatorBtn_ = new QPushButton("Open in Validator", editorGroup);
+    saveBtn_        = new QPushButton("Save", editorGroup);
+    saveBtn_->setObjectName("PrimaryButton");
+    saveBtn_->setEnabled(false);
+    validateBtn_->setEnabled(false);
+    openInValidatorBtn_->setEnabled(false);
+    openInValidatorBtn_->setToolTip(
+        "Run the full per-rule (offline) validator on this content");
+    openInValidatorBtn_->setMinimumWidth(140);
+    validateBtn_->setMinimumWidth(90);
+    saveBtn_->setMinimumWidth(80);
+    editorHeader->addWidget(fileLabel_, 1);
+    editorHeader->addWidget(referenceBtn);
+    editorHeader->addWidget(validateBtn_);
+    editorHeader->addWidget(openInValidatorBtn_);
+    editorHeader->addWidget(saveBtn_);
+    editorLayout->addLayout(editorHeader);
+
+    auto* insertBar = new QHBoxLayout;
+    insertCmdBtn_   = new QPushButton("+ COMMAND",   editorGroup);
+    insertTlmBtn_   = new QPushButton("+ TELEMETRY", editorGroup);
+    insertParamBtn_ = new QPushButton("+ PARAMETER", editorGroup);
+    addFieldBtn_    = new QPushButton("Add Field...", editorGroup);
+    insertCmdBtn_->setMinimumWidth(110);
+    insertTlmBtn_->setMinimumWidth(120);
+    insertParamBtn_->setMinimumWidth(120);
+    addFieldBtn_->setMinimumWidth(110);
+    insertCmdBtn_->hide();
+    insertTlmBtn_->hide();
+    insertParamBtn_->hide();
+    addFieldBtn_->hide();
+    insertBar->addWidget(insertCmdBtn_);
+    insertBar->addWidget(insertTlmBtn_);
+    insertBar->addWidget(insertParamBtn_);
+    insertBar->addWidget(addFieldBtn_);
+    insertBar->addStretch();
+    editorLayout->addLayout(insertBar);
+
     editor_ = new QPlainTextEdit(editorGroup);
     const QFont mono = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     editor_->setFont(mono);
     editor_->setObjectName("LogArea");
     highlighter_ = new Widgets::CmdTlmHighlighter(editor_->document());
-    editorLayout->addWidget(fileLabel_);
-    editorLayout->addWidget(editor_);
+    editorLayout->addWidget(editor_, 1);
 
-    auto* guideGroup = new QGroupBox("Reference", hSplit);
+    auto* guideGroup = new QGroupBox("Reference", editorGroup);
     auto* guideLayout = new QVBoxLayout(guideGroup);
     syntaxGuide_ = new QTextEdit(guideGroup);
     syntaxGuide_->setObjectName("LogArea");
@@ -175,49 +175,52 @@ void CmdTlmView::setupUi()
     syntaxGuide_->setLineWrapMode(QTextEdit::WidgetWidth);
     syntaxGuide_->setPlainText(syntaxGuideText());
     guideLayout->addWidget(syntaxGuide_);
+    guideGroup->setVisible(false);
+    editorLayout->addWidget(guideGroup);
+    connect(referenceBtn, &QPushButton::toggled, guideGroup, &QWidget::setVisible);
 
     hSplit->addWidget(fileGroup);
     hSplit->addWidget(editorGroup);
-    hSplit->addWidget(guideGroup);
     hSplit->setChildrenCollapsible(false); // dragging must not make a pane vanish
     hSplit->setStretchFactor(0, 0);
     hSplit->setStretchFactor(1, 1);        // editor absorbs extra width
-    hSplit->setStretchFactor(2, 0);
-    hSplit->setSizes({220, 760, 320});
-    fileGroup->setMinimumWidth(140);
-    editorGroup->setMinimumWidth(280);
-    guideGroup->setMinimumWidth(180);
+    hSplit->setSizes({240, 880});
+    fileGroup->setMinimumWidth(160);
+    editorGroup->setMinimumWidth(420);
     vSplit->addWidget(hSplit);
 
-    // ── Middle: structure tree ────────────────────────────────────────────────
-    auto* structGroup  = new QGroupBox("Structure", vSplit);
-    auto* structLayout = new QVBoxLayout(structGroup);
-    structureTree_ = new QTreeWidget(structGroup);
+    // ── Bottom tabs: structure + diagnostics ─────────────────────────────────
+    auto* bottomTabs = new QTabWidget(vSplit);
+
+    auto* structPage  = new QWidget(bottomTabs);
+    auto* structLayout = new QVBoxLayout(structPage);
+    structureTree_ = new QTreeWidget(structPage);
     structureTree_->setHeaderLabels({"Name", "Type", "Bits", "Description"});
     structureTree_->header()->setStretchLastSection(true);
     structureTree_->setRootIsDecorated(true);
     structureTree_->setAlternatingRowColors(true);
     structLayout->addWidget(structureTree_);
-    vSplit->addWidget(structGroup);
+    bottomTabs->addTab(structPage, "Structure");
 
-    // ── Bottom: diagnostics ───────────────────────────────────────────────────
-    auto* diagGroup  = new QGroupBox("Diagnostics", vSplit);
-    auto* diagLayout = new QVBoxLayout(diagGroup);
-    diagSummary_ = new QLabel("", diagGroup);
+    auto* diagPage  = new QWidget(bottomTabs);
+    auto* diagLayout = new QVBoxLayout(diagPage);
+    diagSummary_ = new QLabel("", diagPage);
     diagSummary_->setObjectName("SubLabel");
-    diagnosticList_ = new QListWidget(diagGroup);
-    diagnosticList_->setMaximumHeight(120);
+    diagnosticList_ = new QListWidget(diagPage);
     diagLayout->addWidget(diagSummary_);
     diagLayout->addWidget(diagnosticList_);
-    vSplit->addWidget(diagGroup);
+    bottomTabs->addTab(diagPage, "Diagnostics");
+    vSplit->addWidget(bottomTabs);
 
-    vSplit->setChildrenCollapsible(false); // keep all three rows visible on drag
+    vSplit->setChildrenCollapsible(false); // keep editor and bottom tabs visible on drag
     vSplit->setStretchFactor(0, 1);        // editor row grows first
-    vSplit->setSizes({420, 180, 120});
+    vSplit->setStretchFactor(1, 0);
+    vSplit->setSizes({560, 180});
     root->addWidget(vSplit, 1);
 
     // ── Status bar ────────────────────────────────────────────────────────────
-    statusLabel_ = new QLabel(this);
+    statusLabel_ = new QLabel(
+        "Open a .txt CMD/TLM file to enable insert buttons.", this);
     statusLabel_->setObjectName("SubLabel");
     root->addWidget(statusLabel_);
 
@@ -286,10 +289,18 @@ void CmdTlmView::bindViewModel()
                 saveBtn_->setEnabled(true);
                 validateBtn_->setEnabled(isTxt);
                 openInValidatorBtn_->setEnabled(isTxt);
+                insertCmdBtn_->setVisible(isTxt);
+                insertTlmBtn_->setVisible(isTxt);
+                insertParamBtn_->setVisible(isTxt);
+                addFieldBtn_->setVisible(isTxt);
                 insertCmdBtn_->setEnabled(isTxt);
                 insertTlmBtn_->setEnabled(isTxt);
                 insertParamBtn_->setEnabled(isTxt);
                 addFieldBtn_->setEnabled(isTxt);
+                if (!isTxt) {
+                    statusLabel_->setText(
+                        "Insert and validation actions are disabled because the open file is not a .txt CMD/TLM definition.");
+                }
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileSaved,
