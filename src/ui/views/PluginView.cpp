@@ -176,13 +176,13 @@ void PluginView::setupUi()
 
     auto* toolbarBlock = new QHBoxLayout;
     toolbarBlock->setSpacing(8);
-    refreshBtn_ = new QPushButton("Refresh", this);
-    installBtn_ = new QPushButton("Install Gem", this);
-    removeBtn_ = new QPushButton("Remove", this);
-    validateBtn_ = new QPushButton("Validate (build)", this);
-    buildBtn_ = new QPushButton("Build", this);
     scaffoldBtn_ = new QPushButton("New Plugin", this);
     addTargetBtn_ = new QPushButton("Add Target", this);
+    validateBtn_ = new QPushButton("Validate Build", this);
+    buildBtn_ = new QPushButton("Build", this);
+    installBtn_ = new QPushButton("Install", this);
+    refreshBtn_ = new QPushButton(QString::fromUtf8("↻"), this);
+    removeBtn_ = new QPushButton("Remove", this);
 
     removeBtn_->setEnabled(false);
     buildBtn_->setEnabled(false);
@@ -193,39 +193,50 @@ void PluginView::setupUi()
     progressBar_->setVisible(false);
     progressBar_->setFixedWidth(120);
 
-    refreshBtn_->setText("Refresh");
-    installBtn_->setText("Install Gem");
-    removeBtn_->setText("Remove");
-    validateBtn_->setText("Validate (build)");
-    validateBtn_->setToolTip(
-        "Runtime gem validation via openc3cli (requires a connection). "
-        "For offline rule checks, use Validate (offline) on a component file.");
-    buildBtn_->setText("Build");
     scaffoldBtn_->setText("New Plugin");
     addTargetBtn_->setText("Add Target");
-    scaffoldBtn_->setToolTip("Create an OpenC3 plugin folder structure.");
-    addTargetBtn_->setToolTip("Add a target folder structure to the selected plugin.");
+    validateBtn_->setText("Validate Build");
+    buildBtn_->setText("Build");
+    installBtn_->setText("Install");
+    refreshBtn_->setText(QString::fromUtf8("↻"));
+    removeBtn_->setText("Remove");
+
+    scaffoldBtn_->setToolTip(
+        "Create a new plugin locally. No connection required; no existing plugin or file selection required.");
+    addTargetBtn_->setToolTip(
+        "Add a target to the selected local plugin folder. No connection required; plugin selection required; no file selection required.");
+    validateBtn_->setToolTip(
+        "Validate the selected plugin build with openc3cli. Connection required; checks the local selected plugin; no file selection required.");
+    buildBtn_->setToolTip(
+        "Build the selected local plugin into a gem. No connection required; plugin selection required; save any open file first.");
+    installBtn_->setToolTip(
+        "Install a local .gem file into OpenC3. Connection required; choose a gem file when prompted.");
+    refreshBtn_->setToolTip(
+        "Refresh the local/remote plugin list. Connection may be required depending on the configured source; no file selection required.");
+    removeBtn_->setToolTip(
+        "Remove the selected plugin from OpenC3. Connection required; plugin selection required; no file selection required.");
 
     buildBtn_->setObjectName("PrimaryButton");
+    refreshBtn_->setObjectName("SecondaryIconButton");
+    refreshBtn_->setFixedWidth(36);
 
     const QList<QPushButton*> topButtons = {
-        refreshBtn_, scaffoldBtn_, addTargetBtn_, validateBtn_,
-        buildBtn_, installBtn_, removeBtn_
+        scaffoldBtn_, addTargetBtn_, validateBtn_, buildBtn_, installBtn_
     };
     for (auto* button : topButtons) {
         button->setMinimumWidth(96);
         button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
     }
+    removeBtn_->setMinimumWidth(96);
+    removeBtn_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
-    toolbarBlock->addWidget(refreshBtn_);
-    toolbarBlock->addSpacing(8);
     toolbarBlock->addWidget(scaffoldBtn_);
     toolbarBlock->addWidget(addTargetBtn_);
-    toolbarBlock->addSpacing(8);
     toolbarBlock->addWidget(validateBtn_);
     toolbarBlock->addWidget(buildBtn_);
     toolbarBlock->addWidget(installBtn_);
-    toolbarBlock->addWidget(removeBtn_);
+    toolbarBlock->addSpacing(8);
+    toolbarBlock->addWidget(refreshBtn_);
     toolbarBlock->addStretch();
     toolbarBlock->addWidget(progressBar_);
     root->addLayout(toolbarBlock);
@@ -291,6 +302,11 @@ void PluginView::setupUi()
     auto* detailTab = new QWidget(detailTabs_);
     auto* detailLayout = new QVBoxLayout(detailTab);
     detailLayout->setContentsMargins(8, 8, 8, 8);
+    auto* overviewActionRow = new QHBoxLayout;
+    overviewActionRow->addStretch();
+    overviewActionRow->addWidget(removeBtn_);
+    detailLayout->addLayout(overviewActionRow);
+
     detailEdit_ = new QTextEdit(detailTab);
     detailEdit_->setReadOnly(true);
     detailEdit_->setObjectName("LogArea");
@@ -317,8 +333,8 @@ void PluginView::setupUi()
     componentPathLabel_->setObjectName("PluginFilePath");
     openComponentBtn_ = new QPushButton("Open File", editorPane);
     saveComponentBtn_ = new QPushButton("Save", editorPane);
-    validateComponentBtn_ = new QPushButton("Validate (CMD/TLM)", editorPane);
-    validateOfflineBtn_ = new QPushButton("Validate (offline)", editorPane);
+    validateComponentBtn_ = new QPushButton("Validate CMD/TLM", editorPane);
+    validateOfflineBtn_ = new QPushButton("Check File", editorPane);
     openInCmdTlmBtn_ = new QPushButton("CMD/TLM View", editorPane);
     startCmdTlmEditBtn_ = new QPushButton("Start CMD/TLM Edit", editorPane);
     insertCmdBtn_ = new QPushButton("+ COMMAND", editorPane);
@@ -331,21 +347,42 @@ void PluginView::setupUi()
     toggleReferenceBtn_ = new QPushButton("Reference", editorPane);
     openComponentBtn_->setText("Open File");
     saveComponentBtn_->setText("Save");
-    validateComponentBtn_->setText("Validate (CMD/TLM)");
-    validateOfflineBtn_->setText("Validate (offline)");
+    validateComponentBtn_->setText("Validate CMD/TLM");
+    validateOfflineBtn_->setText("Check File");
+    openComponentBtn_->setToolTip(
+        "Open the selected local plugin file for editing. No connection required; file selection required.");
+    saveComponentBtn_->setToolTip(
+        "Save edits to the selected local plugin file. No connection required; file selection required.");
+    validateComponentBtn_->setToolTip(
+        "Validate the selected local CMD/TLM file syntax. No connection required; CMD/TLM file selection required.");
     validateOfflineBtn_->setToolTip(
-        "Run the full per-rule offline validator on this file in the Validator view "
-        "(works for cmd_tlm, screen, plugin.txt, target.txt).");
+        "Check the selected local file with offline rules in the Validator view. "
+        "No connection required; file selection required. Works for cmd_tlm, screen, plugin.txt, and target.txt.");
     openInCmdTlmBtn_->setText("CMD/TLM View");
+    openInCmdTlmBtn_->setToolTip(
+        "Open the selected local CMD/TLM file in the CMD/TLM view. No connection required; CMD/TLM file selection required.");
     startCmdTlmEditBtn_->setText("Start CMD/TLM Edit");
+    startCmdTlmEditBtn_->setToolTip(
+        "Open the first local CMD/TLM file for the selected plugin. No connection required; plugin selection required.");
     addFieldBtn_->setText("Add Field");
+    addFieldBtn_->setToolTip(
+        "Add a field to the selected local CMD/TLM file. No connection required; CMD/TLM file selection required.");
     addStructureFieldBtn_->setText("Add Row");
+    addStructureFieldBtn_->setToolTip(
+        "Add a structure row to the selected local CMD/TLM file. No connection required; CMD/TLM file selection required.");
     deleteStructureFieldBtn_->setText("Delete Row");
+    deleteStructureFieldBtn_->setToolTip(
+        "Delete the selected structure row from the local CMD/TLM file. No connection required; row/file selection required.");
     refreshStructureBtn_->setText("Refresh Structure");
+    refreshStructureBtn_->setToolTip(
+        "Re-read the selected local CMD/TLM file into the structure editor. No connection required; file selection required.");
     applyStructureBtn_->setText("Apply Selected");
+    applyStructureBtn_->setToolTip(
+        "Apply the selected structure change to the local editor buffer. No connection required; row/file selection required.");
     toggleReferenceBtn_->setText("Reference");
     toggleReferenceBtn_->setMinimumWidth(120);
-    toggleReferenceBtn_->setToolTip("Open the CMD/TLM quick reference tab.");
+    toggleReferenceBtn_->setToolTip(
+        "Open the local CMD/TLM quick reference. No connection or file selection required.");
     auto* fileOpenRow = new QHBoxLayout;
     fileOpenRow->setSpacing(6);
     fileOpenRow->addWidget(openComponentBtn_);
@@ -370,7 +407,7 @@ void PluginView::setupUi()
     openComponentBtn_->setMinimumWidth(90);
     saveComponentBtn_->setMinimumWidth(80);
     validateComponentBtn_->setMinimumWidth(150);
-    validateOfflineBtn_->setMinimumWidth(140);
+    validateOfflineBtn_->setMinimumWidth(110);
     openInCmdTlmBtn_->setMinimumWidth(130);
     startCmdTlmEditBtn_->setMinimumWidth(150);
     insertCmdBtn_->setMinimumWidth(110);
@@ -773,7 +810,7 @@ void PluginView::bindViewModel()
 
                 const auto& report = validatorVm_.report();
                 QStringList lines;
-                lines << QString("Offline validation: %1").arg(report.summary());
+                lines << QString("File check: %1").arg(report.summary());
                 lines << QString("Source: %1").arg(currentComponentDisplayPath_.isEmpty()
                     ? validatorVm_.lastSource()
                     : currentComponentDisplayPath_);
@@ -1017,7 +1054,7 @@ void PluginView::onValidateOfflineClicked()
     }
 
     pendingOfflineValidation_ = true;
-    componentDiagnostics_->setPlainText("Running offline validation...");
+    componentDiagnostics_->setPlainText("Checking file...");
     if (detailTabs_)
         detailTabs_->setCurrentWidget(componentDiagnostics_);
     validatorVm_.checkContent(content);
