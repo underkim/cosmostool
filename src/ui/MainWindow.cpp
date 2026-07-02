@@ -130,13 +130,13 @@ void MainWindow::setupNavigation()
                 this, [this, row] { navRail_->setCurrentRow(row); });
     };
 
-    addItem("Home");         // 0  (Ctrl+1)
-    addItem("Workspace");    // 1  (Ctrl+2)
-    addItem("CMD / TLM");    // 2  (Ctrl+3)
-    addItem("Packet Tools"); // 3  (Ctrl+4)
-    addItem("Logs");         // 4  (Ctrl+5)
-    addItem("Settings");     // 5  (Ctrl+6)
-    addItem("Tools");        // 6  (Ctrl+7)
+    addItem("Home", "Review status and jump to common workflows");                 // 0  (Ctrl+1)
+    addItem("Workspace", "Manage plugins and generated target files");             // 1  (Ctrl+2)
+    addItem("CMD / TLM", "Browse, edit, and validate command/telemetry files");    // 2  (Ctrl+3)
+    addItem("Packet Tools", "Simulate and inspect packet payloads");              // 3  (Ctrl+4)
+    addItem("Logs", "Inspect toolkit and OpenC3 logs");                            // 4  (Ctrl+5)
+    addItem("Settings", "Manage connection profiles and preferences");             // 5  (Ctrl+6)
+    addItem("Tools", "Run Doctor, Validator, Docker, and infrastructure tools");   // 6  (Ctrl+7)
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");

@@ -265,20 +265,20 @@ void CmdTlmView::bindViewModel()
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::connectionChanged,
             this, [this] {
-                const bool on = vm_.isConnected();
-                connectionHint_->setVisible(!on);
-                browseBtn_->setEnabled(on);
-                pathEdit_->setEnabled(on);
-                if (on) {
+                const bool connected = vm_.isConnected();
+                connectionHint_->setVisible(!connected);
+                browseBtn_->setEnabled(connected);
+                pathEdit_->setEnabled(connected);
+                if (connected)
                     pathEdit_->setText(vm_.defaultCmdTlmPath());
                 updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::busyChanged,
             this, [this] {
-                const bool on  = vm_.isConnected();
+                const bool connected = vm_.isConnected();
                 const bool busy = vm_.isBusy();
-                browseBtn_->setEnabled(on && !busy);
+                browseBtn_->setEnabled(connected && !busy);
                 updateActionHints();
             });
 
@@ -335,11 +335,11 @@ void CmdTlmView::bindViewModel()
             this, &CmdTlmView::onFileParsed);
 
     // Initial state
-    const bool on = vm_.isConnected();
-    connectionHint_->setVisible(!on);
-    browseBtn_->setEnabled(on);
-    pathEdit_->setEnabled(on);
-    if (on) pathEdit_->setText(vm_.defaultCmdTlmPath());
+    const bool connected = vm_.isConnected();
+    connectionHint_->setVisible(!connected);
+    browseBtn_->setEnabled(connected);
+    pathEdit_->setEnabled(connected);
+    if (connected) pathEdit_->setText(vm_.defaultCmdTlmPath());
     updateEmptyStateLabels();
     updateActionHints();
 }
