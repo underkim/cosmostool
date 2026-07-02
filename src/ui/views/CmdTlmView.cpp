@@ -1,4 +1,4 @@
-﻿#include "CmdTlmView.h"
+#include "CmdTlmView.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
 #include "ui/widgets/CmdTlmSnippets.h"
@@ -16,6 +16,7 @@
 #include <QMessageBox>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QTabWidget>
 
 namespace OpenC3::UI::Views {
 
@@ -86,11 +87,11 @@ void CmdTlmView::setupUi()
 
     // ── Connection hint ───────────────────────────────────────────────────────
     connectionHint_ = new QLabel(
-        "Connect to a remote environment to browse and edit definition files.", this);
+        "Connect to a remote environment, then click Browse to choose a file from /cosmos/targets.", this);
     connectionHint_->setObjectName("SubLabel");
     root->addWidget(connectionHint_);
 
-    // ── Toolbar row 1 — path ──────────────────────────────────────
+    // ── Toolbar — path ────────────────────────────────────────────────────────
     auto* pathBar = new QHBoxLayout;
     pathEdit_  = new QLineEdit(this);
     browseBtn_ = new QPushButton("Browse", this);
@@ -99,75 +100,78 @@ void CmdTlmView::setupUi()
     pathBar->addWidget(browseBtn_);
     root->addLayout(pathBar);
 
-    // ── Toolbar row 2 — editor actions ────────────────────────────
-    auto* actionBlock = new QVBoxLayout;
-    actionBlock->setSpacing(6);
-    auto* insertBar = new QHBoxLayout;
-    auto* fileActionBar = new QHBoxLayout;
-    insertCmdBtn_   = new QPushButton("+ COMMAND",   this);
-    insertTlmBtn_   = new QPushButton("+ TELEMETRY", this);
-    insertParamBtn_ = new QPushButton("+ PARAMETER", this);
-    addFieldBtn_    = new QPushButton("Add Field...", this);
-    validateBtn_    = new QPushButton("Validate", this);
-    openInValidatorBtn_ = new QPushButton("Open in Validator", this);
-    saveBtn_        = new QPushButton("Save", this);
-    saveBtn_->setObjectName("PrimaryButton");
-    saveBtn_->setEnabled(false);
-    insertCmdBtn_->setEnabled(false);
-    insertTlmBtn_->setEnabled(false);
-    insertParamBtn_->setEnabled(false);
-    addFieldBtn_->setEnabled(false);
-    validateBtn_->setEnabled(false);
-    openInValidatorBtn_->setEnabled(false);
-    openInValidatorBtn_->setToolTip(
-        "Run the full per-rule (offline) validator on this content");
-    openInValidatorBtn_->setMinimumWidth(140);
-    insertCmdBtn_->setMinimumWidth(110);
-    insertTlmBtn_->setMinimumWidth(120);
-    insertParamBtn_->setMinimumWidth(120);
-    addFieldBtn_->setMinimumWidth(110);
-    validateBtn_->setMinimumWidth(90);
-    saveBtn_->setMinimumWidth(80);
-
-    insertBar->addWidget(insertCmdBtn_);
-    insertBar->addWidget(insertTlmBtn_);
-    insertBar->addWidget(insertParamBtn_);
-    insertBar->addWidget(addFieldBtn_);
-    insertBar->addStretch();
-    fileActionBar->addStretch();
-    fileActionBar->addWidget(validateBtn_);
-    fileActionBar->addWidget(openInValidatorBtn_);
-    fileActionBar->addWidget(saveBtn_);
-    actionBlock->addLayout(insertBar);
-    actionBlock->addLayout(fileActionBar);
-    root->addLayout(actionBlock);
-
     // ── Main splitter (vertical) ──────────────────────────────────────────────
     auto* vSplit = new QSplitter(Qt::Vertical, this);
 
-    // ── Top: file browser | editor ────────────────────────────────────────────
+    // ── Top: file browser | editor-first workspace ────────────────────────────
     auto* hSplit = new QSplitter(Qt::Horizontal, vSplit);
 
     // File list (left)
     auto* fileGroup  = new QGroupBox("Files", hSplit);
     auto* fileLayout = new QVBoxLayout(fileGroup);
+    fileListEmptyLabel_ = new QLabel("Connect, then browse a CMD/TLM directory to list files.", fileGroup);
+    fileListEmptyLabel_->setObjectName("SubLabel");
+    fileListEmptyLabel_->setWordWrap(true);
     fileList_ = new QListWidget(fileGroup);
+    fileLayout->addWidget(fileListEmptyLabel_);
     fileLayout->addWidget(fileList_);
 
     // Editor (right)
     auto* editorGroup  = new QGroupBox("Editor", hSplit);
     auto* editorLayout = new QVBoxLayout(editorGroup);
+
+    auto* editorHeader = new QHBoxLayout;
     fileLabel_ = new QLabel("(no file open)", editorGroup);
     fileLabel_->setObjectName("SubLabel");
+    auto* referenceBtn = new QPushButton("Reference", editorGroup);
+    referenceBtn->setCheckable(true);
+    validateBtn_    = new QPushButton("Validate", editorGroup);
+    openInValidatorBtn_ = new QPushButton("Open in Validator", editorGroup);
+    saveBtn_        = new QPushButton("Save", editorGroup);
+    saveBtn_->setObjectName("PrimaryButton");
+    saveBtn_->setEnabled(false);
+    validateBtn_->setEnabled(false);
+    openInValidatorBtn_->setEnabled(false);
+    openInValidatorBtn_->setToolTip(
+        "Run the full per-rule (offline) validator on this content");
+    openInValidatorBtn_->setMinimumWidth(140);
+    validateBtn_->setMinimumWidth(90);
+    saveBtn_->setMinimumWidth(80);
+    editorHeader->addWidget(fileLabel_, 1);
+    editorHeader->addWidget(referenceBtn);
+    editorHeader->addWidget(validateBtn_);
+    editorHeader->addWidget(openInValidatorBtn_);
+    editorHeader->addWidget(saveBtn_);
+    editorLayout->addLayout(editorHeader);
+
+    auto* insertBar = new QHBoxLayout;
+    insertCmdBtn_   = new QPushButton("+ COMMAND",   editorGroup);
+    insertTlmBtn_   = new QPushButton("+ TELEMETRY", editorGroup);
+    insertParamBtn_ = new QPushButton("+ PARAMETER", editorGroup);
+    addFieldBtn_    = new QPushButton("Add Field...", editorGroup);
+    insertCmdBtn_->setMinimumWidth(110);
+    insertTlmBtn_->setMinimumWidth(120);
+    insertParamBtn_->setMinimumWidth(120);
+    addFieldBtn_->setMinimumWidth(110);
+    insertCmdBtn_->hide();
+    insertTlmBtn_->hide();
+    insertParamBtn_->hide();
+    addFieldBtn_->hide();
+    insertBar->addWidget(insertCmdBtn_);
+    insertBar->addWidget(insertTlmBtn_);
+    insertBar->addWidget(insertParamBtn_);
+    insertBar->addWidget(addFieldBtn_);
+    insertBar->addStretch();
+    editorLayout->addLayout(insertBar);
+
     editor_ = new QPlainTextEdit(editorGroup);
     const QFont mono = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     editor_->setFont(mono);
     editor_->setObjectName("LogArea");
     highlighter_ = new Widgets::CmdTlmHighlighter(editor_->document());
-    editorLayout->addWidget(fileLabel_);
-    editorLayout->addWidget(editor_);
+    editorLayout->addWidget(editor_, 1);
 
-    auto* guideGroup = new QGroupBox("Reference", hSplit);
+    auto* guideGroup = new QGroupBox("Reference", editorGroup);
     auto* guideLayout = new QVBoxLayout(guideGroup);
     syntaxGuide_ = new QTextEdit(guideGroup);
     syntaxGuide_->setObjectName("LogArea");
@@ -175,49 +179,61 @@ void CmdTlmView::setupUi()
     syntaxGuide_->setLineWrapMode(QTextEdit::WidgetWidth);
     syntaxGuide_->setPlainText(syntaxGuideText());
     guideLayout->addWidget(syntaxGuide_);
+    guideGroup->setVisible(false);
+    editorLayout->addWidget(guideGroup);
+    connect(referenceBtn, &QPushButton::toggled, guideGroup, &QWidget::setVisible);
 
     hSplit->addWidget(fileGroup);
     hSplit->addWidget(editorGroup);
-    hSplit->addWidget(guideGroup);
     hSplit->setChildrenCollapsible(false); // dragging must not make a pane vanish
     hSplit->setStretchFactor(0, 0);
     hSplit->setStretchFactor(1, 1);        // editor absorbs extra width
-    hSplit->setStretchFactor(2, 0);
-    hSplit->setSizes({220, 760, 320});
-    fileGroup->setMinimumWidth(140);
-    editorGroup->setMinimumWidth(280);
-    guideGroup->setMinimumWidth(180);
+    hSplit->setSizes({240, 880});
+    fileGroup->setMinimumWidth(160);
+    editorGroup->setMinimumWidth(420);
     vSplit->addWidget(hSplit);
 
-    // ── Middle: structure tree ────────────────────────────────────────────────
-    auto* structGroup  = new QGroupBox("Structure", vSplit);
-    auto* structLayout = new QVBoxLayout(structGroup);
-    structureTree_ = new QTreeWidget(structGroup);
+    // ── Bottom tabs: structure + diagnostics ─────────────────────────────────
+    auto* bottomTabs = new QTabWidget(vSplit);
+
+    auto* structPage  = new QWidget(bottomTabs);
+    auto* structLayout = new QVBoxLayout(structPage);
+    structureTree_ = new QTreeWidget(structPage);
+    structureTreeEmptyLabel_ = new QLabel("Open and validate a CMD/TLM .txt file to see its structure.", structPage);
+    structureTreeEmptyLabel_->setObjectName("SubLabel");
+    structureTreeEmptyLabel_->setWordWrap(true);
     structureTree_->setHeaderLabels({"Name", "Type", "Bits", "Description"});
     structureTree_->header()->setStretchLastSection(true);
     structureTree_->setRootIsDecorated(true);
     structureTree_->setAlternatingRowColors(true);
+    structLayout->addWidget(structureTreeEmptyLabel_);
     structLayout->addWidget(structureTree_);
-    vSplit->addWidget(structGroup);
+    bottomTabs->addTab(structPage, "Structure");
 
-    // ── Bottom: diagnostics ───────────────────────────────────────────────────
-    auto* diagGroup  = new QGroupBox("Diagnostics", vSplit);
-    auto* diagLayout = new QVBoxLayout(diagGroup);
-    diagSummary_ = new QLabel("", diagGroup);
+    auto* diagPage  = new QWidget(bottomTabs);
+    auto* diagLayout = new QVBoxLayout(diagPage);
+    diagSummary_ = new QLabel("", diagPage);
     diagSummary_->setObjectName("SubLabel");
-    diagnosticList_ = new QListWidget(diagGroup);
+    diagnosticListEmptyLabel_ = new QLabel("Validate an open CMD/TLM .txt file to show diagnostics.", diagPage);
+    diagnosticListEmptyLabel_->setObjectName("SubLabel");
+    diagnosticListEmptyLabel_->setWordWrap(true);
+    diagnosticList_ = new QListWidget(diagPage);
     diagnosticList_->setMaximumHeight(120);
     diagLayout->addWidget(diagSummary_);
+    diagLayout->addWidget(diagnosticListEmptyLabel_);
     diagLayout->addWidget(diagnosticList_);
-    vSplit->addWidget(diagGroup);
+    bottomTabs->addTab(diagPage, "Diagnostics");
+    vSplit->addWidget(bottomTabs);
 
-    vSplit->setChildrenCollapsible(false); // keep all three rows visible on drag
+    vSplit->setChildrenCollapsible(false); // keep editor and bottom tabs visible on drag
     vSplit->setStretchFactor(0, 1);        // editor row grows first
-    vSplit->setSizes({420, 180, 120});
+    vSplit->setStretchFactor(1, 0);
+    vSplit->setSizes({560, 180});
     root->addWidget(vSplit, 1);
 
     // ── Status bar ────────────────────────────────────────────────────────────
-    statusLabel_ = new QLabel(this);
+    statusLabel_ = new QLabel(
+        "Open a .txt CMD/TLM file to enable insert buttons.", this);
     statusLabel_->setObjectName("SubLabel");
     root->addWidget(statusLabel_);
 
@@ -253,8 +269,9 @@ void CmdTlmView::bindViewModel()
                 connectionHint_->setVisible(!on);
                 browseBtn_->setEnabled(on);
                 pathEdit_->setEnabled(on);
-                if (on)
+                if (on) {
                     pathEdit_->setText(vm_.defaultCmdTlmPath());
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::busyChanged,
@@ -262,11 +279,15 @@ void CmdTlmView::bindViewModel()
                 const bool on  = vm_.isConnected();
                 const bool busy = vm_.isBusy();
                 browseBtn_->setEnabled(on && !busy);
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::statusMessageChanged,
             this, [this] {
-                statusLabel_->setText(vm_.statusMessage());
+                const QString message = vm_.statusMessage();
+                if (message.trimmed().isEmpty())
+                    return;
+                statusLabel_->setText(QString("Status: %1").arg(message));
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::directoryListed,
@@ -275,6 +296,8 @@ void CmdTlmView::bindViewModel()
                 fileList_->clear();
                 for (const QString& e : entries)
                     fileList_->addItem(e);
+                updateEmptyStateLabels();
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileOpened,
@@ -286,17 +309,26 @@ void CmdTlmView::bindViewModel()
                 saveBtn_->setEnabled(true);
                 validateBtn_->setEnabled(isTxt);
                 openInValidatorBtn_->setEnabled(isTxt);
+                insertCmdBtn_->setVisible(isTxt);
+                insertTlmBtn_->setVisible(isTxt);
+                insertParamBtn_->setVisible(isTxt);
+                addFieldBtn_->setVisible(isTxt);
                 insertCmdBtn_->setEnabled(isTxt);
                 insertTlmBtn_->setEnabled(isTxt);
                 insertParamBtn_->setEnabled(isTxt);
                 addFieldBtn_->setEnabled(isTxt);
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileSaved,
             this, [this](const QString& /*path*/, bool ok) {
-                if (!ok)
+                if (!ok) {
+                    statusLabel_->setText("Error: Save failed. Could not write the file to the remote host.");
                     QMessageBox::warning(this, "Save Failed",
                         "Could not write the file to the remote host.");
+                } else {
+                    statusLabel_->setText("OK: File saved successfully.");
+                }
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileParsed,
@@ -308,6 +340,8 @@ void CmdTlmView::bindViewModel()
     browseBtn_->setEnabled(on);
     pathEdit_->setEnabled(on);
     if (on) pathEdit_->setText(vm_.defaultCmdTlmPath());
+    updateEmptyStateLabels();
+    updateActionHints();
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -403,6 +437,15 @@ void CmdTlmView::onFileParsed(const ViewModels::CmdTlmParseResult& result,
 {
     populateStructureTree(result);
     populateDiagnostics(result);
+    const int e = result.errorCount();
+    const int w = result.warningCount();
+    if (e > 0) {
+        statusLabel_->setText(QString("Error: Validation found %1 error(s) and %2 warning(s).").arg(e).arg(w));
+    } else if (w > 0) {
+        statusLabel_->setText(QString("Warning: Validation found %1 warning(s).").arg(w));
+    } else {
+        statusLabel_->setText("OK: Validation completed with no issues.");
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -441,6 +484,7 @@ void CmdTlmView::populateStructureTree(const ViewModels::CmdTlmParseResult& resu
     structureTree_->resizeColumnToContents(0);
     structureTree_->resizeColumnToContents(1);
     structureTree_->resizeColumnToContents(2);
+    updateEmptyStateLabels();
 }
 
 void CmdTlmView::populateDiagnostics(const ViewModels::CmdTlmParseResult& result)
@@ -451,15 +495,15 @@ void CmdTlmView::populateDiagnostics(const ViewModels::CmdTlmParseResult& result
     const int w = result.warningCount();
 
     if (result.diagnostics.isEmpty()) {
-        diagSummary_->setText("✅ No issues found.");
+        diagSummary_->setText("OK: No issues found.");
     } else {
-        diagSummary_->setText(QString("● %1 error(s)   ▲ %2 warning(s)").arg(e).arg(w));
+        diagSummary_->setText(QString("Error: %1 error(s)   Warning: %2 warning(s)").arg(e).arg(w));
     }
 
     for (const auto& d : result.diagnostics) {
         const bool isError = (d.severity == ViewModels::CmdTlmDiagnostic::Severity::Error);
         const QString text = QString("%1 Line %2: %3")
-            .arg(isError ? "●" : "▲")
+            .arg(isError ? "Error" : "Warning")
             .arg(d.line)
             .arg(d.message);
 
@@ -467,6 +511,40 @@ void CmdTlmView::populateDiagnostics(const ViewModels::CmdTlmParseResult& result
         li->setData(Qt::UserRole, d.line);
         li->setForeground(isError ? QColor("#F44747") : QColor("#CCA700"));
     }
+    updateEmptyStateLabels();
+}
+
+void CmdTlmView::updateActionHints()
+{
+    const bool connected = vm_.isConnected();
+    const bool busy = vm_.isBusy();
+    const bool hasFile = !currentFile_.isEmpty();
+    const bool isTxt = currentFile_.endsWith(".txt", Qt::CaseInsensitive);
+    const QString connectReason = "Connect to an OpenC3 environment first.";
+    const QString fileReason = "Open a CMD/TLM .txt file first.";
+    const QString busyReason = "Wait for the current CMD/TLM operation to finish.";
+
+    browseBtn_->setToolTip(connected ? "Browse the selected remote directory." : connectReason);
+    const QString editTip = !connected ? connectReason : (!isTxt ? fileReason : "Insert CMD/TLM text into the open file.");
+    insertCmdBtn_->setToolTip(editTip);
+    insertTlmBtn_->setToolTip(editTip);
+    insertParamBtn_->setToolTip(editTip);
+    addFieldBtn_->setToolTip(editTip);
+    validateBtn_->setToolTip(!isTxt ? fileReason : "Validate the open CMD/TLM .txt file.");
+    openInValidatorBtn_->setToolTip(!isTxt ? fileReason : "Run the full per-rule (offline) validator on this content.");
+    saveBtn_->setToolTip(!hasFile ? fileReason : (busy ? busyReason : "Save the open file."));
+
+    if (!connected)
+        statusLabel_->setText(connectReason);
+    else if (!hasFile)
+        statusLabel_->setText("Browse and open a CMD/TLM .txt file to enable editing actions.");
+}
+
+void CmdTlmView::updateEmptyStateLabels()
+{
+    fileListEmptyLabel_->setVisible(fileList_->count() == 0);
+    structureTreeEmptyLabel_->setVisible(structureTree_->topLevelItemCount() == 0);
+    diagnosticListEmptyLabel_->setVisible(diagnosticList_->count() == 0);
 }
 
 void CmdTlmView::scrollEditorToLine(int line)
