@@ -123,6 +123,22 @@ QPushButton#PrimaryButton:pressed {
     background-color: #094771;
 }
 
+QPushButton#LinkButton {
+    background-color: transparent;
+    color: #8cc8ff;
+    border: none;
+    padding: 3px 6px;
+    min-height: 20px;
+    text-decoration: underline;
+}
+QPushButton#LinkButton:hover {
+    color: #ffffff;
+    background-color: #2a2d2e;
+}
+QPushButton#LinkButton:pressed {
+    background-color: #094771;
+}
+
 /* ── Line Edit ────────────────────────────────────────────── */
 QLineEdit {
     background-color: #3c3c3c;
@@ -305,6 +321,26 @@ QLabel#PageTitle {
 QLabel#SubLabel {
     color: #9d9d9d;
     font-size: 12px;
+}
+
+
+/* ── Dashboard Step Cards ─────────────────────────────────── */
+QFrame#StepCard {
+    background-color: #252526;
+    border: 1px solid #474747;
+    border-radius: 8px;
+}
+QLabel#StepEyebrow {
+    color: #8cc8ff;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+QLabel#StepTitle {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 /* ── Metric Card ──────────────────────────────────────────── */

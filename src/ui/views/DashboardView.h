@@ -8,6 +8,8 @@
 #include <QLabel>
 #include <QPushButton>
 
+#include <array>
+
 namespace OpenC3::UI::Views {
 
 class DashboardView final : public QWidget {
@@ -38,6 +40,8 @@ private:
 
     QLabel*               guidanceLabel_{nullptr};
     QPushButton*          recommendedActionBtn_{nullptr};
+    std::array<QPushButton*, 3> stepButtons_{};
+    std::array<Widgets::StatusBadge*, 3> stepBadges_{};
     Widgets::StatusBadge* connectionBadge_{nullptr};
     Widgets::StatusBadge* dockerBadge_{nullptr};
     QLabel*               versionLabel_{nullptr};
