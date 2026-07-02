@@ -4,6 +4,15 @@
 function(target_set_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE
+            # /MP compiles this target's translation units in parallel (one
+            # cl.exe worker per source file, up to the machine's core count).
+            # This project's own targets form a strictly layered dependency
+            # chain (app -> ui -> viewmodels -> services -> core), so MSBuild's
+            # *project*-level --parallel/-m has little to parallelize across
+            # targets; /MP is what actually parallelizes compiling the many
+            # .cpp files *within* each target (e.g. opencosmos_ui, which alone
+            # has 30+ source files) and is the real lever for build speed here.
+            /MP
             /utf-8
             /W4
             /WX
