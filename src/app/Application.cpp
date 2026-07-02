@@ -60,8 +60,18 @@ int Application::run()
     // ── Connection dialog on startup ──────────────────────────────────────────
     auto& settingsVm = *registry_.resolve<ViewModels::SettingsViewModel>();
     {
+        // The startup dialog may be the only visible window. When the user clicks
+        // Skip, Qt would otherwise mark the application for quit before the main
+        // window is created, causing the app to exit immediately in an offline /
+        // no-COSMOS environment. Keep the application alive while the startup
+        // dialog is dismissed, then restore the normal last-window behavior.
+        const bool quitOnLastWindowClosed = qtApp_.quitOnLastWindowClosed();
+        qtApp_.setQuitOnLastWindowClosed(false);
+
         UI::Dialogs::ConnectionDialog dlg(settingsVm);
         dlg.exec();
+
+        qtApp_.setQuitOnLastWindowClosed(quitOnLastWindowClosed);
     }
 
     // ── Main window ───────────────────────────────────────────────────────────
