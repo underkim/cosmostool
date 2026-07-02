@@ -23,6 +23,7 @@ public:
 
 private slots:
     void onAddProfile();
+    void onQuickWslProfile();
     void onDeleteProfile();
     void onConnectClicked();
     void onDisconnectClicked();
@@ -46,6 +47,7 @@ private:
     // Left pane — profile list
     QListView*   profileList_{nullptr};
     QPushButton* addBtn_{nullptr};
+    QPushButton* quickWslBtn_{nullptr};
     QPushButton* deleteBtn_{nullptr};
     QPushButton* connectBtn_{nullptr};
     QPushButton* disconnectBtn_{nullptr};

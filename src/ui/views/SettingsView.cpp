@@ -57,11 +57,14 @@ void SettingsView::setupUi()
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto* listBtns = new QHBoxLayout;
-    addBtn_    = new QPushButton("+ Add",    leftPane);
-    deleteBtn_ = new QPushButton("− Delete", leftPane);
-    addBtn_->setToolTip("Create a new connection profile.");
+    addBtn_      = new QPushButton("+ Add", leftPane);
+    quickWslBtn_ = new QPushButton("Quick WSL", leftPane);
+    deleteBtn_   = new QPushButton("− Delete", leftPane);
+    addBtn_->setToolTip("Create a blank connection profile.");
+    quickWslBtn_->setToolTip("Detect a WSL distro, create a ready-to-use WSL profile, and select it for review.");
     deleteBtn_->setToolTip("Select a connection profile first.");
     listBtns->addWidget(addBtn_);
+    listBtns->addWidget(quickWslBtn_);
     listBtns->addWidget(deleteBtn_);
 
     auto* connBtns  = new QHBoxLayout;
@@ -241,6 +244,7 @@ void SettingsView::setupUi()
 void SettingsView::bindViewModel()
 {
     connect(addBtn_,         &QPushButton::clicked, this, &SettingsView::onAddProfile);
+    connect(quickWslBtn_,    &QPushButton::clicked, this, &SettingsView::onQuickWslProfile);
     connect(deleteBtn_,      &QPushButton::clicked, this, &SettingsView::onDeleteProfile);
     connect(connectBtn_,     &QPushButton::clicked, this, &SettingsView::onConnectClicked);
     connect(disconnectBtn_,  &QPushButton::clicked, this, &SettingsView::onDisconnectClicked);
@@ -418,6 +422,42 @@ void SettingsView::onAddProfile()
     updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
+void SettingsView::onQuickWslProfile()
+{
+    refreshWslDistros();
+    QString distro = wslDistroCombo_->currentText().trimmed();
+    if (distro.isEmpty())
+        distro = QStringLiteral("Ubuntu");
+
+    Models::ConnectionProfile p;
+    p.id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    p.name = QStringLiteral("WSL (%1)").arg(distro).toStdString();
+    p.mode = Models::ConnectionMode::WSL;
+    p.wslDistribution = distro.toStdString();
+    p.cosmosRootPath = "/cosmos";
+    p.isDefault = false;
+
+    const QString profileId = QString::fromStdString(p.id);
+    vm_.saveProfile(p);
+
+    for (int row = 0; row < vm_.profileModel()->rowCount(); ++row) {
+        const QModelIndex idx = vm_.profileModel()->index(row, 0);
+        if (vm_.profileModel()->data(idx, Qt::UserRole).toString() == profileId) {
+            profileList_->setCurrentIndex(idx);
+            profileList_->selectionModel()->select(
+                idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            populateProfileForm(p);
+            break;
+        }
+    }
+
+    statusLabel_->setText(
+        QStringLiteral("Status: WSL profile created for %1 — review it, then Save & Connect.")
+            .arg(distro));
+    updateProfileSelectionUi();
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+}
+
 void SettingsView::onDeleteProfile()
 {
     const auto idx = profileList_->currentIndex();
@@ -560,6 +600,7 @@ void SettingsView::updateActionHints(const QString& state)
         : (connecting ? "Connection is already in progress." : "Connect to the selected OpenC3 environment."));
     disconnectBtn_->setToolTip(connected ? "Disconnect from the current OpenC3 environment." : connectReason);
     deleteBtn_->setToolTip(hasProfile ? "Delete the selected connection profile." : profileReason);
+    quickWslBtn_->setToolTip("Detect a WSL distro and create a WSL profile with /cosmos defaults.");
     saveProfileBtn_->setToolTip("Save the current connection profile settings.");
 
     if (!connected && !connecting && !hasProfile)
