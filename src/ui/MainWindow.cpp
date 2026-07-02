@@ -32,13 +32,13 @@ namespace {
 // Row/stack indices for the navigation rail. Kept in one place so the rail,
 // the content stack, and the quick-action handlers cannot drift apart.
 enum NavIndex {
-    NavHome = 0,
-    NavWorkspace,
-    NavCmdTlm,
-    NavPacketTools,
-    NavLogs,
-    NavSettings,
-    NavAdvanced,
+    NavHome = 0,       // Home
+    NavPlugins,        // Plugins
+    NavCmdTlmEditor,   // CMD/TLM Editor
+    NavPackets,        // Packets
+    NavLogs,           // Logs
+    NavSettings,       // Settings
+    NavTools,          // Tools
 };
 } // namespace
 
@@ -109,15 +109,18 @@ void MainWindow::setupNavigation()
     navRail_->setFrameShape(QFrame::NoFrame);
     navRail_->setSpacing(2);
 
-    auto addItem = [&](const QString& text) {
+    auto addItem = [&](const QString& text, const QString& description) {
         const int row = navRail_->count();
         auto* item = new QListWidgetItem(text);
         item->setSizeHint(QSize(200, 40));
         QFont f = item->font();
         f.setPointSize(11);
         item->setFont(f);
-        // Surface the keyboard shortcut so it is discoverable on hover.
-        item->setToolTip(QStringLiteral("%1  (Ctrl+%2)").arg(text).arg(row + 1));
+        // Surface the page purpose and keyboard shortcut so each item is discoverable on hover.
+        item->setToolTip(QStringLiteral("%1 — %2 (Ctrl+%3)")
+                             .arg(text)
+                             .arg(description)
+                             .arg(row + 1));
         navRail_->addItem(item);
 
         // Ctrl+<n> jumps straight to this section from anywhere in the app.
@@ -127,13 +130,14 @@ void MainWindow::setupNavigation()
                 this, [this, row] { navRail_->setCurrentRow(row); });
     };
 
-    addItem("Home");         // 0  (Ctrl+1)
-    addItem("Workspace");    // 1  (Ctrl+2)
-    addItem("CMD / TLM");    // 2  (Ctrl+3)
-    addItem("Packet Tools"); // 3  (Ctrl+4)
-    addItem("Logs");         // 4  (Ctrl+5)
-    addItem("Settings");     // 5  (Ctrl+6)
-    addItem("Advanced");     // 6  (Ctrl+7)
+    // Keep this order aligned with NavIndex and the contentStack_ addWidget calls in setupViews().
+    addItem("Home",           "review toolkit status and common next actions");
+    addItem("Plugins",        "create, inspect, build, and install OpenC3 plugins");
+    addItem("CMD/TLM Editor", "edit command and telemetry definition files");
+    addItem("Packets",        "inspect, build, and validate packet data");
+    addItem("Logs",           "stream and review toolkit logs");
+    addItem("Settings",       "configure OpenC3 connection and toolkit preferences");
+    addItem("Tools",          "run diagnostics, validation, Docker, and infrastructure tools");
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -149,16 +153,16 @@ void MainWindow::setupViews()
     auto* cmdTlmView    = new Views::CmdTlmView(cmdTlmVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
 
-    // Advanced groups the less-common tools so the main rail stays short. The
-    // features are not removed — just tucked behind one entry.
+    // Tools groups diagnostics, validation, and operational utilities so the
+    // main rail stays short while keeping beginner-critical checks easy to find.
     auto* advancedTabs = new QTabWidget(this);
     advancedTabs->setObjectName("PluginDetailTabs");
-    advancedTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker"); // 0
-    advancedTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");  // 1
-    advancedTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor"); // 2
-    advancedTabs->addTab(validatorView,                          "Validator"); // 3
-    constexpr int kAdvancedDoctorTab    = 2;
-    constexpr int kAdvancedValidatorTab = 3;
+    advancedTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");    // 0
+    advancedTabs->addTab(validatorView,                          "Validator"); // 1
+    advancedTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");    // 2
+    advancedTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");     // 3
+    constexpr int kToolsDoctorTab    = 0;
+    constexpr int kToolsValidatorTab = 1;
 
     // ── Navigation helpers ──────────────────────────────────────────────────
     auto goTo = [this](int row) {
@@ -166,17 +170,17 @@ void MainWindow::setupViews()
         contentStack_->setCurrentIndex(row);
     };
 
-    // CMD / TLM is now a top-level page (index 2).
+    // CMD/TLM Editor is a top-level page (index 2).
     connect(pluginView, &Views::PluginView::openCmdTlmRequested,
             this, [goTo, cmdTlmView](const QString& remoteFilePath) {
-                goTo(NavCmdTlm);
+                goTo(NavCmdTlmEditor);
                 cmdTlmView->openFile(remoteFilePath);
             });
 
     auto toValidator = [this, goTo, validatorView, advancedTabs,
-                        kAdvancedValidatorTab](const QString& content) {
-        goTo(NavAdvanced);
-        advancedTabs->setCurrentIndex(kAdvancedValidatorTab);
+                        kToolsValidatorTab](const QString& content) {
+        goTo(NavTools);
+        advancedTabs->setCurrentIndex(kToolsValidatorTab);
         validatorView->checkContent(content);
     };
     connect(cmdTlmView, &Views::CmdTlmView::openInValidatorRequested, this, toValidator);
@@ -186,32 +190,33 @@ void MainWindow::setupViews()
     connect(dashboardView, &Views::DashboardView::connectRequested,
             this, &MainWindow::showConnectionDialog);
     connect(dashboardView, &Views::DashboardView::runDoctorRequested,
-            this, [this, goTo, advancedTabs, kAdvancedDoctorTab] {
+            this, [this, goTo, advancedTabs, kToolsDoctorTab] {
                 if (!settingsVm_.isConnected()) {
                     showConnectionDialog();
                     if (!settingsVm_.isConnected())
                         return;
                 }
-                goTo(NavAdvanced);
-                advancedTabs->setCurrentIndex(kAdvancedDoctorTab);
+                goTo(NavTools);
+                advancedTabs->setCurrentIndex(kToolsDoctorTab);
                 doctorVm_.runAllChecks();
             });
     connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
-            this, [goTo] { goTo(NavWorkspace); });
+            this, [goTo] { goTo(NavPlugins); });
     connect(dashboardView, &Views::DashboardView::openCmdTlmRequested,
-            this, [goTo] { goTo(NavCmdTlm); });
+            this, [goTo] { goTo(NavCmdTlmEditor); });
     connect(dashboardView, &Views::DashboardView::openPacketToolsRequested,
-            this, [goTo] { goTo(NavPacketTools); });
+            this, [goTo] { goTo(NavPackets); });
     connect(dashboardView, &Views::DashboardView::openLogsRequested,
             this, [goTo] { goTo(NavLogs); });
 
+    // Keep this order aligned with NavIndex and the navRail_ addItem calls in setupNavigation().
     contentStack_->addWidget(dashboardView);                                    // 0 Home
-    contentStack_->addWidget(pluginView);                                       // 1 Workspace
-    contentStack_->addWidget(cmdTlmView);                                       // 2 CMD / TLM
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 3 Packet Tools
+    contentStack_->addWidget(pluginView);                                       // 1 Plugins
+    contentStack_->addWidget(cmdTlmView);                                       // 2 CMD/TLM Editor
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 3 Packets
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 4 Logs
     contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 5 Settings
-    contentStack_->addWidget(advancedTabs);                                     // 6 Advanced
+    contentStack_->addWidget(advancedTabs);                                     // 6 Tools
 }
 
 void MainWindow::showConnectionDialog()
