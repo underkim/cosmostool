@@ -165,8 +165,8 @@ void PluginView::setupUi()
     titleFont.setBold(true);
     title->setFont(titleFont);
     title->setObjectName("PageTitle");
-    auto* subtitle = new QLabel("플러그인을 선택하고 CMD/TLM 파일을 열어 필드를 편집·검증한 뒤 빌드하세요.", this);
-    subtitle->setText("Select a plugin, edit CMD/TLM files, validate, build, and install.");
+    auto* subtitle = new QLabel(
+        "Select a plugin, edit CMD/TLM files, validate, build, and install.", this);
     subtitle->setObjectName("SubLabel");
     subtitle->setWordWrap(true);
     titleBlock->addWidget(title);
@@ -176,16 +176,13 @@ void PluginView::setupUi()
 
     auto* toolbarBlock = new QHBoxLayout;
     toolbarBlock->setSpacing(8);
-    refreshBtn_ = new QPushButton("새로고침", this);
-    installBtn_ = new QPushButton("Gem 설치", this);
-    removeBtn_ = new QPushButton("삭제", this);
-    validateBtn_ = new QPushButton("검증", this);
-    buildBtn_ = new QPushButton("빌드", this);
-    scaffoldBtn_ = new QPushButton("새 플러그인", this);
-    addTargetBtn_ = new QPushButton("타겟 추가", this);
-
-    scaffoldBtn_->setToolTip("새 OpenC3 플러그인 폴더 구조를 생성합니다.");
-    addTargetBtn_->setToolTip("선택한 플러그인에 타겟 폴더 구조를 추가합니다.");
+    refreshBtn_ = new QPushButton("Refresh", this);
+    installBtn_ = new QPushButton("Install Gem", this);
+    removeBtn_ = new QPushButton("Remove", this);
+    validateBtn_ = new QPushButton("Validate (build)", this);
+    buildBtn_ = new QPushButton("Build", this);
+    scaffoldBtn_ = new QPushButton("New Plugin", this);
+    addTargetBtn_ = new QPushButton("Add Target", this);
 
     removeBtn_->setEnabled(false);
     buildBtn_->setEnabled(false);
@@ -251,9 +248,8 @@ void PluginView::setupUi()
     leftLayout->setContentsMargins(0, 0, 0, 0);
     leftLayout->setSpacing(8);
 
-    auto* pluginListGroup = new QGroupBox("플러그인 폴더", leftPane);
+    auto* pluginListGroup = new QGroupBox("Plugin Folders", leftPane);
     auto* pluginListLayout = new QVBoxLayout(pluginListGroup);
-    pluginListGroup->setTitle("Plugin Folders");
     pluginListLayout->setContentsMargins(8, 14, 8, 8);
     tableView_ = new QTableView(pluginListGroup);
     tableView_->setModel(vm_.pluginModel());
@@ -275,9 +271,8 @@ void PluginView::setupUi()
     pluginListLayout->addWidget(tableView_, 1);
     leftLayout->addWidget(pluginListGroup, 1);
 
-    auto* componentListGroup = new QGroupBox("플러그인 파일", leftPane);
+    auto* componentListGroup = new QGroupBox("Plugin Files", leftPane);
     auto* componentListLayout = new QVBoxLayout(componentListGroup);
-    componentListGroup->setTitle("Plugin Files");
     componentListLayout->setContentsMargins(8, 14, 8, 8);
     componentListLayout->setSpacing(6);
     componentHintLabel_ = new QLabel("Select a plugin first.", componentListGroup);
@@ -320,20 +315,20 @@ void PluginView::setupUi()
     auto* componentEditRow = new QHBoxLayout;
     componentPathLabel_ = new QLabel("Select a plugin file", editorPane);
     componentPathLabel_->setObjectName("PluginFilePath");
-    openComponentBtn_ = new QPushButton("파일 열기", editorPane);
-    saveComponentBtn_ = new QPushButton("저장", editorPane);
-    validateComponentBtn_ = new QPushButton("검증", editorPane);
+    openComponentBtn_ = new QPushButton("Open File", editorPane);
+    saveComponentBtn_ = new QPushButton("Save", editorPane);
+    validateComponentBtn_ = new QPushButton("Validate (CMD/TLM)", editorPane);
     validateOfflineBtn_ = new QPushButton("Validate (offline)", editorPane);
-    openInCmdTlmBtn_ = new QPushButton("CMD/TLM 뷰로", editorPane);
-    startCmdTlmEditBtn_ = new QPushButton("CMD/TLM 편집 시작", editorPane);
+    openInCmdTlmBtn_ = new QPushButton("CMD/TLM View", editorPane);
+    startCmdTlmEditBtn_ = new QPushButton("Start CMD/TLM Edit", editorPane);
     insertCmdBtn_ = new QPushButton("+ COMMAND", editorPane);
     insertTlmBtn_ = new QPushButton("+ TELEMETRY", editorPane);
-    addFieldBtn_ = new QPushButton("필드 추가", editorPane);
-    addStructureFieldBtn_ = new QPushButton("행 추가", editorPane);
-    deleteStructureFieldBtn_ = new QPushButton("행 삭제", editorPane);
-    refreshStructureBtn_ = new QPushButton("구조 새로고침", editorPane);
-    applyStructureBtn_ = new QPushButton("선택 필드 적용", editorPane);
-    toggleReferenceBtn_ = new QPushButton("참고 표시", editorPane);
+    addFieldBtn_ = new QPushButton("Add Field", editorPane);
+    addStructureFieldBtn_ = new QPushButton("Add Row", editorPane);
+    deleteStructureFieldBtn_ = new QPushButton("Delete Row", editorPane);
+    refreshStructureBtn_ = new QPushButton("Refresh Structure", editorPane);
+    applyStructureBtn_ = new QPushButton("Apply Selected", editorPane);
+    toggleReferenceBtn_ = new QPushButton("Reference", editorPane);
     openComponentBtn_->setText("Open File");
     saveComponentBtn_->setText("Save");
     validateComponentBtn_->setText("Validate (CMD/TLM)");
@@ -415,9 +410,8 @@ void PluginView::setupUi()
     auto* structureTabLayout = new QVBoxLayout(structureTab);
     structureTabLayout->setContentsMargins(0, 0, 0, 0);
 
-    auto* structureGroup = new QGroupBox("구조 편집기 (Block / Field)", editorPane);
+    auto* structureGroup = new QGroupBox("Structure Editor (Block / Field)", editorPane);
     auto* structureLayout = new QVBoxLayout(structureGroup);
-    structureGroup->setTitle("Structure Editor (Block / Field)");
 
     // ── Block editor (COMMAND / TELEMETRY header) ────────────────────────────
     // Lets the user retarget / rename / re-describe a whole packet without
@@ -444,10 +438,10 @@ void PluginView::setupUi()
     blockEndiannessCombo_->addItems({"BIG_ENDIAN", "LITTLE_ENDIAN"});
     blockDescriptionEdit_ = new QLineEdit(structureGroup);
     blockDescriptionEdit_->setPlaceholderText("Description");
-    applyBlockBtn_ = new QPushButton("블록 적용", structureGroup);
+    applyBlockBtn_ = new QPushButton("Apply Block", structureGroup);
     applyBlockBtn_->setMinimumWidth(96);
-    applyBlockBtn_->setToolTip("선택한 COMMAND/TELEMETRY 라인을 갱신합니다. "
-                              "주석과 하위 필드는 그대로 유지됩니다.");
+    applyBlockBtn_->setToolTip("Updates the selected COMMAND/TELEMETRY line. "
+                              "Comments and child fields are preserved.");
     blockFieldRow->addWidget(new QLabel("Target:", structureGroup));
     blockFieldRow->addWidget(blockTargetEdit_);
     blockFieldRow->addWidget(new QLabel("Name:", structureGroup));
@@ -669,13 +663,13 @@ void PluginView::bindViewModel()
                     if (valid) {
                         const QString gem = extractGemPath(summary);
                         detailEdit_->setPlainText(
-                            "[빌드 성공]\n생성된 gem 파일: "
-                            + (gem.isEmpty() ? "(경로를 확인하지 못했습니다)" : gem)
-                            + "\n\n--- 빌드 로그 ---\n" + summary);
+                            "[Build succeeded]\nGenerated gem file: "
+                            + (gem.isEmpty() ? "(path could not be determined)" : gem)
+                            + "\n\n--- Build log ---\n" + summary);
                     } else {
                         detailEdit_->setPlainText(
-                            "[빌드 실패] 아래 로그에서 원인을 확인하세요.\n\n"
-                            "--- 빌드 로그 ---\n" + summary);
+                            "[Build failed] Check the log below for the cause.\n\n"
+                            "--- Build log ---\n" + summary);
                     }
                     return;
                 }
@@ -689,11 +683,11 @@ void PluginView::bindViewModel()
                 if (pendingBuild_) {
                     pendingBuild_ = false;
                     if (ok)
-                        QMessageBox::information(this, "플러그인 빌드",
-                            "빌드가 완료되었습니다.\nOverview 탭에서 생성된 gem 경로를 확인하세요.");
+                        QMessageBox::information(this, "Plugin Build",
+                            "Build complete.\nSee the generated gem path in the Overview tab.");
                     else
-                        QMessageBox::warning(this, "플러그인 빌드",
-                            "빌드에 실패했습니다.\nOverview 탭의 빌드 로그에서 원인을 확인하세요.");
+                        QMessageBox::warning(this, "Plugin Build",
+                            "Build failed.\nCheck the build log in the Overview tab for the cause.");
                     return;
                 }
                 if (!ok)
@@ -877,7 +871,7 @@ void PluginView::onBuildClicked()
     }
     pendingBuild_ = true;
     detailTabs_->setCurrentIndex(0);
-    detailEdit_->setPlainText("플러그인 빌드 중...\n" + root);
+    detailEdit_->setPlainText("Building plugin...\n" + root);
     vm_.build(root);
 }
 

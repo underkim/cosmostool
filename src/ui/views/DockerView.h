@@ -29,6 +29,7 @@ private slots:
 private:
     void setupUi();
     void bindViewModel();
+    void updateHint(); // connection / empty-list guidance line
     [[nodiscard]] QString selectedContainerName() const;
 
     ViewModels::DockerViewModel& vm_;
@@ -42,6 +43,7 @@ private:
     QPushButton*         refreshBtn_{nullptr};
     Widgets::LogWidget*  logWidget_{nullptr};
     QLabel*              versionLabel_{nullptr};
+    QLabel*              hintLabel_{nullptr};
 };
 
 } // namespace OpenC3::UI::Views

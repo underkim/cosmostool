@@ -264,10 +264,18 @@ void MainWindow::setupMenuBar()
 
 void MainWindow::setupStatusBar()
 {
-    connectionLabel_ = new QLabel("  Disconnected  ", this);
-    dockerLabel_     = new QLabel("  Docker: --  ", this);
+    // A flat button (not a label) so the connection status doubles as a
+    // Connect entry point that works from any view.
+    connectionButton_ = new QPushButton("  Disconnected  ", this);
+    connectionButton_->setFlat(true);
+    connectionButton_->setCursor(Qt::PointingHandCursor);
+    connectionButton_->setToolTip("Click to open the connection dialog");
+    connect(connectionButton_, &QPushButton::clicked,
+            this, &MainWindow::showConnectionDialog);
 
-    statusBar()->addWidget(connectionLabel_);
+    dockerLabel_ = new QLabel("  Docker: --  ", this);
+
+    statusBar()->addWidget(connectionButton_);
     statusBar()->addWidget(dockerLabel_);
     statusBar()->setObjectName("statusBar");
 }
@@ -293,7 +301,7 @@ void MainWindow::onNavItemSelected(int index)
 void MainWindow::onConnectionStatusChanged()
 {
     const QString status = dashboardVm_.connectionStatus();
-    connectionLabel_->setText("  " + status + "  ");
+    connectionButton_->setText("  " + status + "  ");
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)

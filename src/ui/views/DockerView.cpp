@@ -37,14 +37,20 @@ void DockerView::setupUi()
     header->addWidget(versionLabel_);
     root->addLayout(header);
 
+    // ── Connection / empty-state hint ─────────────────────────────────────────
+    hintLabel_ = new QLabel(this);
+    hintLabel_->setObjectName("SubLabel");
+    hintLabel_->setWordWrap(true);
+    root->addWidget(hintLabel_);
+
     // ── Toolbar ───────────────────────────────────────────────────────────────
     auto* toolbar = new QHBoxLayout;
-    refreshBtn_   = new QPushButton("↻  Refresh", this);
-    startBtn_     = new QPushButton("▶  Start",   this);
-    stopBtn_      = new QPushButton("■  Stop",    this);
-    restartBtn_   = new QPushButton("↺  Restart", this);
-    removeBtn_    = new QPushButton("✕  Remove",  this);
-    logsBtn_      = new QPushButton("📋  Logs",   this);
+    refreshBtn_   = new QPushButton("Refresh", this);
+    startBtn_     = new QPushButton("Start",   this);
+    stopBtn_      = new QPushButton("Stop",    this);
+    restartBtn_   = new QPushButton("Restart", this);
+    removeBtn_    = new QPushButton("Remove",  this);
+    logsBtn_      = new QPushButton("Logs",    this);
 
     for (auto* btn : {startBtn_, stopBtn_, restartBtn_, removeBtn_, logsBtn_})
         btn->setEnabled(false);
@@ -118,6 +124,33 @@ void DockerView::bindViewModel()
                         "Action failed for: " + name);
                 }
             });
+
+    // Hint follows the connection state and whether any containers are listed.
+    connect(&vm_, &ViewModels::DockerViewModel::connectionChanged,
+            this, &DockerView::updateHint);
+    connect(vm_.containerModel(), &QAbstractItemModel::modelReset,
+            this, &DockerView::updateHint);
+    updateHint();
+}
+
+void DockerView::updateHint()
+{
+    const bool connected = vm_.isConnected();
+    refreshBtn_->setEnabled(connected);
+
+    if (!connected) {
+        hintLabel_->setText(
+            "Not connected. Connect to a remote environment (Home > Connect) "
+            "to manage containers.");
+        hintLabel_->setVisible(true);
+    } else if (vm_.containerModel()->rowCount() == 0) {
+        hintLabel_->setText(
+            "No containers found. Press Refresh, or start OpenC3 with "
+            "docker compose up -d.");
+        hintLabel_->setVisible(true);
+    } else {
+        hintLabel_->setVisible(false);
+    }
 }
 
 void DockerView::onTableSelectionChanged()

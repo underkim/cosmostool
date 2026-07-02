@@ -127,9 +127,9 @@ void SettingsView::setupUi()
 
     auto* wslHint = new QLabel(
         "<small style='color:#858585'>"
-        "Windows에 설치된 WSL 배포판이 자동으로 나타납니다.<br>"
-        "목록이 비어 있으면 ↻ 버튼을 누르거나 "
-        "<code>wsl --install Ubuntu</code>로 설치하세요."
+        "WSL distributions installed on Windows appear here automatically.<br>"
+        "If the list is empty, press the ↻ button, or install one with "
+        "<code>wsl --install Ubuntu</code>."
         "</small>", wslPage);
     wslHint->setWordWrap(true);
     wslHint->setTextFormat(Qt::RichText);
@@ -145,7 +145,7 @@ void SettingsView::setupUi()
     sshLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     hostEdit_       = new QLineEdit(sshPage);
-    hostEdit_->setPlaceholderText("192.168.1.100 또는 hostname");
+    hostEdit_->setPlaceholderText("192.168.1.100 or hostname");
     portEdit_       = new QLineEdit("22", sshPage);
     portEdit_->setFixedWidth(80);
     usernameEdit_   = new QLineEdit(sshPage);
@@ -159,7 +159,7 @@ void SettingsView::setupUi()
     // Password field (shown when auth = Password)
     passwordEdit_ = new QLineEdit(sshPage);
     passwordEdit_->setEchoMode(QLineEdit::Password);
-    passwordEdit_->setPlaceholderText("SSH 비밀번호");
+    passwordEdit_->setPlaceholderText("SSH password");
 
     // Key path field (shown when auth = Public Key)
     keyPathEdit_ = new QLineEdit(sshPage);
@@ -170,7 +170,7 @@ void SettingsView::setupUi()
     keyRowLayout->setContentsMargins(0, 0, 0, 0);
     auto* browseKey = new QPushButton("…", keyWidget);
     browseKey->setFixedWidth(28);
-    browseKey->setToolTip("개인 키 파일 선택");
+    browseKey->setToolTip("Select a private key file");
     keyRowLayout->addWidget(keyPathEdit_);
     keyRowLayout->addWidget(browseKey);
 
@@ -184,7 +184,7 @@ void SettingsView::setupUi()
     // Browse key button
     connect(browseKey, &QPushButton::clicked, this, [this] {
         const QString path = QFileDialog::getOpenFileName(
-            this, "개인 키 파일 선택",
+            this, "Select Private Key File",
             QDir::homePath() + "/.ssh",
             "Key files (*.pem *.key id_rsa id_ed25519 *);;All files (*)");
         if (!path.isEmpty())

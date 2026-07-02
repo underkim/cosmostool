@@ -108,6 +108,21 @@ DockerViewModel::DockerViewModel(
     refreshTimer_->setInterval(8000);
     connect(refreshTimer_, &QTimer::timeout, this, &DockerViewModel::refresh);
     refreshTimer_->start();
+
+    // Let the view react to connect/disconnect (hint text, button state) and
+    // populate the list immediately after a successful connection.
+    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+        Q_UNUSED(ev);
+        QMetaObject::invokeMethod(this, [this] {
+            emit connectionChanged();
+            if (isConnected()) refresh();
+        }, Qt::QueuedConnection);
+    });
+}
+
+bool DockerViewModel::isConnected() const noexcept
+{
+    return connection_.state() == Services::ConnectionState::Connected;
 }
 
 ContainerTableModel* DockerViewModel::containerModel() const noexcept

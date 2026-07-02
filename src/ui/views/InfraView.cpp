@@ -37,9 +37,9 @@ void InfraView::setupUi()
     root->addWidget(statusLabel_);
 
     tabs_ = new QTabWidget(this);
-    tabs_->addTab(buildEnvTab(),            "🔐 .env 편집");
-    tabs_->addTab(buildComposeTab(),        "🐙 compose.yaml");
-    tabs_->addTab(buildVolumeOverrideTab(), "🐳 볼륨 오버라이드");
+    tabs_->addTab(buildEnvTab(),            ".env Editor");
+    tabs_->addTab(buildComposeTab(),        "compose.yaml");
+    tabs_->addTab(buildVolumeOverrideTab(), "Volume Overrides");
     root->addWidget(tabs_);
 }
 
@@ -65,10 +65,10 @@ QWidget* InfraView::buildEnvTab()
 
     // ── Sync buttons ──────────────────────────────────────────────────────────
     auto* syncBar = new QHBoxLayout;
-    envSyncToRawBtn_   = new QPushButton("⬇ Table → Raw", page);
-    envSyncToTableBtn_ = new QPushButton("⬆ Raw → Table", page);
-    envSyncToRawBtn_->setToolTip("테이블 편집 내용을 원문에 반영");
-    envSyncToTableBtn_->setToolTip("원문 편집 내용을 테이블에 반영");
+    envSyncToRawBtn_   = new QPushButton("Table -> Raw", page);
+    envSyncToTableBtn_ = new QPushButton("Raw -> Table", page);
+    envSyncToRawBtn_->setToolTip("Apply table edits to the raw text");
+    envSyncToTableBtn_->setToolTip("Apply raw-text edits to the table");
     syncBar->addWidget(envSyncToRawBtn_);
     syncBar->addWidget(envSyncToTableBtn_);
     syncBar->addStretch();
@@ -89,7 +89,7 @@ QWidget* InfraView::buildEnvTab()
     envRawEdit_ = new QPlainTextEdit(page);
     QFont rf; rf.setFamily("Consolas"); rf.setPointSize(10);
     envRawEdit_->setFont(rf);
-    envRawEdit_->setPlaceholderText("# KEY=VALUE 형식으로 편집");
+    envRawEdit_->setPlaceholderText("# Edit as KEY=VALUE lines");
 
     splitter->addWidget(envTable_);
     splitter->addWidget(envRawEdit_);
@@ -126,14 +126,14 @@ QWidget* InfraView::buildComposeTab()
     QFont f; f.setFamily("Consolas"); f.setPointSize(10);
     composeEdit_->setFont(f);
     composeEdit_->setPlaceholderText(
-        "# compose.yaml 이 로드되지 않았습니다\n"
-        "# 원격 파일 경로를 입력하고 Load를 눌러주세요");
+        "# compose.yaml is not loaded\n"
+        "# Enter the remote file path above and press Load");
     layout->addWidget(composeEdit_, 1);
 
     // ── Hint ─────────────────────────────────────────────────────────────────
     auto* hint = new QLabel(
         "<small style='color:#858585'>"
-        "⚠️  저장 후 서비스를 재시작해야 변경사항이 적용됩니다 "
+        "Changes take effect after restarting the services "
         "(<code>docker compose up -d</code>)</small>", page);
     hint->setTextFormat(Qt::RichText);
     layout->addWidget(hint);
@@ -148,29 +148,29 @@ QWidget* InfraView::buildVolumeOverrideTab()
     layout->setContentsMargins(8, 8, 8, 8);
     layout->setSpacing(8);
 
-    // ── 설명 ─────────────────────────────────────────────────────────────────
+    // ── Description ──────────────────────────────────────────────────────────
     auto* desc = new QLabel(
         "<small style='color:#858585'>"
-        "Docker 이미지 내부의 파일을 추출 → 편집 → 호스트에 저장하고, "
-        "compose.yaml의 <code>volumes:</code> 항목을 생성합니다. "
-        "이미지를 재빌드하지 않고 컨테이너 파일을 오버라이드할 수 있습니다."
+        "Extract a file from a Docker image, edit it, save it on the host, and "
+        "generate the matching <code>volumes:</code> entry for compose.yaml. "
+        "This overrides container files without rebuilding the image."
         "</small>", page);
     desc->setWordWrap(true);
     desc->setTextFormat(Qt::RichText);
     layout->addWidget(desc);
 
-    // ── Step 1: 컨테이너 선택 + 파일 추출 ────────────────────────────────────
-    auto* step1Group  = new QGroupBox("① 컨테이너 파일 추출", page);
+    // ── Step 1: pick a container and extract a file ──────────────────────────
+    auto* step1Group  = new QGroupBox("Step 1 - Extract a container file", page);
     auto* step1Layout = new QVBoxLayout(step1Group);
 
     auto* containerBar = new QHBoxLayout;
     containerCombo_     = new QComboBox(step1Group);
     containerCombo_->setMinimumWidth(220);
-    containerCombo_->setPlaceholderText("컨테이너 선택…");
+    containerCombo_->setPlaceholderText("Select a container…");
     containerRefreshBtn_ = new QPushButton("↻", step1Group);
     containerRefreshBtn_->setFixedWidth(32);
-    containerRefreshBtn_->setToolTip("실행 중인 컨테이너 목록 새로고침");
-    containerBar->addWidget(new QLabel("컨테이너:", step1Group));
+    containerRefreshBtn_->setToolTip("Refresh the list of running containers");
+    containerBar->addWidget(new QLabel("Container:", step1Group));
     containerBar->addWidget(containerCombo_, 1);
     containerBar->addWidget(containerRefreshBtn_);
     step1Layout->addLayout(containerBar);
@@ -179,9 +179,9 @@ QWidget* InfraView::buildVolumeOverrideTab()
     containerFilePathEdit_ = new QLineEdit(step1Group);
     containerFilePathEdit_->setPlaceholderText("/cosmos/config/system.txt");
     containerFilePathEdit_->setFont(QFont("Consolas", 10));
-    extractBtn_ = new QPushButton("⬇ 추출", step1Group);
-    extractBtn_->setToolTip("docker exec <container> cat <file>로 파일 내용을 가져옵니다");
-    fileBar->addWidget(new QLabel("파일 경로:", step1Group));
+    extractBtn_ = new QPushButton("Extract", step1Group);
+    extractBtn_->setToolTip("Fetches the file via docker exec <container> cat <file>");
+    fileBar->addWidget(new QLabel("File path:", step1Group));
     fileBar->addWidget(containerFilePathEdit_, 1);
     fileBar->addWidget(extractBtn_);
     step1Layout->addLayout(fileBar);
@@ -190,15 +190,15 @@ QWidget* InfraView::buildVolumeOverrideTab()
     QFont ef; ef.setFamily("Consolas"); ef.setPointSize(9);
     containerFileEdit_->setFont(ef);
     containerFileEdit_->setPlaceholderText(
-        "추출 버튼을 누르면 컨테이너 내부 파일 내용이 여기에 표시됩니다.\n"
-        "내용을 직접 편집한 후 아래 ② 단계에서 저장하세요.");
+        "Press Extract to show the container file's content here.\n"
+        "Edit it as needed, then save it in Step 2 below.");
     containerFileEdit_->setMinimumHeight(180);
     step1Layout->addWidget(containerFileEdit_, 1);
 
     layout->addWidget(step1Group, 1);
 
-    // ── Step 2: 호스트 저장 + 볼륨 항목 생성 ────────────────────────────────
-    auto* step2Group  = new QGroupBox("② 저장 경로 설정 및 볼륨 항목 생성", page);
+    // ── Step 2: save on the host and generate the volume entry ───────────────
+    auto* step2Group  = new QGroupBox("Step 2 - Save and generate the volume entry", page);
     auto* step2Layout = new QVBoxLayout(step2Group);
 
     auto* hostBar = new QHBoxLayout;
@@ -206,18 +206,18 @@ QWidget* InfraView::buildVolumeOverrideTab()
     hostSavePathEdit_->setPlaceholderText("/cosmos/overrides/…");
     hostSavePathEdit_->setFont(QFont("Consolas", 10));
     hostSavePathEdit_->setToolTip(
-        "파일이 저장될 WSL/Linux 경로입니다.\n"
-        "이 경로가 compose.yaml의 volumes 항목에 사용됩니다.");
-    applyOverrideBtn_ = new QPushButton("✔ 저장 및 항목 생성", step2Group);
+        "WSL/Linux path where the file will be saved.\n"
+        "This path is used in the compose.yaml volumes entry.");
+    applyOverrideBtn_ = new QPushButton("Save && Generate Entry", step2Group);
     applyOverrideBtn_->setObjectName("PrimaryButton");
-    hostBar->addWidget(new QLabel("호스트 저장 경로:", step2Group));
+    hostBar->addWidget(new QLabel("Host save path:", step2Group));
     hostBar->addWidget(hostSavePathEdit_, 1);
     hostBar->addWidget(applyOverrideBtn_);
     step2Layout->addLayout(hostBar);
 
-    // ── 생성된 볼륨 항목 ──────────────────────────────────────────────────────
+    // ── Generated volume entry ────────────────────────────────────────────────
     auto* volumeHintLabel = new QLabel(
-        "compose.yaml에 추가할 <code>volumes:</code> 항목:", step2Group);
+        "<code>volumes:</code> entry to add to compose.yaml:", step2Group);
     volumeHintLabel->setTextFormat(Qt::RichText);
     step2Layout->addWidget(volumeHintLabel);
 
@@ -225,12 +225,12 @@ QWidget* InfraView::buildVolumeOverrideTab()
     volumeEntryEdit_->setFont(QFont("Consolas", 9));
     volumeEntryEdit_->setReadOnly(true);
     volumeEntryEdit_->setMaximumHeight(90);
-    volumeEntryEdit_->setPlaceholderText("저장 후 여기에 항목이 생성됩니다…");
+    volumeEntryEdit_->setPlaceholderText("The entry appears here after saving…");
     step2Layout->addWidget(volumeEntryEdit_);
 
     auto* actionBar = new QHBoxLayout;
-    copyVolumeEntryBtn_  = new QPushButton("📋 클립보드 복사", step2Group);
-    insertToComposeBtn_  = new QPushButton("→ compose 편집기에 삽입", step2Group);
+    copyVolumeEntryBtn_  = new QPushButton("Copy to Clipboard", step2Group);
+    insertToComposeBtn_  = new QPushButton("Insert into compose Editor", step2Group);
     actionBar->addWidget(copyVolumeEntryBtn_);
     actionBar->addWidget(insertToComposeBtn_);
     actionBar->addStretch();
@@ -238,11 +238,11 @@ QWidget* InfraView::buildVolumeOverrideTab()
 
     layout->addWidget(step2Group);
 
-    // ── 안내 ─────────────────────────────────────────────────────────────────
+    // ── Hint ─────────────────────────────────────────────────────────────────
     auto* restartHint = new QLabel(
         "<small style='color:#858585'>"
-        "볼륨 항목 추가 후: <code>docker compose up -d &lt;service-name&gt;</code> "
-        "으로 컨테이너를 재시작하면 오버라이드가 적용됩니다."
+        "After adding the volume entry, restart the container with "
+        "<code>docker compose up -d &lt;service-name&gt;</code> to apply the override."
         "</small>", page);
     restartHint->setTextFormat(Qt::RichText);
     restartHint->setWordWrap(true);
@@ -324,8 +324,8 @@ void InfraView::bindViewModel()
     connect(&vm_, &ViewModels::InfraViewModel::fileSaved,
             this, [this](const QString& path, bool ok) {
                 if (!ok)
-                    QMessageBox::warning(this, "저장 실패",
-                        "파일 저장에 실패했습니다:\n" + path);
+                    QMessageBox::warning(this, "Save Failed",
+                        "Could not save the file:\n" + path);
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::containersLoaded,
@@ -354,8 +354,8 @@ void InfraView::bindViewModel()
     connect(&vm_, &ViewModels::InfraViewModel::overrideApplied,
             this, [this](bool ok, const QString& hostPath) {
                 if (!ok)
-                    QMessageBox::warning(this, "저장 실패",
-                        "호스트 파일 저장 실패:\n" + hostPath);
+                    QMessageBox::warning(this, "Save Failed",
+                        "Could not save the host file:\n" + hostPath);
             });
 
     // Initial state
@@ -393,13 +393,13 @@ void InfraView::onExtractFile()
     const QString filePath  = containerFilePathEdit_->text().trimmed();
 
     if (container.isEmpty()) {
-        QMessageBox::information(this, "컨테이너 선택",
-            "컨테이너를 선택하거나 새로고침 버튼으로 목록을 불러오세요.");
+        QMessageBox::information(this, "Select Container",
+            "Select a container, or press the refresh button to load the list.");
         return;
     }
     if (filePath.isEmpty()) {
-        QMessageBox::information(this, "파일 경로",
-            "추출할 파일의 컨테이너 내부 경로를 입력하세요.");
+        QMessageBox::information(this, "File Path",
+            "Enter the path of the file inside the container to extract.");
         return;
     }
 
@@ -416,14 +416,14 @@ void InfraView::onApplyOverride()
     const QString content   = containerFileEdit_->toPlainText();
 
     if (hostPath.isEmpty()) {
-        QMessageBox::information(this, "저장 경로",
-            "파일이 저장될 호스트(WSL) 경로를 입력하세요.\n"
-            "예: /cosmos/overrides/cosmos/config/system.txt");
+        QMessageBox::information(this, "Save Path",
+            "Enter the host (WSL) path where the file will be saved.\n"
+            "Example: /cosmos/overrides/cosmos/config/system.txt");
         return;
     }
     if (content.isEmpty()) {
-        QMessageBox::information(this, "내용 없음",
-            "먼저 컨테이너에서 파일을 추출하거나 내용을 입력하세요.");
+        QMessageBox::information(this, "No Content",
+            "Extract a file from the container first, or enter content to save.");
         return;
     }
 
