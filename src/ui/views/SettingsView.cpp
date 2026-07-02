@@ -81,6 +81,11 @@ void SettingsView::setupUi()
     formLayout->setLabelAlignment(Qt::AlignRight);
     formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
+    profileFormStateLabel_ = new QLabel("New profile — save it before connecting.", formGroup);
+    profileFormStateLabel_->setObjectName("SubLabel");
+    profileFormStateLabel_->setWordWrap(true);
+    formLayout->addRow(profileFormStateLabel_);
+
     // Common fields
     nameEdit_  = new QLineEdit(formGroup);
     modeCombo_ = new QComboBox(formGroup);
@@ -205,10 +210,16 @@ void SettingsView::setupUi()
 
     formLayout->addRow(modeStack_);
 
-    // Save button
+    // Save buttons
     saveProfileBtn_ = new QPushButton("Save Profile", formGroup);
     saveProfileBtn_->setObjectName("PrimaryButton");
-    formLayout->addRow(saveProfileBtn_);
+    saveAndConnectBtn_ = new QPushButton("Save && Connect", formGroup);
+
+    auto* saveButtons = new QHBoxLayout;
+    saveButtons->addWidget(saveProfileBtn_);
+    saveButtons->addWidget(saveAndConnectBtn_);
+    saveButtons->addStretch(1);
+    formLayout->addRow(saveButtons);
 
     splitter->addWidget(leftPane);
     splitter->addWidget(formGroup);
@@ -231,6 +242,14 @@ void SettingsView::bindViewModel()
     connect(disconnectBtn_,  &QPushButton::clicked, this, &SettingsView::onDisconnectClicked);
     connect(saveProfileBtn_, &QPushButton::clicked, this, [this] {
         vm_.saveProfile(collectProfileForm());
+        updateProfileSelectionUi();
+    });
+    connect(saveAndConnectBtn_, &QPushButton::clicked, this, [this] {
+        const auto profile = collectProfileForm();
+        const QString id = QString::fromStdString(profile.id);
+        vm_.saveProfile(profile);
+        vm_.connectToProfile(id);
+        updateProfileSelectionUi();
     });
 
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -246,11 +265,15 @@ void SettingsView::bindViewModel()
     connect(profileList_->selectionModel(),
             &QItemSelectionModel::currentChanged,
             this, &SettingsView::onProfileSelected);
+    connect(profileList_->selectionModel(),
+            &QItemSelectionModel::selectionChanged,
+            this, [this] { updateProfileSelectionUi(); });
 
     connect(&vm_, &ViewModels::SettingsViewModel::connectionStateChanged,
             this, [this](const QString& state) {
+                connectionState_ = state;
                 statusLabel_->setText("Status: " + state);
-                updateConnectionButtons(state);
+                updateConnectionButtons(connectionState_);
             });
 
     // initial stack page
@@ -260,7 +283,9 @@ void SettingsView::bindViewModel()
     // Sync button state with the actual current connection state.
     // SettingsView may be created AFTER a successful connect (e.g. via
     // ConnectionDialog), so the "Connected" signal has already been consumed.
-    updateConnectionButtons(vm_.isConnected() ? "Connected" : "Disconnected");
+    connectionState_ = vm_.isConnected() ? "Connected" : "Disconnected";
+    updateConnectionButtons(connectionState_);
+    updateProfileSelectionUi();
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -372,13 +397,15 @@ void SettingsView::onAddProfile()
     // id from the currently selected row, so without this a freshly added
     // profile would be saved over whichever profile is still highlighted.
     // With no selection, collectProfileForm() generates a fresh id instead.
-    profileList_->clearSelection();
+    profileList_->selectionModel()->clear();
+    profileList_->selectionModel()->clearCurrentIndex();
     profileList_->setCurrentIndex(QModelIndex());
 
     Models::ConnectionProfile p;
     p.name = "New Profile";
     populateProfileForm(p);
 
+    updateProfileSelectionUi();
     nameEdit_->setFocus();
     nameEdit_->selectAll();
 }
@@ -398,7 +425,10 @@ void SettingsView::onDeleteProfile()
 void SettingsView::onConnectClicked()
 {
     const auto idx = profileList_->currentIndex();
-    if (!idx.isValid()) return;
+    if (!idx.isValid()) {
+        updateProfileSelectionUi();
+        return;
+    }
     const QString id = vm_.profileModel()->data(idx, Qt::UserRole).toString();
     vm_.connectToProfile(id);
 }
@@ -410,6 +440,7 @@ void SettingsView::onDisconnectClicked()
 
 void SettingsView::onProfileSelected(const QModelIndex& idx)
 {
+    updateProfileSelectionUi();
     if (!idx.isValid()) return;
     const auto* p = vm_.profileModel()->profileAt(idx.row());
     if (p) populateProfileForm(*p);
@@ -483,8 +514,26 @@ void SettingsView::updateConnectionButtons(const QString& state)
     connectBtn_->setVisible(!connected);
     disconnectBtn_->setVisible(connected);
 
-    connectBtn_->setEnabled(!connected && !connecting);
+    const bool hasSelectedProfile = profileList_->currentIndex().isValid();
+
+    connectBtn_->setEnabled(!connected && !connecting && hasSelectedProfile);
+    if (!hasSelectedProfile)
+        connectBtn_->setToolTip("Select a saved profile before connecting.");
+    else if (connecting)
+        connectBtn_->setToolTip("A connection attempt is already in progress.");
+    else
+        connectBtn_->setToolTip(QString());
+
     disconnectBtn_->setEnabled(connected && !connecting);
+}
+
+void SettingsView::updateProfileSelectionUi()
+{
+    const bool hasSelectedProfile = profileList_->currentIndex().isValid();
+    if (profileFormStateLabel_)
+        profileFormStateLabel_->setVisible(!hasSelectedProfile);
+
+    updateConnectionButtons(connectionState_);
 }
 
 } // namespace OpenC3::UI::Views

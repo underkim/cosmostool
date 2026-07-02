@@ -10,6 +10,7 @@
 #include <QLineEdit>
 #include <QGroupBox>
 #include <QStackedWidget>
+#include <QString>
 
 namespace OpenC3::UI::Views {
 
@@ -36,8 +37,10 @@ private:
     void populateProfileForm(const Models::ConnectionProfile& p);
     Models::ConnectionProfile collectProfileForm() const;
     void updateConnectionButtons(const QString& state);
+    void updateProfileSelectionUi();
 
     ViewModels::SettingsViewModel& vm_;
+    QString connectionState_{"Disconnected"};
 
     // Left pane — profile list
     QListView*   profileList_{nullptr};
@@ -70,7 +73,9 @@ private:
     QLineEdit*   passwordEdit_{nullptr};
     QLineEdit*   keyPathEdit_{nullptr};
 
+    QLabel*      profileFormStateLabel_{nullptr};
     QPushButton* saveProfileBtn_{nullptr};
+    QPushButton* saveAndConnectBtn_{nullptr};
 };
 
 } // namespace OpenC3::UI::Views
