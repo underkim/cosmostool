@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      - 'claude/**'
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  linux-tests:
+    name: Build + unit tests (Linux)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # System packages cover every third-party dependency (spdlog,
+      # nlohmann_json, GoogleTest, libssh2, Qt6), so the configure step uses
+      # them directly instead of fetching sources — see cmake/Dependencies.cmake.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config \
+            qt6-base-dev libgl1-mesa-dev \
+            libspdlog-dev nlohmann-json3-dev libgtest-dev libgmock-dev \
+            libssh2-1-dev
+
+      - name: Configure
+        run: cmake --preset linux-debug
+
+      - name: Build
+        run: cmake --build --preset linux-debug
+
+      - name: Run unit tests
+        run: ctest --preset linux-unit
