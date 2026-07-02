@@ -43,7 +43,7 @@ void DashboardView::setupUi()
     auto* recommendedRow = new QHBoxLayout;
     recommendedActionBtn_ = new QPushButton(this);
     recommendedActionBtn_->setObjectName("PrimaryButton");
-    recommendedActionBtn_->setMinimumWidth(160);
+    recommendedActionBtn_->setMinimumWidth(180);
     connect(recommendedActionBtn_, &QPushButton::clicked,
             this, &DashboardView::onRecommendedActionClicked);
     recommendedRow->addWidget(recommendedActionBtn_);
@@ -63,10 +63,11 @@ void DashboardView::setupUi()
         return btn;
     };
 
+    addAction("Run Doctor",   true,  &DashboardView::runDoctorRequested);
     addAction("Connect",      false, &DashboardView::connectRequested);
-    addAction("Run Doctor",   false, &DashboardView::runDoctorRequested);
     addAction("Workspace",    false, &DashboardView::openWorkspaceRequested);
     addAction("CMD / TLM",    false, &DashboardView::openCmdTlmRequested);
+    addAction("Validator",    false, &DashboardView::openValidatorRequested);
     addAction("Packet Tools", false, &DashboardView::openPacketToolsRequested);
     addAction("Logs",         false, &DashboardView::openLogsRequested);
     actionsLayout->addStretch();
@@ -131,7 +132,7 @@ void DashboardView::bindViewModel()
         if (s.startsWith("Connected")) {
             guidanceLabel_->setText(
                 "Connected. Open the Workspace to manage plugins, or jump to "
-                "CMD / TLM, Packet Tools, or Logs.");
+                "CMD / TLM, Validator, Packet Tools, or Logs.");
         } else {
             guidanceLabel_->setText(
                 "Not connected. Click Connect to choose a profile — or create a "
@@ -200,7 +201,8 @@ void DashboardView::updateHomeGuidance()
     }
 
     guidanceLabel_->setText(
-        "Ready. Open Workspace, or jump into CMD / TLM, Packet Tools, or Logs.");
+        "Ready. Run Doctor any time for diagnostics, or jump into CMD / TLM, "
+        "Validator, Packet Tools, or Logs.");
     recommendedActionBtn_->setText("Open Workspace");
 }
 
