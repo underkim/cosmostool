@@ -18,7 +18,7 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
     : QDialog(parent)
     , vm_(vm)
 {
-    setWindowTitle("새 OpenC3 플러그인 생성 위자드");
+    setWindowTitle("New OpenC3 Plugin Wizard");
     setMinimumSize(720, 580);
     resize(820, 640);
 
@@ -27,7 +27,7 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
     root->setContentsMargins(0, 0, 0, 16);
 
     // ── Step indicator ────────────────────────────────────────────────────────
-    stepIndicator_ = new QLabel("1 / 3  —  플러그인 기본 정보", this);
+    stepIndicator_ = new QLabel("1 / 3  -  Plugin Basics", this);
     QFont sf = stepIndicator_->font();
     sf.setPointSize(11); sf.setBold(true);
     stepIndicator_->setFont(sf);
@@ -56,11 +56,11 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
     // ── Navigation buttons ────────────────────────────────────────────────────
     auto* navRow  = new QHBoxLayout;
     navRow->setContentsMargins(20, 8, 20, 0);
-    backBtn_   = new QPushButton("< 이전", this);
-    nextBtn_   = new QPushButton("다음 >", this);
-    finishBtn_ = new QPushButton("🚀 생성", this);
+    backBtn_   = new QPushButton("< Back", this);
+    nextBtn_   = new QPushButton("Next >", this);
+    finishBtn_ = new QPushButton("Create", this);
     finishBtn_->setObjectName("PrimaryButton");
-    auto* cancelBtn = new QPushButton("취소", this);
+    auto* cancelBtn = new QPushButton("Cancel", this);
     navRow->addWidget(backBtn_);
     navRow->addStretch();
     navRow->addWidget(cancelBtn);
@@ -77,18 +77,18 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
             this, [this] {
                 const bool busy = vm_.isBusy();
                 finishBtn_->setEnabled(!busy);
-                finishBtn_->setText(busy ? "생성 중…" : "🚀 생성");
+                finishBtn_->setText(busy ? "Creating…" : "Create");
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::scaffoldComplete,
             this, [this](const QString& rootPath, bool ok, const QString& detail) {
                 statusLabel_->setText(detail);
                 if (ok) {
-                    QMessageBox::information(this, "생성 완료",
-                        "플러그인이 생성되었습니다:\n" + rootPath + "\n\n" + detail);
+                    QMessageBox::information(this, "Plugin Created",
+                        "The plugin was created at:\n" + rootPath + "\n\n" + detail);
                     accept();
                 } else {
-                    QMessageBox::warning(this, "생성 실패", detail);
+                    QMessageBox::warning(this, "Create Failed", detail);
                 }
             });
 
@@ -103,14 +103,14 @@ void PluginWizard::buildInfoPage()
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(20, 20, 20, 8);
 
-    auto* grp  = new QGroupBox("플러그인 정보", page);
+    auto* grp  = new QGroupBox("Plugin Info", page);
     auto* form = new QFormLayout(grp);
     form->setRowWrapPolicy(QFormLayout::DontWrapRows);
     form->setLabelAlignment(Qt::AlignRight);
     form->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     pluginNameEdit_ = new QLineEdit("my-satellite", grp);
-    pluginNameEdit_->setPlaceholderText("소문자-하이픈  예: my-satellite");
+    pluginNameEdit_->setPlaceholderText("lowercase-hyphen, e.g. my-satellite");
     descriptionEdit_ = new QLineEdit("My satellite target plugin", grp);
     remoteRootEdit_  = new QLineEdit(vm_.defaultPluginsPath(), grp);
     remoteRootEdit_->setFont(QFont("Consolas", 10));
@@ -118,10 +118,10 @@ void PluginWizard::buildInfoPage()
     gemNameLabel_ = new QLabel("<b>cosmos-my-satellite</b>", grp);
     gemNameLabel_->setObjectName("SubLabel");
 
-    form->addRow("플러그인 이름:", pluginNameEdit_);
-    form->addRow("설명:",         descriptionEdit_);
-    form->addRow("생성 위치:",    remoteRootEdit_);
-    form->addRow("gem 이름:",     gemNameLabel_);
+    form->addRow("Plugin name:", pluginNameEdit_);
+    form->addRow("Description:", descriptionEdit_);
+    form->addRow("Create in:",   remoteRootEdit_);
+    form->addRow("Gem name:",    gemNameLabel_);
 
     connect(pluginNameEdit_, &QLineEdit::textChanged,
             this, &PluginWizard::onPluginNameChanged);
@@ -139,28 +139,28 @@ void PluginWizard::buildTargetPage()
     layout->setSpacing(12);
 
     // ── Target info ───────────────────────────────────────────────────────────
-    auto* tgtGrp  = new QGroupBox("타겟 정보", page);
+    auto* tgtGrp  = new QGroupBox("Target Info", page);
     auto* tgtForm = new QFormLayout(tgtGrp);
     tgtForm->setLabelAlignment(Qt::AlignRight);
     tgtForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     targetNameEdit_ = new QLineEdit("MYSAT", tgtGrp);
-    targetNameEdit_->setPlaceholderText("대문자  예: MYSAT");
+    targetNameEdit_->setPlaceholderText("UPPERCASE, e.g. MYSAT");
     namespaceEdit_  = new QLineEdit("MySat", tgtGrp);
-    namespaceEdit_->setPlaceholderText("CamelCase  예: MySat");
+    namespaceEdit_->setPlaceholderText("CamelCase, e.g. MySat");
 
     targetPreviewLabel_ = new QLabel("", tgtGrp);
     targetPreviewLabel_->setObjectName("SubLabel");
 
-    tgtForm->addRow("타겟 이름:",     targetNameEdit_);
-    tgtForm->addRow("네임스페이스:", namespaceEdit_);
-    tgtForm->addRow("경로 미리보기:", targetPreviewLabel_);
+    tgtForm->addRow("Target name:", targetNameEdit_);
+    tgtForm->addRow("Namespace:",   namespaceEdit_);
+    tgtForm->addRow("Path preview:", targetPreviewLabel_);
 
     connect(targetNameEdit_, &QLineEdit::textChanged,
             this, &PluginWizard::onTargetNameChanged);
 
     // ── Interface ─────────────────────────────────────────────────────────────
-    auto* ifGrp  = new QGroupBox("인터페이스", page);
+    auto* ifGrp  = new QGroupBox("Interface", page);
     auto* ifForm = new QFormLayout(ifGrp);
     ifForm->setLabelAlignment(Qt::AlignRight);
     ifForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
@@ -176,16 +176,16 @@ void PluginWizard::buildTargetPage()
     hostRow->addWidget(new QLabel("Port:", ifGrp));
     hostRow->addWidget(ifacePortEdit_);
 
-    ifForm->addRow("타입:",       ifaceTypeCombo_);
+    ifForm->addRow("Type:",       ifaceTypeCombo_);
     ifForm->addRow("Host:Port:",  hostRow);
 
     // ── Template ──────────────────────────────────────────────────────────────
-    auto* tmplGrp    = new QGroupBox("CMD/TLM 템플릿", page);
+    auto* tmplGrp    = new QGroupBox("CMD/TLM Template", page);
     auto* tmplLayout = new QVBoxLayout(tmplGrp);
     tmplGroup_     = new QButtonGroup(this);
-    tmplGenericBtn_ = new QRadioButton("Generic  (기본 구조)", tmplGrp);
+    tmplGenericBtn_ = new QRadioButton("Generic  (basic structure)", tmplGrp);
     tmplCcsdsBtn_   = new QRadioButton("CCSDS Satellite  (Primary/Secondary Header)", tmplGrp);
-    tmplGseBtn_     = new QRadioButton("GSE Interface  (TCP/IP 지상 지원 장비)", tmplGrp);
+    tmplGseBtn_     = new QRadioButton("GSE Interface  (TCP/IP ground support equipment)", tmplGrp);
     tmplGenericBtn_->setChecked(true);
     tmplGroup_->addButton(tmplGenericBtn_, 0);
     tmplGroup_->addButton(tmplCcsdsBtn_,   1);
@@ -210,8 +210,8 @@ void PluginWizard::buildPreviewPage()
     layout->setContentsMargins(20, 12, 20, 8);
 
     auto* hint = new QLabel(
-        "생성될 파일을 미리 보고 편집할 수 있습니다. "
-        "각 탭의 내용이 원격에 직접 저장됩니다.", page);
+        "Preview and edit the files that will be created. "
+        "Each tab's content is written directly to the remote.", page);
     hint->setObjectName("SubLabel");
     hint->setWordWrap(true);
     layout->addWidget(hint);
@@ -233,9 +233,9 @@ void PluginWizard::goToStep(int step)
     updateNavButtons();
 
     const QStringList headers = {
-        "1 / 3  —  플러그인 기본 정보",
-        "2 / 3  —  타겟 및 인터페이스 설정",
-        "3 / 3  —  파일 미리보기 및 편집"
+        "1 / 3  -  Plugin Basics",
+        "2 / 3  -  Target & Interface",
+        "3 / 3  -  Preview & Edit Files"
     };
     if (step < headers.size())
         stepIndicator_->setText(headers[step]);
@@ -262,13 +262,13 @@ void PluginWizard::onNext()
     if (currentStep_ == 0) {
         const QString pname = pluginNameEdit_->text().trimmed();
         if (pname.isEmpty() || pname.contains(' ') || pname.contains('\'')) {
-            QMessageBox::warning(this, "입력 오류",
-                "플러그인 이름은 공백/작은따옴표 없이 소문자-하이픈 형식으로 입력하세요.");
+            QMessageBox::warning(this, "Invalid Input",
+                "Enter the plugin name in lowercase-hyphen form, without spaces or single quotes.");
             return;
         }
     } else if (currentStep_ == 1) {
         if (targetNameEdit_->text().trimmed().isEmpty()) {
-            QMessageBox::warning(this, "입력 오류", "타겟 이름을 입력하세요.");
+            QMessageBox::warning(this, "Invalid Input", "Enter a target name.");
             return;
         }
     }
@@ -277,8 +277,8 @@ void PluginWizard::onNext()
 
 void PluginWizard::onFinish()
 {
-    if (QMessageBox::question(this, "생성 확인",
-            QString("다음 경로에 플러그인을 생성합니다:\n\n%1/%2\n\n계속하시겠습니까?")
+    if (QMessageBox::question(this, "Confirm Create",
+            QString("The plugin will be created at:\n\n%1/%2\n\nContinue?")
                 .arg(remoteRootEdit_->text().trimmed()).arg(gemName()),
             QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
         return;

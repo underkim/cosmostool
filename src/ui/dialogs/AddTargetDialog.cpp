@@ -17,7 +17,7 @@ AddTargetDialog::AddTargetDialog(
     , vm_(vm)
     , pluginRoot_(pluginRoot)
 {
-    setWindowTitle("타겟 추가");
+    setWindowTitle("Add Target");
     setMinimumSize(480, 360);
 
     auto* root = new QVBoxLayout(this);
@@ -25,35 +25,35 @@ AddTargetDialog::AddTargetDialog(
     root->setSpacing(12);
 
     auto* title = new QLabel(
-        QString("플러그인에 타겟 추가:\n<small>%1</small>").arg(pluginRoot), this);
+        QString("Add a target to the plugin:\n<small>%1</small>").arg(pluginRoot), this);
     title->setTextFormat(Qt::RichText);
     title->setWordWrap(true);
     root->addWidget(title);
 
     // ── Form ──────────────────────────────────────────────────────────────────
-    auto* grp  = new QGroupBox("타겟 정보", this);
+    auto* grp  = new QGroupBox("Target Info", this);
     auto* form = new QFormLayout(grp);
     form->setLabelAlignment(Qt::AlignRight);
     form->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     targetNameEdit_ = new QLineEdit("NEWTARGET", grp);
-    targetNameEdit_->setPlaceholderText("대문자  예: SENSOR");
+    targetNameEdit_->setPlaceholderText("UPPERCASE, e.g. SENSOR");
     namespaceEdit_  = new QLineEdit("NewTarget", grp);
-    namespaceEdit_->setPlaceholderText("CamelCase  예: Sensor");
+    namespaceEdit_->setPlaceholderText("CamelCase, e.g. Sensor");
 
     previewLabel_ = new QLabel("", grp);
     previewLabel_->setObjectName("SubLabel");
 
-    form->addRow("타겟 이름:",     targetNameEdit_);
-    form->addRow("네임스페이스:", namespaceEdit_);
-    form->addRow("생성 경로:",    previewLabel_);
+    form->addRow("Target name:", targetNameEdit_);
+    form->addRow("Namespace:",   namespaceEdit_);
+    form->addRow("Created path:", previewLabel_);
     root->addWidget(grp);
 
     // ── Template ──────────────────────────────────────────────────────────────
-    auto* tmplGrp    = new QGroupBox("CMD/TLM 템플릿", this);
+    auto* tmplGrp    = new QGroupBox("CMD/TLM Template", this);
     auto* tmplLayout = new QVBoxLayout(tmplGrp);
     tmplGroup_      = new QButtonGroup(this);
-    tmplGenericBtn_ = new QRadioButton("Generic  (기본 구조)", tmplGrp);
+    tmplGenericBtn_ = new QRadioButton("Generic  (basic structure)", tmplGrp);
     tmplCcsdsBtn_   = new QRadioButton("CCSDS Satellite  (Primary/Secondary Header)", tmplGrp);
     tmplGenericBtn_->setChecked(true);
     tmplGroup_->addButton(tmplGenericBtn_, 0);
@@ -70,8 +70,8 @@ AddTargetDialog::AddTargetDialog(
     root->addStretch();
 
     auto* btnRow  = new QHBoxLayout;
-    createBtn_    = new QPushButton("✅ 타겟 추가", this);
-    auto* cancelBtn = new QPushButton("취소", this);
+    createBtn_    = new QPushButton("Add Target", this);
+    auto* cancelBtn = new QPushButton("Cancel", this);
     createBtn_->setObjectName("PrimaryButton");
     btnRow->addStretch();
     btnRow->addWidget(cancelBtn);
@@ -88,18 +88,18 @@ AddTargetDialog::AddTargetDialog(
             this, [this] {
                 const bool busy = vm_.isBusy();
                 createBtn_->setEnabled(!busy);
-                createBtn_->setText(busy ? "추가 중…" : "✅ 타겟 추가");
+                createBtn_->setText(busy ? "Adding…" : "Add Target");
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::targetAdded,
             this, [this](const QString& tname, bool ok, const QString& detail) {
                 statusLabel_->setText(detail);
                 if (ok) {
-                    QMessageBox::information(this, "타겟 추가 완료",
-                        QString("타겟 '%1'이 추가되었습니다.\n\n%2").arg(tname).arg(detail));
+                    QMessageBox::information(this, "Target Added",
+                        QString("Target '%1' was added.\n\n%2").arg(tname).arg(detail));
                     accept();
                 } else {
-                    QMessageBox::warning(this, "타겟 추가 실패", detail);
+                    QMessageBox::warning(this, "Add Target Failed", detail);
                 }
             });
 
@@ -124,17 +124,17 @@ void AddTargetDialog::onCreate()
     const QString ns    = namespaceEdit_->text().trimmed();
 
     if (tname.isEmpty()) {
-        QMessageBox::warning(this, "입력 오류", "타겟 이름을 입력하세요.");
+        QMessageBox::warning(this, "Invalid Input", "Enter a target name.");
         return;
     }
     if (tname.contains('\'') || tname.contains(' ')) {
-        QMessageBox::warning(this, "입력 오류",
-            "타겟 이름에 공백이나 작은따옴표를 사용할 수 없습니다.");
+        QMessageBox::warning(this, "Invalid Input",
+            "Target names cannot contain spaces or single quotes.");
         return;
     }
 
-    if (QMessageBox::question(this, "타겟 추가 확인",
-            QString("다음 경로에 타겟 '%1'을 추가합니다:\n%2/targets/%1\n\n계속하시겠습니까?")
+    if (QMessageBox::question(this, "Confirm Add Target",
+            QString("Target '%1' will be added at:\n%2/targets/%1\n\nContinue?")
                 .arg(tname).arg(pluginRoot_),
             QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
         return;

@@ -30,9 +30,17 @@ void DoctorView::setupUi()
     title->setFont(tf); title->setObjectName("PageTitle");
     root->addWidget(title);
 
+    // ── Connection hint ───────────────────────────────────────────────────────
+    auto* hint = new QLabel(
+        "Checks run on the connected environment - connect first "
+        "(Home > Connect) for meaningful results.", this);
+    hint->setObjectName("SubLabel");
+    hint->setWordWrap(true);
+    root->addWidget(hint);
+
     // ── Action row ────────────────────────────────────────────────────────────
     auto* actionRow = new QHBoxLayout;
-    runBtn_     = new QPushButton("🩺  Run Health Checks", this);
+    runBtn_     = new QPushButton("Run Health Checks", this);
     runBtn_->setFixedHeight(36);
     runBtn_->setObjectName("PrimaryButton");
     progressBar_ = new QProgressBar(this);
@@ -67,7 +75,8 @@ void DoctorView::setupUi()
     suggestionLabel_->setWordWrap(true);
     suggestionLabel_->setObjectName("SubLabel");
     suggLayout->addWidget(suggestionLabel_);
-    suggGroup->setFixedHeight(80);
+    // Minimum (not fixed) so long suggestions wrap and grow instead of clipping.
+    suggGroup->setMinimumHeight(80);
     root->addWidget(suggGroup);
 }
 
@@ -90,7 +99,7 @@ void DoctorView::bindViewModel()
                 progressBar_->setVisible(false);
                 runBtn_->setEnabled(true);
                 summaryLabel_->setText(
-                    QString("✅ %1 passed   ⚠️ %2 warnings   ❌ %3 failed")
+                    QString("%1 passed, %2 warnings, %3 failed")
                         .arg(vm_.passCount())
                         .arg(vm_.warningCount())
                         .arg(vm_.failCount()));

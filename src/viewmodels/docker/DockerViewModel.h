@@ -49,6 +49,7 @@ public:
 
     [[nodiscard]] ContainerTableModel* containerModel() const noexcept;
     [[nodiscard]] QString              dockerVersion()  const noexcept;
+    [[nodiscard]] bool                 isConnected()    const noexcept;
 
 public slots:
     void refresh();
@@ -59,6 +60,7 @@ public slots:
     void fetchLogs(const QString& nameOrId, int tail = 200);
 
 signals:
+    void connectionChanged();
     void dockerVersionChanged();
     void logsReady(const QString& nameOrId, const QString& logs);
     void containerActionCompleted(const QString& nameOrId, bool success);

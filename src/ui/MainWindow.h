@@ -15,6 +15,7 @@
 #include <QStackedWidget>
 #include <QListWidget>
 #include <QLabel>
+#include <QPushButton>
 #include <QStatusBar>
 
 namespace OpenC3::UI {
@@ -73,8 +74,9 @@ private:
     QListWidget*    navRail_{nullptr};
     QStackedWidget* contentStack_{nullptr};
 
-    QLabel* connectionLabel_{nullptr};
-    QLabel* dockerLabel_{nullptr};
+    // Clickable: opens the connection dialog from anywhere in the app.
+    QPushButton* connectionButton_{nullptr};
+    QLabel*      dockerLabel_{nullptr};
 };
 
 } // namespace OpenC3::UI

@@ -30,7 +30,7 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
 
     searchLayout->addWidget(new QLabel("🔍", searchBar));
     searchEdit_ = new QLineEdit(searchBar);
-    searchEdit_->setPlaceholderText("검색…");
+    searchEdit_->setPlaceholderText("Search…");
     searchEdit_->setClearButtonEnabled(true);
     searchLayout->addWidget(searchEdit_);
 
@@ -45,7 +45,7 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
     if (f.open(QFile::ReadOnly | QFile::Text))
         browser_->setHtml(QString::fromUtf8(f.readAll()));
     else
-        browser_->setPlainText("도움말 파일을 불러올 수 없습니다.");
+        browser_->setPlainText("Could not load the help file.");
 
     root->addWidget(browser_);
 
@@ -53,7 +53,7 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
     auto* footer = new QWidget(this);
     auto* footerLayout = new QHBoxLayout(footer);
     footerLayout->setContentsMargins(8, 6, 8, 6);
-    auto* closeBtn = new QPushButton("닫기", footer);
+    auto* closeBtn = new QPushButton("Close", footer);
     closeBtn->setFixedWidth(80);
     footerLayout->addStretch();
     footerLayout->addWidget(closeBtn);
