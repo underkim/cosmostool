@@ -260,6 +260,13 @@ void PluginView::setupUi()
     pluginSummaryLabel_->setWordWrap(true);
     root->addWidget(pluginSummaryLabel_);
 
+    workflowHintLabel_ = new QLabel(
+        "Recommended flow: New Plugin → select plugin → Start CMD/TLM Edit → Check File → Build → Install.",
+        this);
+    workflowHintLabel_->setObjectName("SubLabel");
+    workflowHintLabel_->setWordWrap(true);
+    root->addWidget(workflowHintLabel_);
+
     auto* mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->setObjectName("PluginWorkbench");
 
@@ -1339,6 +1346,34 @@ void PluginView::updateActionHints()
         statusLabel_->setText("Select and open a plugin file to enable file actions. Advanced file actions are grouped under Validate, Insert, and Structure menus.");
 
     updateGroupedActionState();
+    updateWorkflowHint();
+}
+
+
+void PluginView::updateWorkflowHint()
+{
+    if (!workflowHintLabel_ || !tableView_ || !tableView_->selectionModel())
+        return;
+
+    const bool hasPlugin = tableView_->selectionModel()->hasSelection();
+    const bool hasOpenFile = !currentComponentPath_.isEmpty();
+    const bool cmdTlm = isCmdTlmFile(currentComponentPath_);
+
+    if (!hasPlugin) {
+        workflowHintLabel_->setText(
+            "Start here: create or refresh plugins, then select a plugin to reveal build/install actions.");
+        return;
+    }
+
+    if (!hasOpenFile) {
+        workflowHintLabel_->setText(
+            "Next: choose a plugin file. Use Start CMD/TLM Edit for the main definition workflow, or open any file for review.");
+        return;
+    }
+
+    workflowHintLabel_->setText(cmdTlm
+        ? "Next: edit CMD/TLM, use Check File, save changes, then build and install the plugin."
+        : "Next: review or edit this text file, save changes, then return to the plugin actions when ready.");
 }
 
 void PluginView::updateComponentEmptyState()

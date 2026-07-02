@@ -88,6 +88,7 @@ private:
     void updateComponentEmptyState();
     void updateComponentPathLabel();
     void updateGroupedActionState();
+    void updateWorkflowHint();
     [[nodiscard]] bool confirmDiscardUnsavedChanges();
     [[nodiscard]] bool confirmSaveAfterValidation();
 
@@ -112,6 +113,7 @@ private:
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
     QLabel*      pluginSummaryLabel_{nullptr};
+    QLabel*      workflowHintLabel_{nullptr};
     QTabWidget*  detailTabs_{nullptr};
     QTabWidget*  componentEditorTabs_{nullptr};
     QTextEdit*   detailEdit_{nullptr};

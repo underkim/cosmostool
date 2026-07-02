@@ -52,6 +52,7 @@ private:
     QPushButton* connectBtn_{nullptr};
     QPushButton* disconnectBtn_{nullptr};
     QLabel*      statusLabel_{nullptr};
+    QLabel*      profileHintLabel_{nullptr};
 
     // Right pane — common fields
     QLineEdit*      nameEdit_{nullptr};
