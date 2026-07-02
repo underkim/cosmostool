@@ -19,6 +19,8 @@
 #include <QSplitter>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QToolButton>
+#include <QMenu>
 #include <QVBoxLayout>
 
 namespace OpenC3::UI::Views {
@@ -230,13 +232,21 @@ void PluginView::setupUi()
     removeBtn_->setMinimumWidth(96);
     removeBtn_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
+    selectedPluginActions_ = new QWidget(this);
+    auto* selectedPluginActionsLayout = new QHBoxLayout(selectedPluginActions_);
+    selectedPluginActionsLayout->setContentsMargins(0, 0, 0, 0);
+    selectedPluginActionsLayout->setSpacing(8);
+    selectedPluginActionsLayout->addWidget(addTargetBtn_);
+    selectedPluginActionsLayout->addWidget(validateBtn_);
+    selectedPluginActionsLayout->addWidget(buildBtn_);
+    selectedPluginActionsLayout->addWidget(installBtn_);
+    selectedPluginActionsLayout->addWidget(removeBtn_);
+    selectedPluginActions_->setVisible(false);
+
     toolbarBlock->addWidget(scaffoldBtn_);
-    toolbarBlock->addWidget(addTargetBtn_);
-    toolbarBlock->addWidget(validateBtn_);
-    toolbarBlock->addWidget(buildBtn_);
-    toolbarBlock->addWidget(installBtn_);
-    toolbarBlock->addSpacing(8);
     toolbarBlock->addWidget(refreshBtn_);
+    toolbarBlock->addSpacing(8);
+    toolbarBlock->addWidget(selectedPluginActions_);
     toolbarBlock->addStretch();
     toolbarBlock->addWidget(progressBar_);
     root->addLayout(toolbarBlock);
@@ -307,11 +317,6 @@ void PluginView::setupUi()
     auto* detailTab = new QWidget(detailTabs_);
     auto* detailLayout = new QVBoxLayout(detailTab);
     detailLayout->setContentsMargins(8, 8, 8, 8);
-    auto* overviewActionRow = new QHBoxLayout;
-    overviewActionRow->addStretch();
-    overviewActionRow->addWidget(removeBtn_);
-    detailLayout->addLayout(overviewActionRow);
-
     detailEdit_ = new QTextEdit(detailTab);
     detailEdit_->setReadOnly(true);
     detailEdit_->setObjectName("LogArea");
@@ -383,6 +388,33 @@ void PluginView::setupUi()
     toggleReferenceBtn_->setMinimumWidth(120);
     toggleReferenceBtn_->setCheckable(true);
     toggleReferenceBtn_->setToolTip("Show or hide the CMD/TLM quick reference side panel.");
+
+    validateMenuBtn_ = new QToolButton(editorPane);
+    validateMenuBtn_->setText("Validate ▾");
+    validateMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+    auto* validateMenu = new QMenu(validateMenuBtn_);
+    validateOfflineAction_ = validateMenu->addAction("Check Offline");
+    validateMenuBtn_->setMenu(validateMenu);
+
+    insertMenuBtn_ = new QToolButton(editorPane);
+    insertMenuBtn_->setText("Insert ▾");
+    insertMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+    auto* insertMenu = new QMenu(insertMenuBtn_);
+    insertCmdAction_ = insertMenu->addAction("+ COMMAND");
+    insertTlmAction_ = insertMenu->addAction("+ TELEMETRY");
+    addFieldAction_ = insertMenu->addAction("Add Field");
+    insertMenuBtn_->setMenu(insertMenu);
+
+    structureMenuBtn_ = new QToolButton(editorPane);
+    structureMenuBtn_->setText("Structure ▾");
+    structureMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+    auto* structureMenu = new QMenu(structureMenuBtn_);
+    addStructureFieldAction_ = structureMenu->addAction("Add Row");
+    deleteStructureFieldAction_ = structureMenu->addAction("Delete Row");
+    refreshStructureAction_ = structureMenu->addAction("Refresh Structure");
+    applyStructureAction_ = structureMenu->addAction("Apply Selected");
+    structureMenuBtn_->setMenu(structureMenu);
+
     auto* fileOpenRow = new QHBoxLayout;
     fileOpenRow->setSpacing(6);
     fileOpenRow->addWidget(openComponentBtn_);
@@ -422,12 +454,12 @@ void PluginView::setupUi()
     componentPathRow->addWidget(componentPathLabel_, 1);
     componentActionRow->addWidget(saveComponentBtn_);
     componentActionRow->addWidget(validateComponentBtn_);
-    componentActionRow->addWidget(validateOfflineBtn_);
+    componentActionRow->addWidget(validateMenuBtn_);
     componentActionRow->addWidget(openInCmdTlmBtn_);
     componentActionRow->addWidget(startCmdTlmEditBtn_);
     componentActionRow->addStretch();
-    componentEditRow->addWidget(insertCmdBtn_);
-    componentEditRow->addWidget(insertTlmBtn_);
+    componentEditRow->addWidget(insertMenuBtn_);
+    componentEditRow->addWidget(structureMenuBtn_);
     componentEditRow->addStretch();
     componentEditRow->addWidget(toggleReferenceBtn_);
     componentToolbarBlock->addLayout(componentPathRow);
@@ -555,10 +587,15 @@ void PluginView::setupUi()
     editorLayout->addWidget(componentDiagnostics_);
     componentLayout->addWidget(editorPane, 1);
     detailTabs_->addTab(componentTab, "File");
-    setCmdTlmActionsVisible(false);
+    validateOfflineBtn_->setVisible(false);
+    insertCmdBtn_->setVisible(false);
+    insertTlmBtn_->setVisible(false);
     addFieldBtn_->setVisible(false);
+    addStructureFieldBtn_->setVisible(false);
+    deleteStructureFieldBtn_->setVisible(false);
     refreshStructureBtn_->setVisible(false);
     applyStructureBtn_->setVisible(false);
+    setCmdTlmActionsVisible(false);
     startCmdTlmEditBtn_->setVisible(false);
 
     mainSplitter->addWidget(leftPane);
@@ -589,15 +626,23 @@ void PluginView::bindViewModel()
     connect(saveComponentBtn_, &QPushButton::clicked, this, &PluginView::onSaveComponentClicked);
     connect(validateComponentBtn_, &QPushButton::clicked, this, &PluginView::onValidateComponentClicked);
     connect(validateOfflineBtn_, &QPushButton::clicked, this, &PluginView::onValidateOfflineClicked);
+    connect(validateOfflineAction_, &QAction::triggered, this, &PluginView::onValidateOfflineClicked);
     connect(openInCmdTlmBtn_, &QPushButton::clicked, this, &PluginView::onOpenInCmdTlmClicked);
     connect(startCmdTlmEditBtn_, &QPushButton::clicked, this, &PluginView::onStartCmdTlmEditClicked);
     connect(insertCmdBtn_, &QPushButton::clicked, this, &PluginView::onInsertCmdClicked);
+    connect(insertCmdAction_, &QAction::triggered, this, &PluginView::onInsertCmdClicked);
     connect(insertTlmBtn_, &QPushButton::clicked, this, &PluginView::onInsertTlmClicked);
+    connect(insertTlmAction_, &QAction::triggered, this, &PluginView::onInsertTlmClicked);
     connect(addFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddFieldClicked);
+    connect(addFieldAction_, &QAction::triggered, this, &PluginView::onAddFieldClicked);
     connect(addStructureFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddStructureFieldClicked);
+    connect(addStructureFieldAction_, &QAction::triggered, this, &PluginView::onAddStructureFieldClicked);
     connect(deleteStructureFieldBtn_, &QPushButton::clicked, this, &PluginView::onDeleteStructureFieldClicked);
+    connect(deleteStructureFieldAction_, &QAction::triggered, this, &PluginView::onDeleteStructureFieldClicked);
     connect(refreshStructureBtn_, &QPushButton::clicked, this, &PluginView::onRefreshStructureClicked);
+    connect(refreshStructureAction_, &QAction::triggered, this, &PluginView::onRefreshStructureClicked);
     connect(applyStructureBtn_, &QPushButton::clicked, this, &PluginView::onApplyStructureClicked);
+    connect(applyStructureAction_, &QAction::triggered, this, &PluginView::onApplyStructureClicked);
     connect(applyBlockBtn_, &QPushButton::clicked, this, &PluginView::onApplyBlockClicked);
     connect(blockSelectorCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PluginView::onBlockSelectionChanged);
@@ -614,6 +659,7 @@ void PluginView::bindViewModel()
                 const auto selected = structureTable_->selectionModel()->selectedRows();
                 if (!selected.isEmpty())
                     focusEditorLineForStructureRow(selected.first().row());
+                updateGroupedActionState();
             });
     connect(structureTable_, &QTableWidget::cellChanged,
             this, &PluginView::onStructureCellChanged);
@@ -1288,9 +1334,11 @@ void PluginView::updateActionHints()
     applyStructureBtn_->setToolTip(!cmdTlm ? fileReason : "Apply the selected structure row to the source text.");
 
     if (!hasPlugin)
-        statusLabel_->setText("Select a plugin folder to enable plugin actions.");
+        statusLabel_->setText("Select a plugin folder to enable plugin actions. Plugin-specific actions are hidden until a plugin is selected.");
     else if (!hasOpenFile)
-        statusLabel_->setText("Select and open a plugin file to enable file actions.");
+        statusLabel_->setText("Select and open a plugin file to enable file actions. Advanced file actions are grouped under Validate, Insert, and Structure menus.");
+
+    updateGroupedActionState();
 }
 
 void PluginView::updateComponentEmptyState()
@@ -1692,12 +1740,10 @@ void PluginView::setComponentDirty(bool dirty)
 void PluginView::setCmdTlmActionsVisible(bool visible)
 {
     const QList<QWidget*> widgets = {
-        validateComponentBtn_,
         openInCmdTlmBtn_,
-        insertCmdBtn_,
-        insertTlmBtn_,
-        addStructureFieldBtn_,
-        deleteStructureFieldBtn_,
+        startCmdTlmEditBtn_,
+        insertMenuBtn_,
+        structureMenuBtn_,
         toggleReferenceBtn_
     };
 
@@ -1714,6 +1760,48 @@ void PluginView::setCmdTlmActionsVisible(bool visible)
     if (guideGroup_) {
         guideGroup_->setVisible(visible && toggleReferenceBtn_ && toggleReferenceBtn_->isChecked());
     }
+    updateGroupedActionState();
+}
+
+void PluginView::updateGroupedActionState()
+{
+    const bool hasPlugin = tableView_ && tableView_->selectionModel()->hasSelection();
+    if (selectedPluginActions_)
+        selectedPluginActions_->setVisible(hasPlugin);
+
+    if (validateOfflineAction_)
+        validateOfflineAction_->setEnabled(validateOfflineBtn_ && validateOfflineBtn_->isEnabled());
+    if (validateMenuBtn_)
+        validateMenuBtn_->setEnabled(validateOfflineAction_ && validateOfflineAction_->isEnabled());
+
+    if (insertCmdAction_)
+        insertCmdAction_->setEnabled(insertCmdBtn_ && insertCmdBtn_->isEnabled());
+    if (insertTlmAction_)
+        insertTlmAction_->setEnabled(insertTlmBtn_ && insertTlmBtn_->isEnabled());
+    if (addFieldAction_)
+        addFieldAction_->setEnabled(addFieldBtn_ && addFieldBtn_->isEnabled());
+
+    const bool anyInsertEnabled = (insertCmdAction_ && insertCmdAction_->isEnabled())
+        || (insertTlmAction_ && insertTlmAction_->isEnabled())
+        || (addFieldAction_ && addFieldAction_->isEnabled());
+    if (insertMenuBtn_)
+        insertMenuBtn_->setEnabled(anyInsertEnabled);
+
+    if (addStructureFieldAction_)
+        addStructureFieldAction_->setEnabled(addStructureFieldBtn_ && addStructureFieldBtn_->isEnabled());
+    if (deleteStructureFieldAction_)
+        deleteStructureFieldAction_->setEnabled(deleteStructureFieldBtn_ && deleteStructureFieldBtn_->isEnabled());
+    if (refreshStructureAction_)
+        refreshStructureAction_->setEnabled(refreshStructureBtn_ && refreshStructureBtn_->isEnabled());
+    if (applyStructureAction_)
+        applyStructureAction_->setEnabled(applyStructureBtn_ && applyStructureBtn_->isEnabled());
+
+    const bool anyStructureEnabled = (addStructureFieldAction_ && addStructureFieldAction_->isEnabled())
+        || (deleteStructureFieldAction_ && deleteStructureFieldAction_->isEnabled())
+        || (refreshStructureAction_ && refreshStructureAction_->isEnabled())
+        || (applyStructureAction_ && applyStructureAction_->isEnabled());
+    if (structureMenuBtn_)
+        structureMenuBtn_->setEnabled(anyStructureEnabled);
 }
 
 void PluginView::updateComponentPathLabel()

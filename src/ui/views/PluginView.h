@@ -8,6 +8,7 @@
 #include <QWidget>
 #include <QTableView>
 #include <QPushButton>
+#include <QToolButton>
 #include <QLabel>
 #include <QProgressBar>
 #include <QTextEdit>
@@ -18,6 +19,7 @@
 #include <QLineEdit>
 #include <QGroupBox>
 #include <QVector>
+#include <QAction>
 
 namespace OpenC3::UI::Widgets { class CmdTlmHighlighter; }
 
@@ -85,6 +87,7 @@ private:
     void updateActionHints();
     void updateComponentEmptyState();
     void updateComponentPathLabel();
+    void updateGroupedActionState();
     [[nodiscard]] bool confirmDiscardUnsavedChanges();
     [[nodiscard]] bool confirmSaveAfterValidation();
 
@@ -105,6 +108,7 @@ private:
     QPushButton* buildBtn_{nullptr};
     QPushButton* scaffoldBtn_{nullptr};
     QPushButton* addTargetBtn_{nullptr};
+    QWidget*     selectedPluginActions_{nullptr};
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
     QLabel*      pluginSummaryLabel_{nullptr};
@@ -132,15 +136,26 @@ private:
     QPushButton* saveComponentBtn_{nullptr};
     QPushButton* validateComponentBtn_{nullptr};
     QPushButton* validateOfflineBtn_{nullptr};
+    QToolButton* validateMenuBtn_{nullptr};
+    QAction*     validateOfflineAction_{nullptr};
     QPushButton* openInCmdTlmBtn_{nullptr};
     QPushButton* startCmdTlmEditBtn_{nullptr};
     QPushButton* insertCmdBtn_{nullptr};
     QPushButton* insertTlmBtn_{nullptr};
     QPushButton* addFieldBtn_{nullptr};
+    QToolButton* insertMenuBtn_{nullptr};
+    QAction*     insertCmdAction_{nullptr};
+    QAction*     insertTlmAction_{nullptr};
+    QAction*     addFieldAction_{nullptr};
     QPushButton* addStructureFieldBtn_{nullptr};
     QPushButton* deleteStructureFieldBtn_{nullptr};
     QPushButton* refreshStructureBtn_{nullptr};
     QPushButton* applyStructureBtn_{nullptr};
+    QToolButton* structureMenuBtn_{nullptr};
+    QAction*     addStructureFieldAction_{nullptr};
+    QAction*     deleteStructureFieldAction_{nullptr};
+    QAction*     refreshStructureAction_{nullptr};
+    QAction*     applyStructureAction_{nullptr};
     Widgets::CmdTlmHighlighter* highlighter_{nullptr};
     QString     currentPluginRoot_;
     QString     currentComponentPath_;
