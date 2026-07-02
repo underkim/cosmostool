@@ -6,7 +6,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QFont>
-#include <QTimer>
 #include <QUuid>
 #include <QProcess>
 #include <QStringList>
@@ -106,15 +105,17 @@ ConnectionDialog::ConnectionDialog(
 
     vm_.loadProfiles();
 
-    // Pre-select the default profile (if any), then auto-connect once the
-    // event loop is running so the dialog is fully visible before we start.
+    // Pre-select the default profile (if any) but wait for the user to
+    // explicitly confirm the connection. If fast startup is desired, add a
+    // separate "Auto-connect default profile" setting instead of connecting
+    // implicitly from this dialog.
+    bool selectedDefaultProfile = false;
     const int n = profileCombo_->count();
     for (int i = 0; i < n; ++i) {
         const auto* p = vm_.profileModel()->profileAt(i);
         if (p && p->isDefault) {
             profileCombo_->setCurrentIndex(i);
-            // Defer the actual connect until exec() has started its event loop.
-            QTimer::singleShot(0, this, &ConnectionDialog::onConnectClicked);
+            selectedDefaultProfile = true;
             break;
         }
     }
@@ -141,6 +142,10 @@ ConnectionDialog::ConnectionDialog(
         connectBtn_->setEnabled(false);
     } else {
         quickWslBtn_->setVisible(false);
+        if (selectedDefaultProfile) {
+            statusLabel_->setText(
+                "Default profile selected. Click Connect to continue.");
+        }
     }
 }
 
