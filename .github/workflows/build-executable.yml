@@ -24,7 +24,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build pkg-config \
-            qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev libssl-dev
+            qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev libssl-dev \
+            libspdlog-dev nlohmann-json3-dev libssh2-1-dev
 
       - name: Auto-detect and build
         shell: bash
@@ -36,8 +37,11 @@ jobs:
 
           if [ -f CMakeLists.txt ]; then
             echo "Detected CMake project"
+            # spdlog/nlohmann_json/libssh2 are installed above, so
+            # cmake/Dependencies.cmake's find_package() checks pick them up
+            # directly instead of building them from source via FetchContent.
             cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-            cmake --build build --config Release
+            cmake --build build --config Release --parallel
           elif [ -f Makefile ] || [ -f makefile ]; then
             echo "Detected Makefile project"
             make -j"$(nproc)"
@@ -116,6 +120,18 @@ jobs:
       - name: Enable MSVC developer environment
         uses: ilammy/msvc-dev-cmd@v1
 
+      # No system spdlog/nlohmann_json/libssh2 packages are installed on this
+      # runner, so cmake/Dependencies.cmake falls back to building all three
+      # from source via FetchContent on every run - the bulk of this job's
+      # time. Cache that output (keyed on the file that pins their versions)
+      # so unrelated app-source-only changes reuse it instead of rebuilding
+      # spdlog/libssh2 from scratch each time.
+      - name: Cache CMake FetchContent dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: ${{ runner.os }}-msvc-fetchcontent-${{ hashFiles('cmake/Dependencies.cmake') }}
+
       - name: Auto-detect and build
         shell: pwsh
         run: |
@@ -127,7 +143,11 @@ jobs:
           if (Test-Path "CMakeLists.txt") {
             Write-Host "Detected CMake project"
             cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-            cmake --build build --config Release
+            # MSBuild does not parallelize across projects by default (unlike
+            # Ninja on the Linux job), so a from-scratch build of the app plus
+            # its vendored C++ dependencies ran effectively single-threaded.
+            # --parallel lets it use all cores on the runner.
+            cmake --build build --config Release --parallel
           } elseif (Test-Path "go.mod") {
             Write-Host "Detected Go project"
             New-Item -ItemType Directory -Force -Path build | Out-Null
