@@ -197,7 +197,7 @@ void PluginView::setupUi()
 
     scaffoldBtn_->setText("New Plugin");
     addTargetBtn_->setText("Add Target");
-    validateBtn_->setText("Validate Build");
+    validateBtn_->setText("Check Plugin");
     buildBtn_->setText("Build");
     installBtn_->setText("Install");
     refreshBtn_->setText(QString::fromUtf8("↻"));
@@ -208,7 +208,7 @@ void PluginView::setupUi()
     addTargetBtn_->setToolTip(
         "Add a target to the selected local plugin folder. No connection required; plugin selection required; no file selection required.");
     validateBtn_->setToolTip(
-        "Validate the selected plugin build with openc3cli. Connection required; checks the local selected plugin; no file selection required.");
+        "Check the selected plugin with openc3cli before building or installing.");
     buildBtn_->setToolTip(
         "Build the selected local plugin into a gem. No connection required; plugin selection required; save any open file first.");
     installBtn_->setToolTip(
@@ -261,7 +261,7 @@ void PluginView::setupUi()
     root->addWidget(pluginSummaryLabel_);
 
     workflowHintLabel_ = new QLabel(
-        "Recommended flow: New Plugin → select plugin → Start CMD/TLM Edit → Check File → Build → Install.",
+        "Workflow: create or refresh a plugin, select it, edit CMD/TLM, check, save, build, install.",
         this);
     workflowHintLabel_->setObjectName("SubLabel");
     workflowHintLabel_->setWordWrap(true);
@@ -373,9 +373,9 @@ void PluginView::setupUi()
         "Run the full per-rule offline validator on this file in the Validator view "
         "(works for cmd_tlm, screen, plugin.txt, target.txt).");
     openInCmdTlmBtn_->setText("Open in CMD/TLM Editor");
-    startCmdTlmEditBtn_->setText("Start CMD/TLM Edit");
+    startCmdTlmEditBtn_->setText("Edit CMD/TLM");
     startCmdTlmEditBtn_->setToolTip(
-        "Open the first local CMD/TLM file for the selected plugin. No connection required; plugin selection required.");
+        "Open the first CMD/TLM file in this plugin and start the common edit flow.");
     addFieldBtn_->setText("Add Field");
     addFieldBtn_->setToolTip(
         "Add a field to the selected local CMD/TLM file. No connection required; CMD/TLM file selection required.");
@@ -1292,7 +1292,7 @@ void PluginView::populateComponentList(const QStringList& files, const QString& 
         : "Select a plugin file");
     setComponentHint(files.isEmpty()
         ? "No editable plugin files were found. Check that plugin.txt, gemspec, and targets exist."
-        : QString("Found %1 file(s), including %2 CMD/TLM definition file(s). Use Start CMD/TLM Edit for the usual edit flow.")
+        : QString("Found %1 file(s), including %2 CMD/TLM definition file(s). Use Edit CMD/TLM for the usual flow.")
               .arg(files.size()).arg(cmdTlmCount));
     startCmdTlmEditBtn_->setEnabled(cmdTlmCount > 0 && !cmdTlmVm_.isBusy());
     startCmdTlmEditBtn_->setVisible(cmdTlmCount > 0);
@@ -1323,9 +1323,9 @@ void PluginView::updateActionHints()
     addTargetBtn_->setToolTip(!hasPlugin ? selectPluginReason : "Add a target folder structure to the selected plugin.");
     buildBtn_->setToolTip(!hasPlugin ? selectPluginReason : (busy ? busyReason : "Build the selected plugin gem."));
     removeBtn_->setToolTip(!hasPlugin ? selectPluginReason : (busy ? busyReason : "Remove the selected installed plugin."));
-    validateBtn_->setToolTip(!hasPlugin ? selectPluginReason : "Runtime gem validation via openc3cli (requires a connection). For offline rule checks, use Validate (offline) on a component file.");
+    validateBtn_->setToolTip(!hasPlugin ? selectPluginReason : "Check this plugin with openc3cli before build/install. For file-level checks, open a file first.");
     openComponentBtn_->setToolTip(!hasSelectedFile ? "Select a plugin file first." : "Open the selected plugin file.");
-    startCmdTlmEditBtn_->setToolTip(firstCmdTlmComponentPath_.isEmpty() ? fileReason : "Open the first CMD/TLM definition file in this plugin.");
+    startCmdTlmEditBtn_->setToolTip(firstCmdTlmComponentPath_.isEmpty() ? fileReason : "Open the first CMD/TLM definition and start editing.");
     saveComponentBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : "Save the open plugin file.");
     validateComponentBtn_->setToolTip(!cmdTlm ? fileReason : "Validate the open CMD/TLM .txt file.");
     validateOfflineBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : "Run the full per-rule offline validator on this file.");
@@ -1341,9 +1341,9 @@ void PluginView::updateActionHints()
     applyStructureBtn_->setToolTip(!cmdTlm ? fileReason : "Apply the selected structure row to the source text.");
 
     if (!hasPlugin)
-        statusLabel_->setText("Select a plugin folder to enable plugin actions. Plugin-specific actions are hidden until a plugin is selected.");
+        statusLabel_->setText("Select a plugin to show build, install, and target actions.");
     else if (!hasOpenFile)
-        statusLabel_->setText("Select and open a plugin file to enable file actions. Advanced file actions are grouped under Validate, Insert, and Structure menus.");
+        statusLabel_->setText("Open a plugin file to edit, check, and save it. Advanced actions are in Validate, Insert, and Structure.");
 
     updateGroupedActionState();
     updateWorkflowHint();
@@ -1361,19 +1361,19 @@ void PluginView::updateWorkflowHint()
 
     if (!hasPlugin) {
         workflowHintLabel_->setText(
-            "Start here: create or refresh plugins, then select a plugin to reveal build/install actions.");
+            "Start: create or refresh plugins, then select one to show build/install actions.");
         return;
     }
 
     if (!hasOpenFile) {
         workflowHintLabel_->setText(
-            "Next: choose a plugin file. Use Start CMD/TLM Edit for the main definition workflow, or open any file for review.");
+            "Next: open a file. For the usual CMD/TLM workflow, choose Edit CMD/TLM.");
         return;
     }
 
     workflowHintLabel_->setText(cmdTlm
-        ? "Next: edit CMD/TLM, use Check File, save changes, then build and install the plugin."
-        : "Next: review or edit this text file, save changes, then return to the plugin actions when ready.");
+        ? "Next: check the CMD/TLM file, save changes, then build and install."
+        : "Next: review this file, save changes, then return to plugin actions.");
 }
 
 void PluginView::updateComponentEmptyState()

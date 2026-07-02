@@ -58,17 +58,17 @@ void SettingsView::setupUi()
 
     auto* listBtns = new QHBoxLayout;
     addBtn_      = new QPushButton("+ Add", leftPane);
-    quickWslBtn_ = new QPushButton("Quick WSL", leftPane);
+    quickWslBtn_ = new QPushButton("Quick WSL Setup", leftPane);
     deleteBtn_   = new QPushButton("− Delete", leftPane);
     addBtn_->setToolTip("Create a blank connection profile.");
-    quickWslBtn_->setToolTip("Detect a WSL distro, create a ready-to-use WSL profile, and select it for review.");
+    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
     deleteBtn_->setToolTip("Select a connection profile first.");
     listBtns->addWidget(addBtn_);
     listBtns->addWidget(quickWslBtn_);
     listBtns->addWidget(deleteBtn_);
 
     profileHintLabel_ = new QLabel(
-        "New to OpenC3? Use Quick WSL for the shortest setup path, or + Add for a custom SSH/WSL profile.",
+        "New here? Choose Quick WSL Setup for automatic WSL defaults, or + Add for a custom SSH/WSL profile.",
         leftPane);
     profileHintLabel_->setObjectName("SubLabel");
     profileHintLabel_->setWordWrap(true);
@@ -607,17 +607,17 @@ void SettingsView::updateActionHints(const QString& state)
         : (connecting ? "Connection is already in progress." : "Connect to the selected OpenC3 environment."));
     disconnectBtn_->setToolTip(connected ? "Disconnect from the current OpenC3 environment." : connectReason);
     deleteBtn_->setToolTip(hasProfile ? "Delete the selected connection profile." : profileReason);
-    quickWslBtn_->setToolTip("Detect a WSL distro and create a WSL profile with /cosmos defaults.");
+    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
     saveProfileBtn_->setToolTip("Save the current connection profile settings.");
 
     if (profileHintLabel_) {
         profileHintLabel_->setText(hasProfile
-            ? "Profile selected. Review the form, save if you changed it, then connect."
-            : "New to OpenC3? Use Quick WSL for the shortest setup path, or + Add for a custom SSH/WSL profile.");
+            ? "Profile selected. Review it, save changes if needed, then connect."
+            : "New here? Choose Quick WSL Setup for automatic WSL defaults, or + Add for a custom SSH/WSL profile.");
     }
 
     if (!connected && !connecting && !hasProfile)
-        statusLabel_->setText("Status: Disconnected — select or add a profile, then connect.");
+        statusLabel_->setText("Status: Disconnected — choose Quick WSL Setup or add/select a profile, then connect.");
 }
 
 } // namespace OpenC3::UI::Views
