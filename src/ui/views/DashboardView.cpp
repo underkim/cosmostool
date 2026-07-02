@@ -7,6 +7,8 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QFont>
+#include <QFrame>
+#include <QStyle>
 
 namespace OpenC3::UI::Views {
 
@@ -43,7 +45,7 @@ void DashboardView::setupUi()
     auto* recommendedRow = new QHBoxLayout;
     recommendedActionBtn_ = new QPushButton(this);
     recommendedActionBtn_->setObjectName("PrimaryButton");
-    recommendedActionBtn_->setMinimumWidth(160);
+    recommendedActionBtn_->setMinimumWidth(220);
     connect(recommendedActionBtn_, &QPushButton::clicked,
             this, &DashboardView::onRecommendedActionClicked);
     recommendedRow->addWidget(recommendedActionBtn_);
@@ -52,24 +54,83 @@ void DashboardView::setupUi()
 
     // ── Quick actions ──────────────────────────────────────────────────────────
     auto* actionsGroup  = new QGroupBox("Quick Actions", this);
-    auto* actionsLayout = new QHBoxLayout(actionsGroup);
-    actionsLayout->setSpacing(8);
+    auto* actionsLayout = new QVBoxLayout(actionsGroup);
+    actionsLayout->setSpacing(12);
 
-    auto addAction = [&](const QString& text, bool primary, auto signal) {
-        auto* btn = new QPushButton(text, actionsGroup);
-        if (primary) btn->setObjectName("PrimaryButton");
-        connect(btn, &QPushButton::clicked, this, signal);
-        actionsLayout->addWidget(btn);
-        return btn;
+    auto* stepLayout = new QHBoxLayout;
+    stepLayout->setSpacing(12);
+
+    auto addStepCard = [&](int index,
+                           const QString& step,
+                           const QString& title,
+                           const QString& description,
+                           auto signal) {
+        auto* card = new QFrame(actionsGroup);
+        card->setObjectName("StepCard");
+        card->setAttribute(Qt::WA_StyledBackground, true);
+        card->setMinimumWidth(190);
+
+        auto* cardLayout = new QVBoxLayout(card);
+        cardLayout->setContentsMargins(12, 10, 12, 10);
+        cardLayout->setSpacing(8);
+
+        auto* stepLabel = new QLabel(step, card);
+        stepLabel->setObjectName("StepEyebrow");
+
+        auto* titleLabel = new QLabel(title, card);
+        QFont titleFont = titleLabel->font();
+        titleFont.setBold(true);
+        titleLabel->setFont(titleFont);
+        titleLabel->setObjectName("StepTitle");
+
+        auto* descriptionLabel = new QLabel(description, card);
+        descriptionLabel->setObjectName("SubLabel");
+        descriptionLabel->setWordWrap(true);
+
+        stepBadges_[index] = new Widgets::StatusBadge(
+            "Pending", Widgets::BadgeStyle::Neutral, card);
+        stepButtons_[index] = new QPushButton(title, card);
+        connect(stepButtons_[index], &QPushButton::clicked, this, signal);
+
+        cardLayout->addWidget(stepLabel);
+        cardLayout->addWidget(titleLabel);
+        cardLayout->addWidget(descriptionLabel);
+        cardLayout->addStretch();
+        cardLayout->addWidget(stepBadges_[index], 0, Qt::AlignLeft);
+        cardLayout->addWidget(stepButtons_[index]);
+        stepLayout->addWidget(card);
     };
 
-    addAction("Connect",      false, &DashboardView::connectRequested);
-    addAction("Run Doctor",   false, &DashboardView::runDoctorRequested);
-    addAction("Workspace",    false, &DashboardView::openWorkspaceRequested);
-    addAction("CMD / TLM",    false, &DashboardView::openCmdTlmRequested);
-    addAction("Packet Tools", false, &DashboardView::openPacketToolsRequested);
-    addAction("Logs",         false, &DashboardView::openLogsRequested);
-    actionsLayout->addStretch();
+    addStepCard(0, "Step 1", "Connect to OpenC3",
+                "Choose a profile and verify the toolkit can reach OpenC3.",
+                &DashboardView::connectRequested);
+    addStepCard(1, "Step 2", "Run Doctor",
+                "Check Docker, containers, and the local OpenC3 environment.",
+                &DashboardView::runDoctorRequested);
+    addStepCard(2, "Step 3", "Open Workspace",
+                "Manage plugins and start editing once the environment is ready.",
+                &DashboardView::openWorkspaceRequested);
+    stepLayout->addStretch();
+    actionsLayout->addLayout(stepLayout);
+
+    auto* toolsRow = new QHBoxLayout;
+    toolsRow->setSpacing(8);
+    auto* toolsLabel = new QLabel("More tools:", actionsGroup);
+    toolsLabel->setObjectName("SubLabel");
+    toolsRow->addWidget(toolsLabel);
+
+    auto addToolLink = [&](const QString& text, auto signal) {
+        auto* btn = new QPushButton(text, actionsGroup);
+        btn->setObjectName("LinkButton");
+        connect(btn, &QPushButton::clicked, this, signal);
+        toolsRow->addWidget(btn);
+    };
+
+    addToolLink("CMD / TLM",    &DashboardView::openCmdTlmRequested);
+    addToolLink("Packet Tools", &DashboardView::openPacketToolsRequested);
+    addToolLink("Logs",         &DashboardView::openLogsRequested);
+    toolsRow->addStretch();
+    actionsLayout->addLayout(toolsRow);
 
     root->addWidget(actionsGroup);
 
@@ -127,16 +188,6 @@ void DashboardView::bindViewModel()
                 : Widgets::BadgeStyle::Neutral;
         connectionBadge_->setStyle(style, s);
 
-        // Guide the user toward the right next step based on connection state.
-        if (s.startsWith("Connected")) {
-            guidanceLabel_->setText(
-                "Connected. Open the Workspace to manage plugins, or jump to "
-                "CMD / TLM, Packet Tools, or Logs.");
-        } else {
-            guidanceLabel_->setText(
-                "Not connected. Click Connect to choose a profile — or create a "
-                "WSL profile in one step — then run Doctor to check your setup.");
-        }
         updateHomeGuidance();
     };
 
@@ -185,22 +236,44 @@ void DashboardView::updateHomeGuidance()
     const bool connected = connection.startsWith("Connected");
     const bool dockerRunning = docker.startsWith("Running");
 
+    const int nextStep = !connected ? 0 : (!dockerRunning ? 1 : 2);
+
+    for (int i = 0; i < 3; ++i) {
+        const bool complete = (i == 0 && connected)
+            || (i == 1 && connected && dockerRunning);
+        const bool current = i == nextStep;
+
+        stepBadges_[i]->setStyle(
+            complete ? Widgets::BadgeStyle::Success
+                     : current ? Widgets::BadgeStyle::Info
+                               : Widgets::BadgeStyle::Neutral,
+            complete ? "Success" : current ? "Next" : "Pending");
+
+        stepButtons_[i]->setObjectName(current ? "PrimaryButton" : "");
+        stepButtons_[i]->style()->unpolish(stepButtons_[i]);
+        stepButtons_[i]->style()->polish(stepButtons_[i]);
+        stepButtons_[i]->setEnabled(!complete || i == 2);
+    }
+
     if (!connected) {
         guidanceLabel_->setText(
-            "Connect to an OpenC3 environment to enable workspace tools.");
-        recommendedActionBtn_->setText("Connect");
+            "Start by connecting to an OpenC3 environment. After connection, "
+            "run Doctor to verify Docker before opening the Workspace.");
+        recommendedActionBtn_->setText("Connect to OpenC3");
         return;
     }
 
     if (!dockerRunning) {
         guidanceLabel_->setText(
-            "Connected. Run Doctor to check Docker and OpenC3 before editing.");
+            "Connection is ready. Run Doctor next to check Docker, containers, "
+            "and OpenC3 before editing plugins.");
         recommendedActionBtn_->setText("Run Doctor");
         return;
     }
 
     guidanceLabel_->setText(
-        "Ready. Open Workspace, or jump into CMD / TLM, Packet Tools, or Logs.");
+        "Environment checks look good. Open the Workspace to manage plugins; "
+        "CMD / TLM, Packet Tools, and Logs are available under More tools.");
     recommendedActionBtn_->setText("Open Workspace");
 }
 
