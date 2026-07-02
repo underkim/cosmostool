@@ -105,3 +105,64 @@ TEST_F(SettingsServiceTest, PersistenceAcrossReload)
     EXPECT_EQ(profiles[0].name, "Persisted");
     EXPECT_EQ(loaded.getString("key", ""), "value");
 }
+
+TEST_F(SettingsServiceTest, SshSecretsAreProtectedOnDiskAndRoundTrip)
+{
+    auto profile = makeProfile("ssh1", "SSH");
+    profile.mode = ConnectionMode::SSH;
+    profile.password = "secret-password";
+    profile.passphrase = "secret-passphrase";
+
+    sut_.saveProfile(profile);
+
+    std::ifstream f(tempFile_);
+    const std::string saved((std::istreambuf_iterator<char>(f)),
+                            std::istreambuf_iterator<char>());
+    EXPECT_EQ(saved.find("secret-password"), std::string::npos);
+    EXPECT_EQ(saved.find("secret-passphrase"), std::string::npos);
+    EXPECT_NE(saved.find("enc:v1:"), std::string::npos);
+
+    SettingsService loaded{tempFile_.string()};
+    loaded.load();
+    const auto roundTrip = loaded.profileById("ssh1");
+    ASSERT_TRUE(roundTrip.has_value());
+    EXPECT_EQ(roundTrip->password, "secret-password");
+    EXPECT_EQ(roundTrip->passphrase, "secret-passphrase");
+}
+
+TEST_F(SettingsServiceTest, LegacyPlaintextSshSecretsStillLoad)
+{
+    {
+        std::ofstream f(tempFile_);
+        f << R"({
+  "profiles": [
+    {
+      "id": "legacy",
+      "name": "Legacy",
+      "mode": 1,
+      "isDefault": false,
+      "cosmosRootPath": "/cosmos",
+      "wslDistribution": "Ubuntu",
+      "host": "example.test",
+      "port": 22,
+      "username": "operator",
+      "authMethod": 0,
+      "password": "plain-password",
+      "privateKeyPath": "",
+      "publicKeyPath": "",
+      "passphrase": "plain-passphrase",
+      "connectTimeoutMs": 10000,
+      "commandTimeoutMs": 30000
+    }
+  ],
+  "settings": {}
+})";
+    }
+
+    SettingsService loaded{tempFile_.string()};
+    loaded.load();
+    const auto profile = loaded.profileById("legacy");
+    ASSERT_TRUE(profile.has_value());
+    EXPECT_EQ(profile->password, "plain-password");
+    EXPECT_EQ(profile->passphrase, "plain-passphrase");
+}

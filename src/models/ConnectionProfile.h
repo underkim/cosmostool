@@ -28,9 +28,10 @@ struct ConnectionProfile {
     int         port{22};
     std::string username;
     AuthMethod  authMethod{AuthMethod::PublicKey};
-    // SECURITY: password/passphrase are currently persisted as plain text in
-    // settings.json. Prefer PublicKey auth; a future change should move secrets
-    // to OS-secure storage (Windows DPAPI / libsecret) instead of the JSON file.
+    // SECURITY: SettingsService protects persisted password/passphrase values
+    // before writing settings.json. Windows uses DPAPI; non-Windows builds use a
+    // reversible compatibility obfuscation and log a warning because no OS
+    // keychain dependency is required in this release.
     std::string password;
     std::string privateKeyPath;
     std::string publicKeyPath;
