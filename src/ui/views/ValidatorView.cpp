@@ -22,6 +22,28 @@ namespace OpenC3::UI::Views {
 
 using Severity = ViewModels::Validation::Diagnostic::Severity;
 
+namespace {
+
+QString severityPrefix(Severity severity)
+{
+    switch (severity) {
+    case Severity::Error:   return QStringLiteral("Error");
+    case Severity::Warning: return QStringLiteral("Warning");
+    case Severity::Info:    return QStringLiteral("Info");
+    }
+    return QStringLiteral("Status");
+}
+
+QString prefixedDiagnosticMessage(Severity severity, const QString& message)
+{
+    const QString prefix = severityPrefix(severity);
+    if (message == prefix || message.startsWith(prefix + QStringLiteral(":")))
+        return message;
+    return QStringLiteral("%1: %2").arg(prefix, message);
+}
+
+} // namespace
+
 ValidatorView::ValidatorView(ViewModels::ValidatorViewModel& vm, QWidget* parent)
     : QWidget(parent)
     , vm_(vm)
@@ -156,6 +178,7 @@ void ValidatorView::onReportReady()
 
     if (report.diagnostics.isEmpty()) {
         auto* ok = new QTreeWidgetItem(resultsTree_);
+        ok->setText(0, tr("OK"));
         ok->setText(2, tr("No problems found."));
         return;
     }
@@ -199,7 +222,7 @@ void ValidatorView::onReportReady()
         item->setText(0, d.severityLabel());
         item->setForeground(0, brush);
         item->setText(1, d.line > 0 ? QString::number(d.line) : QString());
-        item->setText(2, d.message);
+        item->setText(2, prefixedDiagnosticMessage(d.severity, d.message));
         item->setData(0, Qt::UserRole,     d.suggestion);
         item->setData(0, Qt::UserRole + 1, d.rule);
     }

@@ -253,8 +253,12 @@ void CmdTlmView::bindViewModel()
                 connectionHint_->setVisible(!on);
                 browseBtn_->setEnabled(on);
                 pathEdit_->setEnabled(on);
-                if (on)
+                if (on) {
                     pathEdit_->setText(vm_.defaultCmdTlmPath());
+                    statusLabel_->setText("OK: Connected. Browse CMD/TLM definition files.");
+                } else {
+                    statusLabel_->setText("Disconnected: Connect to browse CMD/TLM definition files.");
+                }
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::busyChanged,
@@ -266,7 +270,10 @@ void CmdTlmView::bindViewModel()
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::statusMessageChanged,
             this, [this] {
-                statusLabel_->setText(vm_.statusMessage());
+                const QString message = vm_.statusMessage();
+                if (message.trimmed().isEmpty())
+                    return;
+                statusLabel_->setText(QString("Status: %1").arg(message));
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::directoryListed,
@@ -290,13 +297,20 @@ void CmdTlmView::bindViewModel()
                 insertTlmBtn_->setEnabled(isTxt);
                 insertParamBtn_->setEnabled(isTxt);
                 addFieldBtn_->setEnabled(isTxt);
+                statusLabel_->setText(QString("OK: Opened %1%2")
+                    .arg(path, isTxt ? QStringLiteral(". Editing and validation are available.")
+                                     : QStringLiteral(". Open a .txt definition file to enable validation.")));
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileSaved,
             this, [this](const QString& /*path*/, bool ok) {
-                if (!ok)
+                if (!ok) {
+                    statusLabel_->setText("Error: Save failed. Could not write the file to the remote host.");
                     QMessageBox::warning(this, "Save Failed",
                         "Could not write the file to the remote host.");
+                } else {
+                    statusLabel_->setText("OK: File saved successfully.");
+                }
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileParsed,
@@ -308,6 +322,9 @@ void CmdTlmView::bindViewModel()
     browseBtn_->setEnabled(on);
     pathEdit_->setEnabled(on);
     if (on) pathEdit_->setText(vm_.defaultCmdTlmPath());
+    statusLabel_->setText(on
+        ? "OK: Connected. Browse CMD/TLM definition files."
+        : "Disconnected: Connect to browse CMD/TLM definition files.");
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -403,6 +420,15 @@ void CmdTlmView::onFileParsed(const ViewModels::CmdTlmParseResult& result,
 {
     populateStructureTree(result);
     populateDiagnostics(result);
+    const int e = result.errorCount();
+    const int w = result.warningCount();
+    if (e > 0) {
+        statusLabel_->setText(QString("Error: Validation found %1 error(s) and %2 warning(s).").arg(e).arg(w));
+    } else if (w > 0) {
+        statusLabel_->setText(QString("Warning: Validation found %1 warning(s).").arg(w));
+    } else {
+        statusLabel_->setText("OK: Validation completed with no issues.");
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -451,15 +477,15 @@ void CmdTlmView::populateDiagnostics(const ViewModels::CmdTlmParseResult& result
     const int w = result.warningCount();
 
     if (result.diagnostics.isEmpty()) {
-        diagSummary_->setText("✅ No issues found.");
+        diagSummary_->setText("OK: No issues found.");
     } else {
-        diagSummary_->setText(QString("● %1 error(s)   ▲ %2 warning(s)").arg(e).arg(w));
+        diagSummary_->setText(QString("Error: %1 error(s)   Warning: %2 warning(s)").arg(e).arg(w));
     }
 
     for (const auto& d : result.diagnostics) {
         const bool isError = (d.severity == ViewModels::CmdTlmDiagnostic::Severity::Error);
         const QString text = QString("%1 Line %2: %3")
-            .arg(isError ? "●" : "▲")
+            .arg(isError ? "Error" : "Warning")
             .arg(d.line)
             .arg(d.message);
 
