@@ -403,7 +403,6 @@ void PluginView::setupUi()
     deleteStructureFieldBtn_->setEnabled(false);
     refreshStructureBtn_->setEnabled(false);
     applyStructureBtn_->setEnabled(false);
-    updateActionHints();
     updateComponentEmptyState();
     openComponentBtn_->setMinimumWidth(90);
     saveComponentBtn_->setMinimumWidth(80);
@@ -569,6 +568,12 @@ void PluginView::setupUi()
     mainSplitter->setStretchFactor(1, 1);
     mainSplitter->setSizes({360, 980});
     root->addWidget(mainSplitter, 1);
+
+    // Must run after structureTable_ (created above) exists: updateActionHints()
+    // reads its selection state. Calling this earlier segfaults on a null
+    // structureTable_ during construction - every other widget it touches is
+    // created earlier in this function, but this one is not.
+    updateActionHints();
 }
 
 void PluginView::bindViewModel()
