@@ -4,6 +4,7 @@
 
 using OpenC3::Core::Connection::shellQuote;
 using OpenC3::Core::Connection::contentEndsHeredoc;
+using OpenC3::Core::Connection::base64Encode;
 
 TEST(ShellQuoteTest, SimpleValueIsWrappedInSingleQuotes)
 {
@@ -66,4 +67,51 @@ TEST(ShellQuoteTest, HeredocIgnoresDelimiterAsSubstring)
     EXPECT_FALSE(contentEndsHeredoc("xSSHEOF\nSSHEOFy\n abc", "SSHEOF"));
     EXPECT_FALSE(contentEndsHeredoc("COMMAND TGT NOOP\n  PARAMETER X 8 UINT", "SSHEOF"));
     EXPECT_FALSE(contentEndsHeredoc("", "SSHEOF"));
+}
+
+// ── base64Encode ──────────────────────────────────────────────────────────────
+// Reference values cross-checked against Python's base64.b64encode(). The
+// encoder always appends a trailing newline after the (only, since inputs
+// here are short) wrapped line — see the 76-column wrapping in the impl.
+
+TEST(ShellQuoteTest, Base64EmptyInputIsEmpty)
+{
+    EXPECT_EQ(base64Encode(""), "");
+}
+
+TEST(ShellQuoteTest, Base64SingleByteIsPadded)
+{
+    EXPECT_EQ(base64Encode("f"), "Zg==\n");
+}
+
+TEST(ShellQuoteTest, Base64NoPaddingWhenLengthIsMultipleOfThree)
+{
+    EXPECT_EQ(base64Encode("foobar"), "Zm9vYmFy\n");
+}
+
+TEST(ShellQuoteTest, Base64HandlesEmbeddedNulAndHighBytes)
+{
+    // Binary content (a gem archive, an image, ...) must round-trip through
+    // the ASCII-only alphabet without truncating at an embedded NUL.
+    const std::string binary{ static_cast<char>(0x00), static_cast<char>(0x01),
+                              static_cast<char>(0xFF) };
+    EXPECT_EQ(base64Encode(binary), "AAH/\n");
+}
+
+TEST(ShellQuoteTest, Base64OutputIsPureAsciiAlphabetPlusWhitespace)
+{
+    // The whole point of base64-encoding a file before piping it through a
+    // shell heredoc: the output must never contain characters that could be
+    // mistaken for shell metacharacters or a heredoc delimiter line.
+    std::string binary;
+    for (int b = 0; b < 256; ++b)
+        binary += static_cast<char>(b);
+    const std::string encoded = base64Encode(binary);
+    for (const char c : encoded) {
+        const bool ok = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                        (c >= '0' && c <= '9') || c == '+' || c == '/' ||
+                        c == '=' || c == '\n';
+        EXPECT_TRUE(ok) << "unexpected character in base64 output: "
+                        << static_cast<int>(static_cast<unsigned char>(c));
+    }
 }
