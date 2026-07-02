@@ -45,7 +45,7 @@ void DashboardView::setupUi()
     auto* recommendedRow = new QHBoxLayout;
     recommendedActionBtn_ = new QPushButton(this);
     recommendedActionBtn_->setObjectName("PrimaryButton");
-    recommendedActionBtn_->setMinimumWidth(220);
+    recommendedActionBtn_->setMinimumWidth(180);
     connect(recommendedActionBtn_, &QPushButton::clicked,
             this, &DashboardView::onRecommendedActionClicked);
     recommendedRow->addWidget(recommendedActionBtn_);
@@ -101,36 +101,14 @@ void DashboardView::setupUi()
         stepLayout->addWidget(card);
     };
 
-    addStepCard(0, "Step 1", "Connect to OpenC3",
-                "Choose a profile and verify the toolkit can reach OpenC3.",
-                &DashboardView::connectRequested);
-    addStepCard(1, "Step 2", "Run Doctor",
-                "Check Docker, containers, and the local OpenC3 environment.",
-                &DashboardView::runDoctorRequested);
-    addStepCard(2, "Step 3", "Open Workspace",
-                "Manage plugins and start editing once the environment is ready.",
-                &DashboardView::openWorkspaceRequested);
-    stepLayout->addStretch();
-    actionsLayout->addLayout(stepLayout);
-
-    auto* toolsRow = new QHBoxLayout;
-    toolsRow->setSpacing(8);
-    auto* toolsLabel = new QLabel("More tools:", actionsGroup);
-    toolsLabel->setObjectName("SubLabel");
-    toolsRow->addWidget(toolsLabel);
-
-    auto addToolLink = [&](const QString& text, auto signal) {
-        auto* btn = new QPushButton(text, actionsGroup);
-        btn->setObjectName("LinkButton");
-        connect(btn, &QPushButton::clicked, this, signal);
-        toolsRow->addWidget(btn);
-    };
-
-    addToolLink("CMD / TLM",    &DashboardView::openCmdTlmRequested);
-    addToolLink("Packet Tools", &DashboardView::openPacketToolsRequested);
-    addToolLink("Logs",         &DashboardView::openLogsRequested);
-    toolsRow->addStretch();
-    actionsLayout->addLayout(toolsRow);
+    addAction("Run Doctor",   true,  &DashboardView::runDoctorRequested);
+    addAction("Connect",      false, &DashboardView::connectRequested);
+    addAction("Workspace",    false, &DashboardView::openWorkspaceRequested);
+    addAction("CMD / TLM",    false, &DashboardView::openCmdTlmRequested);
+    addAction("Validator",    false, &DashboardView::openValidatorRequested);
+    addAction("Packet Tools", false, &DashboardView::openPacketToolsRequested);
+    addAction("Logs",         false, &DashboardView::openLogsRequested);
+    actionsLayout->addStretch();
 
     root->addWidget(actionsGroup);
 
@@ -188,6 +166,16 @@ void DashboardView::bindViewModel()
                 : Widgets::BadgeStyle::Neutral;
         connectionBadge_->setStyle(style, s);
 
+        // Guide the user toward the right next step based on connection state.
+        if (s.startsWith("Connected")) {
+            guidanceLabel_->setText(
+                "Connected. Open the Workspace to manage plugins, or jump to "
+                "CMD / TLM, Validator, Packet Tools, or Logs.");
+        } else {
+            guidanceLabel_->setText(
+                "Not connected. Click Connect to choose a profile — or create a "
+                "WSL profile in one step — then run Doctor to check your setup.");
+        }
         updateHomeGuidance();
     };
 
@@ -272,8 +260,8 @@ void DashboardView::updateHomeGuidance()
     }
 
     guidanceLabel_->setText(
-        "Environment checks look good. Open the Workspace to manage plugins; "
-        "CMD / TLM, Packet Tools, and Logs are available under More tools.");
+        "Ready. Run Doctor any time for diagnostics, or jump into CMD / TLM, "
+        "Validator, Packet Tools, or Logs.");
     recommendedActionBtn_->setText("Open Workspace");
 }
 

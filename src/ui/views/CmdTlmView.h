@@ -65,6 +65,8 @@ private:
     void bindViewModel();
     void populateStructureTree(const ViewModels::CmdTlmParseResult& result);
     void populateDiagnostics(const ViewModels::CmdTlmParseResult& result);
+    void updateActionHints();
+    void updateEmptyStateLabels();
     void scrollEditorToLine(int line);
     void insertTextAtCursor(const QString& text);
 
@@ -84,6 +86,7 @@ private:
 
     // ── Left panel — file browser ─────────────────────────────────────────────
     QListWidget* fileList_{nullptr};
+    QLabel*      fileListEmptyLabel_{nullptr};
 
     // ── Centre — editor ───────────────────────────────────────────────────────
     QLabel*        fileLabel_{nullptr};
@@ -93,10 +96,12 @@ private:
 
     // ── Bottom — structure tree ───────────────────────────────────────────────
     QTreeWidget* structureTree_{nullptr};
+    QLabel*      structureTreeEmptyLabel_{nullptr};
 
     // ── Bottom — diagnostics list ─────────────────────────────────────────────
     QListWidget* diagnosticList_{nullptr};
     QLabel*      diagSummary_{nullptr};
+    QLabel*      diagnosticListEmptyLabel_{nullptr};
 
     // ── Status bar ────────────────────────────────────────────────────────────
     QLabel* statusLabel_{nullptr};

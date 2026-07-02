@@ -2,6 +2,38 @@
 
 namespace OpenC3::UI::Widgets {
 
+namespace {
+
+QString statusPrefix(BadgeStyle style)
+{
+    switch (style) {
+        case BadgeStyle::Success: return QStringLiteral("OK");
+        case BadgeStyle::Warning: return QStringLiteral("Warning");
+        case BadgeStyle::Error:   return QStringLiteral("Error");
+        case BadgeStyle::Info:    return QStringLiteral("Info");
+        case BadgeStyle::Neutral: return QStringLiteral("Disconnected");
+    }
+    return QStringLiteral("Status");
+}
+
+QString prefixedStatusText(BadgeStyle style, const QString& text)
+{
+    const QString prefix = statusPrefix(style);
+    const QString trimmed = text.trimmed();
+    if (trimmed.isEmpty())
+        return prefix;
+    if (trimmed == prefix || trimmed.startsWith(prefix + QStringLiteral(":")))
+        return trimmed;
+    return QStringLiteral("%1: %2").arg(prefix, trimmed);
+}
+
+QString accessibleStatusDescription(BadgeStyle style, const QString& text)
+{
+    return QStringLiteral("Status %1").arg(prefixedStatusText(style, text));
+}
+
+} // namespace
+
 StatusBadge::StatusBadge(const QString& text, BadgeStyle style, QWidget* parent)
     : QLabel(text, parent)
 {
@@ -13,7 +45,14 @@ StatusBadge::StatusBadge(const QString& text, BadgeStyle style, QWidget* parent)
 
 void StatusBadge::setStyle(BadgeStyle style, const QString& text)
 {
-    if (!text.isEmpty()) setText(text);
+    if (!text.isEmpty() || this->text().isEmpty())
+        setText(prefixedStatusText(style, text));
+    else
+        setText(prefixedStatusText(style, this->text()));
+
+    const QString accessibleText = accessibleStatusDescription(style, text.isEmpty() ? this->text() : text);
+    setAccessibleName(accessibleText);
+    setToolTip(accessibleText);
 
     QString bg, fg;
     switch (style) {
