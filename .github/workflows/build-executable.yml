@@ -182,6 +182,25 @@ jobs:
           }
           & $windeployqt --release --no-translations --no-opengl-sw --compiler-runtime `
             (Join-Path $portable "OpenC3DevToolkit.exe")
+          # $ErrorActionPreference = "Stop" only turns PowerShell/cmdlet errors
+          # into terminating errors - it does NOT catch a non-zero exit code
+          # from an external .exe like windeployqt, so check it explicitly.
+          # A silent windeployqt failure here would ship a portable zip that
+          # launches to literally nothing (see the platform-plugin check below).
+          if ($LASTEXITCODE -ne 0) {
+            throw "windeployqt failed with exit code $LASTEXITCODE"
+          }
+
+          # Without the platform plugin, Qt cannot create any window on
+          # startup and the process exits immediately with no visible error
+          # (a packaged GUI-subsystem .exe has no console) - the exact
+          # 'nothing happens when I run the portable app' symptom. Verify it
+          # made it into the package before we ship it, rather than finding
+          # out from a user report.
+          $platformPlugin = Join-Path $portable "platforms\qwindows.dll"
+          if (-not (Test-Path $platformPlugin)) {
+            throw "windeployqt did not produce platforms\qwindows.dll - the packaged app would be unable to show any window."
+          }
 
           Get-ChildItem -Path $portable -Recurse -File |
             Where-Object { $_.Extension -in ".ilk", ".pdb" } |
