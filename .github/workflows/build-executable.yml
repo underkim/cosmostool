@@ -126,11 +126,17 @@ jobs:
       # time. Cache that output (keyed on the file that pins their versions)
       # so unrelated app-source-only changes reuse it instead of rebuilding
       # spdlog/libssh2 from scratch each time.
+      # Key includes the generator: a cache entry's key is immutable once
+      # created, so switching the build below from the implicit MSBuild
+      # solution generator to Ninja needs a new key - reusing the old one
+      # would keep restoring MSBuild-format build output that Ninja can't
+      # use, and (since that key already exists) never get overwritten with
+      # a Ninja-compatible one.
       - name: Cache CMake FetchContent dependencies
         uses: actions/cache@v4
         with:
           path: build/_deps
-          key: ${{ runner.os }}-msvc-fetchcontent-${{ hashFiles('cmake/Dependencies.cmake') }}
+          key: ${{ runner.os }}-ninja-fetchcontent-${{ hashFiles('cmake/Dependencies.cmake') }}
 
       - name: Auto-detect and build
         shell: pwsh
@@ -142,12 +148,19 @@ jobs:
 
           if (Test-Path "CMakeLists.txt") {
             Write-Host "Detected CMake project"
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-            # MSBuild does not parallelize across projects by default (unlike
-            # Ninja on the Linux job), so a from-scratch build of the app plus
-            # its vendored C++ dependencies ran effectively single-threaded.
-            # --parallel lets it use all cores on the runner.
-            cmake --build build --config Release --parallel
+            # CMakePresets.json already builds this project with Ninja+cl.exe
+            # on Windows (see the "base"/"debug"/"release" presets) - this step
+            # was the odd one out, using raw cmake with no -G and therefore
+            # falling back to the default Visual Studio/MSBuild solution
+            # generator. That generator only parallelizes at the *project*
+            # level (--parallel//m), which this codebase's strictly layered
+            # target graph (app -> ui -> viewmodels -> services -> core) barely
+            # exercises. Ninja schedules every compile edge across the *whole*
+            # dependency graph, so independent files within one target (e.g.
+            # opencosmos_ui's 30+ source files) parallelize too, matching how
+            # the Linux job already builds this project.
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+            cmake --build build --parallel
           } elseif (Test-Path "go.mod") {
             Write-Host "Detected Go project"
             New-Item -ItemType Directory -Force -Path build | Out-Null
@@ -248,8 +261,12 @@ jobs:
             Remove-Item -Force $vcRedist
           }
 
+          # Optimal (the default) spends noticeably more CPU time for a small
+          # size reduction on a folder that's mostly already-compressed DLLs;
+          # Fastest is a better trade for a CI artifact.
           Compress-Archive -Path "$portable/*" `
-            -DestinationPath "OpenC3DevToolkit-portable-windows.zip" -Force
+            -DestinationPath "OpenC3DevToolkit-portable-windows.zip" `
+            -CompressionLevel Fastest -Force
 
       - name: Upload Windows portable package
         uses: actions/upload-artifact@v4
