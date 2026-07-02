@@ -63,7 +63,7 @@ TEST(PacketSimulatorTest, ReceivesUdpHexPayload)
     ASSERT_EQ(started.count(), 1);
 
     const QString startedText = started.takeFirst().at(0).toString();
-    const int colon = startedText.lastIndexOf(':');
+    const qsizetype colon = startedText.lastIndexOf(':');
     ASSERT_GT(colon, 0);
     bool ok = false;
     const quint16 port = startedText.mid(colon + 1).toUShort(&ok);
@@ -94,7 +94,7 @@ TEST(PacketSimulatorTest, AcceptsTcpClientReceivesAndSendsHexPayload)
     ASSERT_EQ(started.count(), 1);
 
     const QString startedText = started.takeFirst().at(0).toString();
-    const int colon = startedText.lastIndexOf(':');
+    const qsizetype colon = startedText.lastIndexOf(':');
     ASSERT_GT(colon, 0);
     bool ok = false;
     const quint16 port = startedText.mid(colon + 1).toUShort(&ok);
@@ -132,14 +132,14 @@ TEST(PacketSimulatorTest, TracksTcpClientCount)
     EXPECT_EQ(simulator.tcpClientCount(), 0);
 
     const QString startedText = started.takeFirst().at(0).toString();
-    const int colon = startedText.lastIndexOf(':');
+    const qsizetype colon = startedText.lastIndexOf(':');
     ASSERT_GT(colon, 0);
     bool ok = false;
     const quint16 port = startedText.mid(colon + 1).toUShort(&ok);
     ASSERT_TRUE(ok);
 
     QTcpSocket client;
-    const int beforeConnectSignals = countChanged.count();
+    const int beforeConnectSignals = static_cast<int>(countChanged.count());
     client.connectToHost(QHostAddress::LocalHost, port);
     ASSERT_TRUE(client.waitForConnected(1000));
 
@@ -149,7 +149,7 @@ TEST(PacketSimulatorTest, TracksTcpClientCount)
     EXPECT_EQ(countChanged.takeLast().at(0).toInt(), 1);
 
     // Dropping the client brings the count back to zero.
-    const int beforeDisconnectSignals = countChanged.count();
+    const int beforeDisconnectSignals = static_cast<int>(countChanged.count());
     client.disconnectFromHost();
     client.close();
     ASSERT_TRUE(waitForSignalAfter(countChanged, beforeDisconnectSignals));

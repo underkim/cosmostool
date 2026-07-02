@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QCheckBox>
+#include <QComboBox>
 
 namespace OpenC3::UI::Views {
 

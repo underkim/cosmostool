@@ -19,9 +19,13 @@ target_include_directories(opencosmos_core
 
 # libssh2 is third-party: expose its headers as SYSTEM so warnings from
 # libssh2.h (e.g. old-style casts inside its macros) don't trip our -Werror.
-target_include_directories(opencosmos_core SYSTEM PUBLIC
-    "${libssh2_SOURCE_DIR}/include"
-)
+# Only needed for the FetchContent build; a system package carries its own
+# include dirs transitively on the libssh2_static target.
+if(libssh2_SOURCE_DIR)
+    target_include_directories(opencosmos_core SYSTEM PUBLIC
+        "${libssh2_SOURCE_DIR}/include"
+    )
+endif()
 
 target_link_libraries(opencosmos_core
     PUBLIC

@@ -22,4 +22,13 @@ namespace OpenC3::Core::Connection {
 ///   $(rm -rf /)  -> '$(rm -rf /)'
 [[nodiscard]] std::string shellQuote(const std::string& value);
 
+/// Return true if `content` contains a line exactly equal to `delimiter`.
+///
+/// Writing a file with `cat > path << 'DELIM' ... DELIM` is safe from expansion
+/// (the delimiter is quoted), but a line in the payload equal to DELIM would
+/// close the heredoc early and let the following lines run as shell commands.
+/// Callers use this to reject such content and fail closed.
+[[nodiscard]] bool contentEndsHeredoc(const std::string& content,
+                                      const std::string& delimiter);
+
 } // namespace OpenC3::Core::Connection

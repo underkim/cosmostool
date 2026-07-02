@@ -469,7 +469,7 @@ void InfraView::loadEnvIntoTable(const QString& content)
             continue;
         }
 
-        const int eq = line.indexOf('=');
+        const qsizetype eq = line.indexOf('=');
         if (eq < 0) continue;
 
         const QString key     = line.left(eq).trimmed();
@@ -478,7 +478,7 @@ void InfraView::loadEnvIntoTable(const QString& content)
         pendingComment.clear();
 
         // Inline comment: VALUE  # comment
-        const int hashIdx = value.indexOf(" #");
+        const qsizetype hashIdx = value.indexOf(" #");
         if (hashIdx >= 0) {
             comment = value.mid(hashIdx + 2).trimmed();
             value   = value.left(hashIdx).trimmed();

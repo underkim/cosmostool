@@ -23,4 +23,19 @@ std::string shellQuote(const std::string& value)
     return out;
 }
 
+bool contentEndsHeredoc(const std::string& content, const std::string& delimiter)
+{
+    if (delimiter.empty())
+        return false;
+    if (content == delimiter)                       // whole payload is the delimiter
+        return true;
+    if (content.rfind(delimiter + "\n", 0) == 0)    // first line
+        return true;
+    const std::string tail = "\n" + delimiter;
+    if (content.size() >= tail.size() &&            // last line
+        content.compare(content.size() - tail.size(), tail.size(), tail) == 0)
+        return true;
+    return content.find("\n" + delimiter + "\n") != std::string::npos; // middle line
+}
+
 } // namespace OpenC3::Core::Connection

@@ -37,35 +37,70 @@ FetchContent_Declare(
 )
 
 # ── Populate ──────────────────────────────────────────────────────────────────
-set(SPDLOG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(SPDLOG_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(spdlog)
+# Prefer system / pre-installed packages when present (Linux distros, CI images,
+# vcpkg) so a local build does not require network access. Fall back to building
+# the pinned source via FetchContent otherwise (the default path on Windows).
 
-set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(nlohmann_json)
+find_package(spdlog QUIET)
+if(NOT spdlog_FOUND)
+    set(SPDLOG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(SPDLOG_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(spdlog)
+endif()
+
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
 
 # GoogleTest — only populated when testing is enabled
 if(BUILD_TESTING)
-    set(BUILD_GMOCK ON  CACHE BOOL "" FORCE)
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
+    find_package(GTest QUIET)
+    if(NOT GTest_FOUND)
+        set(BUILD_GMOCK ON  CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+    endif()
     include(GoogleTest)
 endif()
 
-# libssh2 — select the crypto backend per platform.
-#   Windows: WinCNG is native and needs no external dependencies.
-#   Other:   OpenSSL (provide libssl-dev / OpenSSL on the build machine).
-if(WIN32)
-    set(CRYPTO_BACKEND    "WinCNG"  CACHE STRING "" FORCE)
+# libssh2 — the core library links a target named `libssh2_static`. Use a system
+# package when available (CMake config or pkg-config); otherwise build the
+# pinned source with FetchContent.
+find_package(Libssh2 QUIET)
+if(TARGET Libssh2::libssh2)
+    if(NOT TARGET libssh2_static)
+        add_library(libssh2_static INTERFACE IMPORTED GLOBAL)
+        target_link_libraries(libssh2_static INTERFACE Libssh2::libssh2)
+    endif()
 else()
-    set(CRYPTO_BACKEND    "OpenSSL" CACHE STRING "" FORCE)
-endif()
-set(BUILD_EXAMPLES        OFF CACHE BOOL "" FORCE)
-set(LIBSSH2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS     OFF CACHE BOOL "" FORCE)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(LIBSSH2 QUIET IMPORTED_TARGET libssh2)
+    endif()
+    if(TARGET PkgConfig::LIBSSH2)
+        if(NOT TARGET libssh2_static)
+            add_library(libssh2_static INTERFACE IMPORTED GLOBAL)
+            target_link_libraries(libssh2_static INTERFACE PkgConfig::LIBSSH2)
+        endif()
+    else()
+        # ── Build libssh2 from source ──────────────────────────────────────────
+        #   Windows: WinCNG is native and needs no external dependencies.
+        #   Other:   OpenSSL (provide libssl-dev / OpenSSL on the build machine).
+        if(WIN32)
+            set(CRYPTO_BACKEND    "WinCNG"  CACHE STRING "" FORCE)
+        else()
+            set(CRYPTO_BACKEND    "OpenSSL" CACHE STRING "" FORCE)
+        endif()
+        set(BUILD_EXAMPLES        OFF CACHE BOOL "" FORCE)
+        set(LIBSSH2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+        set(BUILD_SHARED_LIBS     OFF CACHE BOOL "" FORCE)
 
-# libssh2 1.11.0 declares cmake_minimum_required(VERSION 2.8.x). CMake >= 4.0
-# rejects that outright, so permit the older policy version for the bundled
-# source to keep it configurable under modern toolchains.
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-FetchContent_MakeAvailable(libssh2)
+        # libssh2 1.11.0 declares cmake_minimum_required(VERSION 2.8.x). CMake
+        # >= 4.0 rejects that outright, so permit the older policy version for
+        # the bundled source to keep it configurable under modern toolchains.
+        set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+        FetchContent_MakeAvailable(libssh2)
+    endif()
+endif()

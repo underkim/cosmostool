@@ -326,7 +326,7 @@ void CmdTlmView::openFile(const QString& remotePath)
     const QString path = remotePath.trimmed();
     if (path.isEmpty()) return;
 
-    const int slash = path.lastIndexOf('/');
+    const qsizetype slash = path.lastIndexOf('/');
     if (slash > 0) {
         currentDir_ = path.left(slash);
         pathEdit_->setText(currentDir_);

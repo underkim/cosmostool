@@ -102,7 +102,7 @@ bool startsWithAnyKeyword(const QString& trimmed, const QStringList& keywords)
     return false;
 }
 
-bool isBlockOrFieldHeader(const QString& line)
+[[maybe_unused]] bool isBlockOrFieldHeader(const QString& line)
 {
     static const QStringList keywords = {
         "COMMAND", "TELEMETRY",
@@ -124,7 +124,7 @@ QString extractGemPath(const QString& buildOutput)
     for (auto it = lines.crbegin(); it != lines.crend(); ++it) {
         const QString line = it->trimmed();
         if (line.endsWith(".gem", Qt::CaseInsensitive)) {
-            const int fileIdx = line.indexOf("File:", 0, Qt::CaseInsensitive);
+            const qsizetype fileIdx = line.indexOf("File:", 0, Qt::CaseInsensitive);
             return fileIdx >= 0 ? line.mid(fileIdx + 5).trimmed() : line;
         }
     }

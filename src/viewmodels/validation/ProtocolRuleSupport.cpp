@@ -52,7 +52,7 @@ const QHash<QString, int>& builtinProtocols()
 QString normaliseClass(const QString& raw)
 {
     QString name = raw;
-    const int slash = std::max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+    const qsizetype slash = std::max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
     if (slash >= 0)
         name = name.mid(slash + 1);
     name = name.toLower();

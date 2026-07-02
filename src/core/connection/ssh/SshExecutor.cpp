@@ -1,5 +1,6 @@
 #include "SshExecutor.h"
 #include "core/logging/Logger.h"
+#include "core/connection/ShellQuote.h"
 
 #include <libssh2.h>
 #include <sstream>
@@ -149,7 +150,7 @@ bool SshExecutor::uploadFile(
 {
     // Full SFTP implementation belongs in a future sprint.
     // For now delegate to scp-style channel command with base64 encoding.
-    auto r = execute("cat > '" + remotePath + "'");
+    auto r = execute("cat > " + shellQuote(remotePath));
     (void)localPath;
     return static_cast<bool>(r); // TODO: implement real SFTP upload
 }
@@ -159,19 +160,19 @@ bool SshExecutor::downloadFile(
     const std::string& localPath)
 {
     (void)localPath;
-    auto r = execute("cat '" + remotePath + "'");
+    auto r = execute("cat " + shellQuote(remotePath));
     return static_cast<bool>(r); // TODO: write r.stdOut to localPath
 }
 
 bool SshExecutor::fileExists(const std::string& remotePath)
 {
-    auto r = execute("test -e '" + remotePath + "' && echo 1 || echo 0");
+    auto r = execute("test -e " + shellQuote(remotePath) + " && echo 1 || echo 0");
     return r && r.stdOut.find('1') != std::string::npos;
 }
 
 std::string SshExecutor::readFile(const std::string& remotePath)
 {
-    auto r = execute("cat '" + remotePath + "'");
+    auto r = execute("cat " + shellQuote(remotePath));
     return r ? r.stdOut : std::string{};
 }
 
@@ -179,15 +180,21 @@ bool SshExecutor::writeFile(
     const std::string& remotePath,
     const std::string& content)
 {
+    // The quoted heredoc keeps $content literal, but a line equal to the
+    // delimiter would end the heredoc early and let the rest run as commands.
+    // Fail closed rather than risk a shell breakout.
+    if (contentEndsHeredoc(content, "SSHEOF"))
+        return false;
+
     const std::string cmd =
-        "cat > '" + remotePath + "' << 'SSHEOF'\n" + content + "\nSSHEOF";
+        "cat > " + shellQuote(remotePath) + " << 'SSHEOF'\n" + content + "\nSSHEOF";
     return static_cast<bool>(execute(cmd));
 }
 
 std::vector<std::string> SshExecutor::listDirectory(
     const std::string& remotePath)
 {
-    auto r = execute("ls -1 '" + remotePath + "'");
+    auto r = execute("ls -1 " + shellQuote(remotePath));
     if (!r) return {};
 
     std::vector<std::string> entries;

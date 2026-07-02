@@ -1,5 +1,6 @@
 #include "WslExecutor.h"
 #include "core/logging/Logger.h"
+#include "core/connection/ShellQuote.h"
 
 #include <sstream>
 
@@ -190,40 +191,44 @@ ExecutorResult WslExecutor::executeStreaming(
 bool WslExecutor::uploadFile(const std::string& localPath,
                              const std::string& remotePath)
 {
-    const std::string wslLocal = "$(wslpath '" + localPath + "')";
-    return static_cast<bool>(execute("cp " + wslLocal + " " + remotePath));
+    const std::string wslLocal = "$(wslpath " + shellQuote(localPath) + ")";
+    return static_cast<bool>(execute("cp " + wslLocal + " " + shellQuote(remotePath)));
 }
 
 bool WslExecutor::downloadFile(const std::string& remotePath,
                                const std::string& localPath)
 {
-    const std::string wslLocal = "$(wslpath '" + localPath + "')";
-    return static_cast<bool>(execute("cp " + remotePath + " " + wslLocal));
+    const std::string wslLocal = "$(wslpath " + shellQuote(localPath) + ")";
+    return static_cast<bool>(execute("cp " + shellQuote(remotePath) + " " + wslLocal));
 }
 
 bool WslExecutor::fileExists(const std::string& remotePath)
 {
-    auto r = execute("test -e '" + remotePath + "' && echo 1 || echo 0");
+    auto r = execute("test -e " + shellQuote(remotePath) + " && echo 1 || echo 0");
     return r && r.stdOut.find('1') != std::string::npos;
 }
 
 std::string WslExecutor::readFile(const std::string& remotePath)
 {
-    auto r = execute("cat '" + remotePath + "'");
+    auto r = execute("cat " + shellQuote(remotePath));
     return r ? r.stdOut : std::string{};
 }
 
 bool WslExecutor::writeFile(const std::string& remotePath,
                             const std::string& content)
 {
+    // Fail closed if the payload could close the heredoc early (see SshExecutor).
+    if (contentEndsHeredoc(content, "WSLEOF"))
+        return false;
+
     const std::string cmd =
-        "cat > '" + remotePath + "' << 'WSLEOF'\n" + content + "\nWSLEOF";
+        "cat > " + shellQuote(remotePath) + " << 'WSLEOF'\n" + content + "\nWSLEOF";
     return static_cast<bool>(execute(cmd));
 }
 
 std::vector<std::string> WslExecutor::listDirectory(const std::string& remotePath)
 {
-    auto r = execute("ls -1 '" + remotePath + "'");
+    auto r = execute("ls -1 " + shellQuote(remotePath));
     if (!r) return {};
     std::vector<std::string> entries;
     std::istringstream stream(r.stdOut);
