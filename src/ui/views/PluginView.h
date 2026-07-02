@@ -82,6 +82,8 @@ private:
     void deleteEditorLine(int lineNumber);
     void setComponentDirty(bool dirty);
     void setCmdTlmActionsVisible(bool visible);
+    void updateActionHints();
+    void updateComponentEmptyState();
     void updateComponentPathLabel();
     [[nodiscard]] bool confirmDiscardUnsavedChanges();
     [[nodiscard]] bool confirmSaveAfterValidation();
@@ -111,6 +113,7 @@ private:
     QTextEdit*   detailEdit_{nullptr};
     QListWidget* componentList_{nullptr};
     QLabel*      componentHintLabel_{nullptr};
+    QLabel*      componentListEmptyLabel_{nullptr};
     QLabel*      componentPathLabel_{nullptr};
     QTextEdit*   componentEditor_{nullptr};
     QTextEdit*   componentDiagnostics_{nullptr};

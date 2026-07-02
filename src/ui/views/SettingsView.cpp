@@ -59,6 +59,8 @@ void SettingsView::setupUi()
     auto* listBtns = new QHBoxLayout;
     addBtn_    = new QPushButton("+ Add",    leftPane);
     deleteBtn_ = new QPushButton("− Delete", leftPane);
+    addBtn_->setToolTip("Create a new connection profile.");
+    deleteBtn_->setToolTip("Select a connection profile first.");
     listBtns->addWidget(addBtn_);
     listBtns->addWidget(deleteBtn_);
 
@@ -66,6 +68,8 @@ void SettingsView::setupUi()
     connectBtn_    = new QPushButton("Connect",    leftPane);
     disconnectBtn_ = new QPushButton("Disconnect", leftPane);
     connectBtn_->setObjectName("PrimaryButton");
+    connectBtn_->setToolTip("Select a connection profile first.");
+    disconnectBtn_->setToolTip("Connect to an OpenC3 environment first.");
     connBtns->addWidget(connectBtn_);
     connBtns->addWidget(disconnectBtn_);
 
@@ -251,6 +255,7 @@ void SettingsView::bindViewModel()
             this, [this](const QString& state) {
                 statusLabel_->setText("Status: " + state);
                 updateConnectionButtons(state);
+                updateActionHints(state);
             });
 
     // initial stack page
@@ -261,6 +266,7 @@ void SettingsView::bindViewModel()
     // SettingsView may be created AFTER a successful connect (e.g. via
     // ConnectionDialog), so the "Connected" signal has already been consumed.
     updateConnectionButtons(vm_.isConnected() ? "Connected" : "Disconnected");
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -269,6 +275,9 @@ void SettingsView::onModeChanged(int modeIndex)
 {
     modeStack_->setCurrentIndex(modeIndex); // 0=WSL, 1=SSH
     detectOpenC3PathBtn_->setEnabled(modeIndex == 0);
+    detectOpenC3PathBtn_->setToolTip(modeIndex == 0
+        ? "Search the selected WSL distro for openc3.sh"
+        : "Select WSL mode to detect the OpenC3 path automatically.");
 }
 
 void SettingsView::refreshWslDistros()
@@ -381,6 +390,7 @@ void SettingsView::onAddProfile()
 
     nameEdit_->setFocus();
     nameEdit_->selectAll();
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 void SettingsView::onDeleteProfile()
@@ -410,9 +420,13 @@ void SettingsView::onDisconnectClicked()
 
 void SettingsView::onProfileSelected(const QModelIndex& idx)
 {
-    if (!idx.isValid()) return;
+    if (!idx.isValid()) {
+        updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+        return;
+    }
     const auto* p = vm_.profileModel()->profileAt(idx.row());
     if (p) populateProfileForm(*p);
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
@@ -485,6 +499,24 @@ void SettingsView::updateConnectionButtons(const QString& state)
 
     connectBtn_->setEnabled(!connected && !connecting);
     disconnectBtn_->setEnabled(connected && !connecting);
+}
+
+void SettingsView::updateActionHints(const QString& state)
+{
+    const bool connected = (state == "Connected");
+    const bool connecting = (state == "Connecting");
+    const bool hasProfile = profileList_->currentIndex().isValid();
+    const QString connectReason = "Connect to an OpenC3 environment first.";
+    const QString profileReason = "Select a connection profile first.";
+
+    connectBtn_->setToolTip(!hasProfile ? profileReason
+        : (connecting ? "Connection is already in progress." : "Connect to the selected OpenC3 environment."));
+    disconnectBtn_->setToolTip(connected ? "Disconnect from the current OpenC3 environment." : connectReason);
+    deleteBtn_->setToolTip(hasProfile ? "Delete the selected connection profile." : profileReason);
+    saveProfileBtn_->setToolTip("Save the current connection profile settings.");
+
+    if (!connected && !connecting && !hasProfile)
+        statusLabel_->setText("Status: Disconnected — select or add a profile, then connect.");
 }
 
 } // namespace OpenC3::UI::Views

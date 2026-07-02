@@ -36,6 +36,7 @@ private:
     void populateProfileForm(const Models::ConnectionProfile& p);
     Models::ConnectionProfile collectProfileForm() const;
     void updateConnectionButtons(const QString& state);
+    void updateActionHints(const QString& state);
 
     ViewModels::SettingsViewModel& vm_;
 

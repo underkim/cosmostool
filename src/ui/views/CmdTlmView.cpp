@@ -151,7 +151,11 @@ void CmdTlmView::setupUi()
     // File list (left)
     auto* fileGroup  = new QGroupBox("Files", hSplit);
     auto* fileLayout = new QVBoxLayout(fileGroup);
+    fileListEmptyLabel_ = new QLabel("Connect, then browse a CMD/TLM directory to list files.", fileGroup);
+    fileListEmptyLabel_->setObjectName("SubLabel");
+    fileListEmptyLabel_->setWordWrap(true);
     fileList_ = new QListWidget(fileGroup);
+    fileLayout->addWidget(fileListEmptyLabel_);
     fileLayout->addWidget(fileList_);
 
     // Editor (right)
@@ -193,10 +197,14 @@ void CmdTlmView::setupUi()
     auto* structGroup  = new QGroupBox("Structure", vSplit);
     auto* structLayout = new QVBoxLayout(structGroup);
     structureTree_ = new QTreeWidget(structGroup);
+    structureTreeEmptyLabel_ = new QLabel("Open and validate a CMD/TLM .txt file to see its structure.", structGroup);
+    structureTreeEmptyLabel_->setObjectName("SubLabel");
+    structureTreeEmptyLabel_->setWordWrap(true);
     structureTree_->setHeaderLabels({"Name", "Type", "Bits", "Description"});
     structureTree_->header()->setStretchLastSection(true);
     structureTree_->setRootIsDecorated(true);
     structureTree_->setAlternatingRowColors(true);
+    structLayout->addWidget(structureTreeEmptyLabel_);
     structLayout->addWidget(structureTree_);
     vSplit->addWidget(structGroup);
 
@@ -205,9 +213,13 @@ void CmdTlmView::setupUi()
     auto* diagLayout = new QVBoxLayout(diagGroup);
     diagSummary_ = new QLabel("", diagGroup);
     diagSummary_->setObjectName("SubLabel");
+    diagnosticListEmptyLabel_ = new QLabel("Validate an open CMD/TLM .txt file to show diagnostics.", diagGroup);
+    diagnosticListEmptyLabel_->setObjectName("SubLabel");
+    diagnosticListEmptyLabel_->setWordWrap(true);
     diagnosticList_ = new QListWidget(diagGroup);
     diagnosticList_->setMaximumHeight(120);
     diagLayout->addWidget(diagSummary_);
+    diagLayout->addWidget(diagnosticListEmptyLabel_);
     diagLayout->addWidget(diagnosticList_);
     vSplit->addWidget(diagGroup);
 
@@ -255,6 +267,7 @@ void CmdTlmView::bindViewModel()
                 pathEdit_->setEnabled(on);
                 if (on)
                     pathEdit_->setText(vm_.defaultCmdTlmPath());
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::busyChanged,
@@ -262,6 +275,7 @@ void CmdTlmView::bindViewModel()
                 const bool on  = vm_.isConnected();
                 const bool busy = vm_.isBusy();
                 browseBtn_->setEnabled(on && !busy);
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::statusMessageChanged,
@@ -275,6 +289,8 @@ void CmdTlmView::bindViewModel()
                 fileList_->clear();
                 for (const QString& e : entries)
                     fileList_->addItem(e);
+                updateEmptyStateLabels();
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileOpened,
@@ -290,6 +306,7 @@ void CmdTlmView::bindViewModel()
                 insertTlmBtn_->setEnabled(isTxt);
                 insertParamBtn_->setEnabled(isTxt);
                 addFieldBtn_->setEnabled(isTxt);
+                updateActionHints();
             });
 
     connect(&vm_, &ViewModels::CmdTlmViewModel::fileSaved,
@@ -308,6 +325,8 @@ void CmdTlmView::bindViewModel()
     browseBtn_->setEnabled(on);
     pathEdit_->setEnabled(on);
     if (on) pathEdit_->setText(vm_.defaultCmdTlmPath());
+    updateEmptyStateLabels();
+    updateActionHints();
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -441,6 +460,7 @@ void CmdTlmView::populateStructureTree(const ViewModels::CmdTlmParseResult& resu
     structureTree_->resizeColumnToContents(0);
     structureTree_->resizeColumnToContents(1);
     structureTree_->resizeColumnToContents(2);
+    updateEmptyStateLabels();
 }
 
 void CmdTlmView::populateDiagnostics(const ViewModels::CmdTlmParseResult& result)
@@ -467,6 +487,40 @@ void CmdTlmView::populateDiagnostics(const ViewModels::CmdTlmParseResult& result
         li->setData(Qt::UserRole, d.line);
         li->setForeground(isError ? QColor("#F44747") : QColor("#CCA700"));
     }
+    updateEmptyStateLabels();
+}
+
+void CmdTlmView::updateActionHints()
+{
+    const bool connected = vm_.isConnected();
+    const bool busy = vm_.isBusy();
+    const bool hasFile = !currentFile_.isEmpty();
+    const bool isTxt = currentFile_.endsWith(".txt", Qt::CaseInsensitive);
+    const QString connectReason = "Connect to an OpenC3 environment first.";
+    const QString fileReason = "Open a CMD/TLM .txt file first.";
+    const QString busyReason = "Wait for the current CMD/TLM operation to finish.";
+
+    browseBtn_->setToolTip(connected ? "Browse the selected remote directory." : connectReason);
+    const QString editTip = !connected ? connectReason : (!isTxt ? fileReason : "Insert CMD/TLM text into the open file.");
+    insertCmdBtn_->setToolTip(editTip);
+    insertTlmBtn_->setToolTip(editTip);
+    insertParamBtn_->setToolTip(editTip);
+    addFieldBtn_->setToolTip(editTip);
+    validateBtn_->setToolTip(!isTxt ? fileReason : "Validate the open CMD/TLM .txt file.");
+    openInValidatorBtn_->setToolTip(!isTxt ? fileReason : "Run the full per-rule (offline) validator on this content.");
+    saveBtn_->setToolTip(!hasFile ? fileReason : (busy ? busyReason : "Save the open file."));
+
+    if (!connected)
+        statusLabel_->setText(connectReason);
+    else if (!hasFile)
+        statusLabel_->setText("Browse and open a CMD/TLM .txt file to enable editing actions.");
+}
+
+void CmdTlmView::updateEmptyStateLabels()
+{
+    fileListEmptyLabel_->setVisible(fileList_->count() == 0);
+    structureTreeEmptyLabel_->setVisible(structureTree_->topLevelItemCount() == 0);
+    diagnosticListEmptyLabel_->setVisible(diagnosticList_->count() == 0);
 }
 
 void CmdTlmView::scrollEditorToLine(int line)
