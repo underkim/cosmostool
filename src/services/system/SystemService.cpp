@@ -1,14 +1,21 @@
 #include "SystemService.h"
 #include "core/logging/Logger.h"
+#include "core/connection/ShellQuote.h"
 
 #include <sstream>
 #include <regex>
 
 namespace OpenC3::Services {
 
-SystemService::SystemService(Core::Connection::ICommandExecutor& executor)
+SystemService::SystemService(
+    Core::Connection::ICommandExecutor& executor,
+    std::function<std::string()>        cosmosRootProvider)
     : executor_(executor)
-{}
+    , cosmosRootProvider_(std::move(cosmosRootProvider))
+{
+    if (!cosmosRootProvider_)
+        cosmosRootProvider_ = [] { return std::string("/cosmos"); };
+}
 
 Models::SystemMetrics SystemService::getMetrics()
 {
@@ -76,10 +83,12 @@ Models::SystemMetrics SystemService::getMetrics()
 
 std::string SystemService::getOpenC3Version()
 {
-    // OpenC3 COSMOS stores version in a well-known location
+    // OpenC3 COSMOS stores version in a well-known location relative to the
+    // configured COSMOS root (matches DoctorService::checkOpenC3Version()).
+    const std::string versionPath =
+        cosmosRootProvider_() + "/openc3-cosmos-init/plugins/openc3-tool-base/VERSION";
     auto r = executor_.execute(
-        "cat /cosmos/openc3-cosmos-init/plugins/openc3-tool-base/VERSION"
-        " 2>/dev/null || echo 'unknown'");
+        "cat " + Core::Connection::shellQuote(versionPath) + " 2>/dev/null || echo 'unknown'");
     if (!r) return "unknown";
     std::string v = r.stdOut;
     if (!v.empty() && v.back() == '\n') v.pop_back();

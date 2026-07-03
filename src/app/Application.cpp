@@ -142,7 +142,9 @@ void Application::registerServices()
     auto dockerSvc = std::make_shared<Services::DockerService>(executorProxy_);
     registry_.registerInstance<Services::IDockerService>(dockerSvc);
 
-    auto systemSvc = std::make_shared<Services::SystemService>(executorProxy_);
+    auto systemSvc = std::make_shared<Services::SystemService>(
+        executorProxy_,
+        [conn = connection.get()] { return conn->cosmosRootPath(); });
     registry_.registerInstance<Services::ISystemService>(systemSvc);
 
     // Doctor probes the COSMOS root configured on the active connection profile,
