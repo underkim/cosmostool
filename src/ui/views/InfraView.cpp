@@ -210,6 +210,7 @@ QWidget* InfraView::buildVolumeOverrideTab()
         "This path is used in the compose.yaml volumes entry.");
     applyOverrideBtn_ = new QPushButton("Save && Generate Entry", step2Group);
     applyOverrideBtn_->setObjectName("PrimaryButton");
+    applyOverrideBtn_->setToolTip("Extract a file in Step 1 first.");
     hostBar->addWidget(new QLabel("Host save path:", step2Group));
     hostBar->addWidget(hostSavePathEdit_, 1);
     hostBar->addWidget(applyOverrideBtn_);
@@ -231,6 +232,8 @@ QWidget* InfraView::buildVolumeOverrideTab()
     auto* actionBar = new QHBoxLayout;
     copyVolumeEntryBtn_  = new QPushButton("Copy to Clipboard", step2Group);
     insertToComposeBtn_  = new QPushButton("Insert into compose Editor", step2Group);
+    copyVolumeEntryBtn_->setToolTip("Save & Generate Entry above first.");
+    insertToComposeBtn_->setToolTip("Save & Generate Entry above first.");
     actionBar->addWidget(copyVolumeEntryBtn_);
     actionBar->addWidget(insertToComposeBtn_);
     actionBar->addStretch();
