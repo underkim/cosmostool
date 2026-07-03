@@ -116,6 +116,14 @@ void ValidatorView::setupUi()
     resultsTree_->header()->setStretchLastSection(true);
     root->addWidget(resultsTree_, 1);
 
+    resultsEmptyLabel_ = new QLabel(
+        tr("Validate a folder or file above, or paste a snippet and press Check, "
+           "to see results here."),
+        this);
+    resultsEmptyLabel_->setObjectName("SubLabel");
+    resultsEmptyLabel_->setWordWrap(true);
+    root->addWidget(resultsEmptyLabel_);
+
     detailLabel_ = new QLabel(this);
     detailLabel_->setWordWrap(true);
     detailLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -171,6 +179,7 @@ void ValidatorView::onReportReady()
 {
     resultsTree_->clear();
     detailLabel_->clear();
+    resultsEmptyLabel_->setVisible(false);
 
     const auto& report = vm_.report();
     summaryLabel_->setText(QStringLiteral("%1  —  %2")

@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QShortcut>
 #include <QKeySequence>
+#include <QStyle>
 
 namespace OpenC3::UI::Dialogs {
 
@@ -28,10 +29,12 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
     searchLayout->setContentsMargins(8, 6, 8, 6);
     searchLayout->setSpacing(6);
 
-    searchLayout->addWidget(new QLabel("🔍", searchBar));
     searchEdit_ = new QLineEdit(searchBar);
     searchEdit_->setPlaceholderText("Search…");
     searchEdit_->setClearButtonEnabled(true);
+    searchEdit_->addAction(
+        style()->standardIcon(QStyle::SP_FileDialogContentsView),
+        QLineEdit::LeadingPosition);
     searchLayout->addWidget(searchEdit_);
 
     root->addWidget(searchBar);

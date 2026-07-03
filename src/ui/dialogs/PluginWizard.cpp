@@ -93,6 +93,12 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
             });
 
     goToStep(0);
+
+    // Land the keyboard on the plugin name field, with its default text
+    // selected so the user notices it and can type over it immediately
+    // (matches AddTargetDialog's pattern).
+    pluginNameEdit_->setFocus();
+    pluginNameEdit_->selectAll();
 }
 
 // ── Page builders ─────────────────────────────────────────────────────────────

@@ -45,6 +45,7 @@ private:
     QPushButton*    checkBtn_{nullptr};
     QPlainTextEdit* pasteEdit_{nullptr};
     QTreeWidget*    resultsTree_{nullptr};
+    QLabel*         resultsEmptyLabel_{nullptr};
     QLabel*         summaryLabel_{nullptr};
     QLabel*         detailLabel_{nullptr};
 };
