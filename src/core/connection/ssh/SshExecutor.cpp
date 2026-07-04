@@ -3,6 +3,7 @@
 #include "core/connection/ShellQuote.h"
 
 #include <libssh2.h>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <array>
@@ -148,20 +149,40 @@ bool SshExecutor::uploadFile(
     const std::string& localPath,
     const std::string& remotePath)
 {
-    // Full SFTP implementation belongs in a future sprint.
-    // For now delegate to scp-style channel command with base64 encoding.
-    auto r = execute("cat > " + shellQuote(remotePath));
-    (void)localPath;
-    return static_cast<bool>(r); // TODO: implement real SFTP upload
+    // No SFTP subsystem is wired up yet, so the file is sent over the exec
+    // channel: read it locally, base64-encode it (pure ASCII, so it cannot
+    // contain shell metacharacters or prematurely close the heredoc below
+    // regardless of the source file's content), and decode it back into
+    // place on the remote side. Works for text and binary content alike.
+    // Note: the whole encoded payload becomes one SSH exec command, so this
+    // is appropriate for config-sized files; very large transfers still need
+    // a real SFTP/SCP implementation.
+    std::ifstream in(localPath, std::ios::binary);
+    if (!in) return false;
+    std::ostringstream buf;
+    buf << in.rdbuf();
+    const std::string encoded = base64Encode(buf.str());
+
+    // Vanishingly unlikely for base64 output, but fail closed like writeFile().
+    if (contentEndsHeredoc(encoded, "SSHB64"))
+        return false;
+
+    const std::string cmd =
+        "base64 -d > " + shellQuote(remotePath) + " << 'SSHB64'\n" + encoded + "SSHB64";
+    return static_cast<bool>(execute(cmd));
 }
 
 bool SshExecutor::downloadFile(
     const std::string& remotePath,
     const std::string& localPath)
 {
-    (void)localPath;
     auto r = execute("cat " + shellQuote(remotePath));
-    return static_cast<bool>(r); // TODO: write r.stdOut to localPath
+    if (!r) return false;
+
+    std::ofstream out(localPath, std::ios::binary | std::ios::trunc);
+    if (!out) return false;
+    out.write(r.stdOut.data(), static_cast<std::streamsize>(r.stdOut.size()));
+    return static_cast<bool>(out);
 }
 
 bool SshExecutor::fileExists(const std::string& remotePath)

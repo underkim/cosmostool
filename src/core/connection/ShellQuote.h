@@ -31,4 +31,14 @@ namespace OpenC3::Core::Connection {
 [[nodiscard]] bool contentEndsHeredoc(const std::string& content,
                                       const std::string& delimiter);
 
+/// RFC 4648 base64 encode, wrapped at 76 columns (the width the `base64` /
+/// `base64 -d` coreutils and most other implementations expect for MIME-style
+/// input).
+///
+/// Used to move arbitrary (including binary) content over a remote exec
+/// channel that only accepts text: the output alphabet is pure ASCII, so it
+/// cannot contain shell metacharacters or a line matching a heredoc delimiter,
+/// unlike the raw bytes it encodes.
+[[nodiscard]] std::string base64Encode(const std::string& data);
+
 } // namespace OpenC3::Core::Connection

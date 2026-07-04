@@ -4,6 +4,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#include <cstdio>
 #include <vector>
 
 namespace OpenC3::Core::Logging {
@@ -16,13 +17,24 @@ void Logger::init(const std::string& logFilePath)
     sinks.push_back(
         std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 
-    // Optionally rotate to a file (max 5 MB × 3 files)
+    // Optionally rotate to a file (max 5 MB × 3 files). The sink constructor
+    // throws spdlog::spdlog_ex if the log directory cannot be created/opened
+    // (read-only portable media, a restricted/unavailable profile directory,
+    // etc.). File logging is a convenience, not a requirement for the app to
+    // run, so fall back to console-only logging instead of letting an
+    // uncaught exception here abort the process before any window is shown.
     if (!logFilePath.empty()) {
-        sinks.push_back(
-            std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-                logFilePath,
-                5 * 1024 * 1024,  // 5 MB
-                3));
+        try {
+            sinks.push_back(
+                std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                    logFilePath,
+                    5 * 1024 * 1024,  // 5 MB
+                    3));
+        } catch (const std::exception& e) {
+            std::fprintf(stderr,
+                "[Logger] File logging disabled (could not open '%s'): %s\n",
+                logFilePath.c_str(), e.what());
+        }
     }
 
     auto logger = std::make_shared<spdlog::logger>(

@@ -57,20 +57,34 @@ void SettingsView::setupUi()
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto* listBtns = new QHBoxLayout;
-    addBtn_    = new QPushButton("+ Add",    leftPane);
-    deleteBtn_ = new QPushButton("− Delete", leftPane);
+    addBtn_      = new QPushButton("+ Add", leftPane);
+    quickWslBtn_ = new QPushButton("Quick WSL Setup", leftPane);
+    deleteBtn_   = new QPushButton("− Delete", leftPane);
+    addBtn_->setToolTip("Create a blank connection profile.");
+    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
+    deleteBtn_->setToolTip("Select a connection profile first.");
     listBtns->addWidget(addBtn_);
+    listBtns->addWidget(quickWslBtn_);
     listBtns->addWidget(deleteBtn_);
+
+    profileHintLabel_ = new QLabel(
+        "New here? Choose Quick WSL Setup for automatic WSL defaults, or + Add for a custom SSH/WSL profile.",
+        leftPane);
+    profileHintLabel_->setObjectName("SubLabel");
+    profileHintLabel_->setWordWrap(true);
 
     auto* connBtns  = new QHBoxLayout;
     connectBtn_    = new QPushButton("Connect",    leftPane);
     disconnectBtn_ = new QPushButton("Disconnect", leftPane);
     connectBtn_->setObjectName("PrimaryButton");
+    connectBtn_->setToolTip("Select a connection profile first.");
+    disconnectBtn_->setToolTip("Connect to an OpenC3 environment first.");
     connBtns->addWidget(connectBtn_);
     connBtns->addWidget(disconnectBtn_);
 
     leftLayout->addWidget(new QLabel("Connection Profiles:", leftPane));
     leftLayout->addWidget(profileList_);
+    leftLayout->addWidget(profileHintLabel_);
     leftLayout->addLayout(listBtns);
     leftLayout->addLayout(connBtns);
 
@@ -80,6 +94,11 @@ void SettingsView::setupUi()
     formLayout->setRowWrapPolicy(QFormLayout::DontWrapRows);
     formLayout->setLabelAlignment(Qt::AlignRight);
     formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+
+    profileFormStateLabel_ = new QLabel("New profile — save it before connecting.", formGroup);
+    profileFormStateLabel_->setObjectName("SubLabel");
+    profileFormStateLabel_->setWordWrap(true);
+    formLayout->addRow(profileFormStateLabel_);
 
     // Common fields
     nameEdit_  = new QLineEdit(formGroup);
@@ -205,10 +224,16 @@ void SettingsView::setupUi()
 
     formLayout->addRow(modeStack_);
 
-    // Save button
+    // Save buttons
     saveProfileBtn_ = new QPushButton("Save Profile", formGroup);
     saveProfileBtn_->setObjectName("PrimaryButton");
-    formLayout->addRow(saveProfileBtn_);
+    saveAndConnectBtn_ = new QPushButton("Save && Connect", formGroup);
+
+    auto* saveButtons = new QHBoxLayout;
+    saveButtons->addWidget(saveProfileBtn_);
+    saveButtons->addWidget(saveAndConnectBtn_);
+    saveButtons->addStretch(1);
+    formLayout->addRow(saveButtons);
 
     splitter->addWidget(leftPane);
     splitter->addWidget(formGroup);
@@ -226,11 +251,20 @@ void SettingsView::setupUi()
 void SettingsView::bindViewModel()
 {
     connect(addBtn_,         &QPushButton::clicked, this, &SettingsView::onAddProfile);
+    connect(quickWslBtn_,    &QPushButton::clicked, this, &SettingsView::onQuickWslProfile);
     connect(deleteBtn_,      &QPushButton::clicked, this, &SettingsView::onDeleteProfile);
     connect(connectBtn_,     &QPushButton::clicked, this, &SettingsView::onConnectClicked);
     connect(disconnectBtn_,  &QPushButton::clicked, this, &SettingsView::onDisconnectClicked);
     connect(saveProfileBtn_, &QPushButton::clicked, this, [this] {
         vm_.saveProfile(collectProfileForm());
+        updateProfileSelectionUi();
+    });
+    connect(saveAndConnectBtn_, &QPushButton::clicked, this, [this] {
+        const auto profile = collectProfileForm();
+        const QString id = QString::fromStdString(profile.id);
+        vm_.saveProfile(profile);
+        vm_.connectToProfile(id);
+        updateProfileSelectionUi();
     });
 
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -246,11 +280,16 @@ void SettingsView::bindViewModel()
     connect(profileList_->selectionModel(),
             &QItemSelectionModel::currentChanged,
             this, &SettingsView::onProfileSelected);
+    connect(profileList_->selectionModel(),
+            &QItemSelectionModel::selectionChanged,
+            this, [this] { updateProfileSelectionUi(); });
 
     connect(&vm_, &ViewModels::SettingsViewModel::connectionStateChanged,
             this, [this](const QString& state) {
+                connectionState_ = state;
                 statusLabel_->setText("Status: " + state);
                 updateConnectionButtons(state);
+                updateActionHints(state);
             });
 
     // initial stack page
@@ -261,6 +300,7 @@ void SettingsView::bindViewModel()
     // SettingsView may be created AFTER a successful connect (e.g. via
     // ConnectionDialog), so the "Connected" signal has already been consumed.
     updateConnectionButtons(vm_.isConnected() ? "Connected" : "Disconnected");
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -269,6 +309,9 @@ void SettingsView::onModeChanged(int modeIndex)
 {
     modeStack_->setCurrentIndex(modeIndex); // 0=WSL, 1=SSH
     detectOpenC3PathBtn_->setEnabled(modeIndex == 0);
+    detectOpenC3PathBtn_->setToolTip(modeIndex == 0
+        ? "Search the selected WSL distro for openc3.sh"
+        : "Select WSL mode to detect the OpenC3 path automatically.");
 }
 
 void SettingsView::refreshWslDistros()
@@ -372,15 +415,54 @@ void SettingsView::onAddProfile()
     // id from the currently selected row, so without this a freshly added
     // profile would be saved over whichever profile is still highlighted.
     // With no selection, collectProfileForm() generates a fresh id instead.
-    profileList_->clearSelection();
+    profileList_->selectionModel()->clear();
+    profileList_->selectionModel()->clearCurrentIndex();
     profileList_->setCurrentIndex(QModelIndex());
 
     Models::ConnectionProfile p;
     p.name = "New Profile";
     populateProfileForm(p);
 
+    updateProfileSelectionUi();
     nameEdit_->setFocus();
     nameEdit_->selectAll();
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+}
+
+void SettingsView::onQuickWslProfile()
+{
+    refreshWslDistros();
+    QString distro = wslDistroCombo_->currentText().trimmed();
+    if (distro.isEmpty())
+        distro = QStringLiteral("Ubuntu");
+
+    Models::ConnectionProfile p;
+    p.id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    p.name = QStringLiteral("WSL (%1)").arg(distro).toStdString();
+    p.mode = Models::ConnectionMode::WSL;
+    p.wslDistribution = distro.toStdString();
+    p.cosmosRootPath = "/cosmos";
+    p.isDefault = false;
+
+    const QString profileId = QString::fromStdString(p.id);
+    vm_.saveProfile(p);
+
+    for (int row = 0; row < vm_.profileModel()->rowCount(); ++row) {
+        const QModelIndex idx = vm_.profileModel()->index(row, 0);
+        if (vm_.profileModel()->data(idx, Qt::UserRole).toString() == profileId) {
+            profileList_->setCurrentIndex(idx);
+            profileList_->selectionModel()->select(
+                idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            populateProfileForm(p);
+            break;
+        }
+    }
+
+    statusLabel_->setText(
+        QStringLiteral("Status: WSL profile created for %1 — review it, then Save & Connect.")
+            .arg(distro));
+    updateProfileSelectionUi();
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 void SettingsView::onDeleteProfile()
@@ -398,7 +480,10 @@ void SettingsView::onDeleteProfile()
 void SettingsView::onConnectClicked()
 {
     const auto idx = profileList_->currentIndex();
-    if (!idx.isValid()) return;
+    if (!idx.isValid()) {
+        updateProfileSelectionUi();
+        return;
+    }
     const QString id = vm_.profileModel()->data(idx, Qt::UserRole).toString();
     vm_.connectToProfile(id);
 }
@@ -410,9 +495,13 @@ void SettingsView::onDisconnectClicked()
 
 void SettingsView::onProfileSelected(const QModelIndex& idx)
 {
-    if (!idx.isValid()) return;
+    if (!idx.isValid()) {
+        updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+        return;
+    }
     const auto* p = vm_.profileModel()->profileAt(idx.row());
     if (p) populateProfileForm(*p);
+    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
 }
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
@@ -483,8 +572,52 @@ void SettingsView::updateConnectionButtons(const QString& state)
     connectBtn_->setVisible(!connected);
     disconnectBtn_->setVisible(connected);
 
-    connectBtn_->setEnabled(!connected && !connecting);
+    const bool hasSelectedProfile = profileList_->currentIndex().isValid();
+
+    connectBtn_->setEnabled(!connected && !connecting && hasSelectedProfile);
+    if (!hasSelectedProfile)
+        connectBtn_->setToolTip("Select a saved profile before connecting.");
+    else if (connecting)
+        connectBtn_->setToolTip("A connection attempt is already in progress.");
+    else
+        connectBtn_->setToolTip(QString());
+
     disconnectBtn_->setEnabled(connected && !connecting);
+}
+
+void SettingsView::updateProfileSelectionUi()
+{
+    const bool hasSelectedProfile = profileList_->currentIndex().isValid();
+    if (profileFormStateLabel_)
+        profileFormStateLabel_->setVisible(!hasSelectedProfile);
+
+    updateConnectionButtons(connectionState_);
+    updateActionHints(connectionState_);
+}
+
+void SettingsView::updateActionHints(const QString& state)
+{
+    const bool connected = (state == "Connected");
+    const bool connecting = (state == "Connecting");
+    const bool hasProfile = profileList_->currentIndex().isValid();
+    const QString connectReason = "Connect to an OpenC3 environment first.";
+    const QString profileReason = "Select a connection profile first.";
+
+    connectBtn_->setToolTip(!hasProfile ? profileReason
+        : (connecting ? "Connection is already in progress." : "Connect to the selected OpenC3 environment."));
+    disconnectBtn_->setToolTip(connected ? "Disconnect from the current OpenC3 environment." : connectReason);
+    deleteBtn_->setToolTip(hasProfile ? "Delete the selected connection profile." : profileReason);
+    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
+    saveProfileBtn_->setToolTip("Save the current connection profile settings.");
+
+    if (profileHintLabel_) {
+        profileHintLabel_->setText(hasProfile
+            ? "Profile selected. Review it, save changes if needed, then connect."
+            : "New here? Choose Quick WSL Setup for automatic WSL defaults, or + Add for a custom SSH/WSL profile.");
+    }
+
+    if (!connected && !connecting && !hasProfile)
+        statusLabel_->setText("Status: Disconnected — choose Quick WSL Setup or add/select a profile, then connect.");
 }
 
 } // namespace OpenC3::UI::Views

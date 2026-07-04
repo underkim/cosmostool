@@ -3,10 +3,196 @@
 
 #include <fstream>
 #include <stdexcept>
+#include <string_view>
+#include <vector>
+
+#ifdef _WIN32
+#  include <windows.h>
+#  include <dpapi.h>
+#  include <wincrypt.h>
+#endif
 
 namespace OpenC3::Services {
 
 using json = nlohmann::json;
+
+namespace {
+
+constexpr std::string_view kDpapiPrefix = "enc:v1:dpapi:";
+constexpr std::string_view kObfPrefix = "enc:v1:obf:";
+constexpr std::string_view kObfKey = "OpenC3DevToolkitSettingsSecret";
+constexpr char kBase64Alphabet[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+std::string base64Encode(const std::vector<unsigned char>& bytes)
+{
+    std::string out;
+    out.reserve(((bytes.size() + 2U) / 3U) * 4U);
+
+    for (std::size_t i = 0; i < bytes.size(); i += 3U) {
+        const unsigned int b0 = bytes[i];
+        const unsigned int b1 = (i + 1U < bytes.size()) ? bytes[i + 1U] : 0U;
+        const unsigned int b2 = (i + 2U < bytes.size()) ? bytes[i + 2U] : 0U;
+        const unsigned int triple = (b0 << 16U) | (b1 << 8U) | b2;
+
+        out.push_back(kBase64Alphabet[(triple >> 18U) & 0x3FU]);
+        out.push_back(kBase64Alphabet[(triple >> 12U) & 0x3FU]);
+        out.push_back((i + 1U < bytes.size())
+            ? kBase64Alphabet[(triple >> 6U) & 0x3FU]
+            : '=');
+        out.push_back((i + 2U < bytes.size())
+            ? kBase64Alphabet[triple & 0x3FU]
+            : '=');
+    }
+
+    return out;
+}
+
+int base64Value(char c)
+{
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return -1;
+}
+
+std::vector<unsigned char> base64Decode(std::string_view text)
+{
+    std::vector<unsigned char> out;
+    int val = 0;
+    int valb = -8;
+    for (const char c : text) {
+        if (c == '=') break;
+        const int decoded = base64Value(c);
+        if (decoded < 0) return {};
+        val = (val << 6) + decoded;
+        valb += 6;
+        if (valb >= 0) {
+            out.push_back(static_cast<unsigned char>((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return out;
+}
+
+std::vector<unsigned char> xorWithFallbackKey(std::string_view secret)
+{
+    std::vector<unsigned char> bytes;
+    bytes.reserve(secret.size());
+    for (std::size_t i = 0; i < secret.size(); ++i) {
+        bytes.push_back(static_cast<unsigned char>(
+            static_cast<unsigned char>(secret[i]) ^
+            static_cast<unsigned char>(kObfKey[i % kObfKey.size()])));
+    }
+    return bytes;
+}
+
+std::string fallbackProtect(std::string_view secret)
+{
+    if (secret.empty()) return {};
+    Logging::Logger::warn(
+        "[SettingsService] DPAPI unavailable; storing SSH secret with reversible obfuscation only.");
+    return std::string(kObfPrefix) + base64Encode(xorWithFallbackKey(secret));
+}
+
+std::string fallbackUnprotect(std::string_view encoded)
+{
+    const auto bytes = base64Decode(encoded);
+    if (bytes.empty() && !encoded.empty()) return {};
+
+    std::string out;
+    out.reserve(bytes.size());
+    for (std::size_t i = 0; i < bytes.size(); ++i) {
+        out.push_back(static_cast<char>(
+            bytes[i] ^ static_cast<unsigned char>(kObfKey[i % kObfKey.size()])));
+    }
+    return out;
+}
+
+#ifdef _WIN32
+std::string dpapiProtect(std::string_view secret)
+{
+    if (secret.empty()) return {};
+
+    DATA_BLOB plain{};
+    plain.pbData = reinterpret_cast<BYTE*>(const_cast<char*>(secret.data()));
+    plain.cbData = static_cast<DWORD>(secret.size());
+
+    DATA_BLOB encrypted{};
+    if (!CryptProtectData(&plain, L"OpenC3DevToolkit", nullptr, nullptr, nullptr,
+                          CRYPTPROTECT_UI_FORBIDDEN, &encrypted)) {
+        Logging::Logger::error(
+            "[SettingsService] CryptProtectData failed; falling back to obfuscation.");
+        return fallbackProtect(secret);
+    }
+
+    std::vector<unsigned char> bytes(encrypted.pbData,
+                                     encrypted.pbData + encrypted.cbData);
+    LocalFree(encrypted.pbData);
+    return std::string(kDpapiPrefix) + base64Encode(bytes);
+}
+
+std::string dpapiUnprotect(std::string_view encoded)
+{
+    const auto bytes = base64Decode(encoded);
+    if (bytes.empty() && !encoded.empty()) return {};
+
+    DATA_BLOB encrypted{};
+    encrypted.pbData = const_cast<BYTE*>(bytes.data());
+    encrypted.cbData = static_cast<DWORD>(bytes.size());
+
+    DATA_BLOB plain{};
+    if (!CryptUnprotectData(&encrypted, nullptr, nullptr, nullptr, nullptr,
+                            CRYPTPROTECT_UI_FORBIDDEN, &plain)) {
+        Logging::Logger::error("[SettingsService] CryptUnprotectData failed.");
+        return {};
+    }
+
+    std::string out(reinterpret_cast<char*>(plain.pbData), plain.cbData);
+    LocalFree(plain.pbData);
+    return out;
+}
+#endif
+
+std::string protectSecret(const std::string& secret)
+{
+#ifdef _WIN32
+    return dpapiProtect(secret);
+#else
+    return fallbackProtect(secret);
+#endif
+}
+
+std::string unprotectSecret(const std::string& stored)
+{
+    if (stored.empty()) return {};
+
+    if (stored.rfind(kObfPrefix, 0) == 0) {
+        return fallbackUnprotect(std::string_view(stored).substr(kObfPrefix.size()));
+    }
+
+    if (stored.rfind(kDpapiPrefix, 0) == 0) {
+#ifdef _WIN32
+        return dpapiUnprotect(std::string_view(stored).substr(kDpapiPrefix.size()));
+#else
+        Logging::Logger::error(
+            "[SettingsService] Cannot decrypt Windows DPAPI SSH secret on this platform.");
+        return {};
+#endif
+    }
+
+    // Backward compatibility: pre-encryption settings.json files stored secrets
+    // directly. Return the value so existing profiles continue to work; the next
+    // saveProfile() call will rewrite it with a protected prefix.
+    Logging::Logger::warn(
+        "[SettingsService] Loaded legacy plaintext SSH secret; it will be protected on next save.");
+    return stored;
+}
+
+} // namespace
+
 
 SettingsService::SettingsService(std::string settingsFilePath)
     : filePath_(std::move(settingsFilePath))
@@ -157,8 +343,10 @@ json SettingsService::profileToJson(const Models::ConnectionProfile& p) const
         {"port",            p.port},
         {"username",        p.username},
         {"authMethod",      static_cast<int>(p.authMethod)},
-        {"password",        p.password},
+        {"password",        protectSecret(p.password)},
         {"privateKeyPath",  p.privateKeyPath},
+        {"publicKeyPath",   p.publicKeyPath},
+        {"passphrase",      protectSecret(p.passphrase)},
         {"connectTimeoutMs",p.connectTimeoutMs},
         {"commandTimeoutMs",p.commandTimeoutMs}
     };
@@ -178,8 +366,10 @@ SettingsService::profileFromJson(const json& j) const
     p.port            = j.value("port", 22);
     p.username        = j.value("username", "");
     p.authMethod      = static_cast<Models::AuthMethod>(j.value("authMethod", 0));
-    p.password        = j.value("password", "");
+    p.password        = unprotectSecret(j.value("password", ""));
     p.privateKeyPath  = j.value("privateKeyPath", "");
+    p.publicKeyPath   = j.value("publicKeyPath", "");
+    p.passphrase      = unprotectSecret(j.value("passphrase", ""));
     p.connectTimeoutMs= j.value("connectTimeoutMs", 10000);
     p.commandTimeoutMs= j.value("commandTimeoutMs", 30000);
     return p;

@@ -4,6 +4,14 @@
 function(target_set_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE
+            # /MP lets a single cl.exe invocation compile multiple source
+            # files it was given in parallel. This only matters for the
+            # Visual Studio/MSBuild generator, which batches a target's files
+            # into one cl.exe call; under Ninja (this project's actual Windows
+            # generator - see CMakePresets.json - where each file is its own
+            # build edge and Ninja itself schedules the parallelism), it is a
+            # harmless no-op. Kept for anyone building with the VS generator.
+            /MP
             /utf-8
             /W4
             /WX

@@ -24,3 +24,7 @@ target_link_libraries(opencosmos_services
 
 target_set_warnings(opencosmos_services)
 enable_static_analysis(opencosmos_services)
+
+if(WIN32)
+    target_link_libraries(opencosmos_services PRIVATE Crypt32)
+endif()

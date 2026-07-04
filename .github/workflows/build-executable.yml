@@ -24,7 +24,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build pkg-config \
-            qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev libssl-dev
+            qt6-base-dev qt6-base-dev-tools libgl1-mesa-dev libssl-dev \
+            libspdlog-dev nlohmann-json3-dev libssh2-1-dev
 
       - name: Auto-detect and build
         shell: bash
@@ -36,8 +37,11 @@ jobs:
 
           if [ -f CMakeLists.txt ]; then
             echo "Detected CMake project"
+            # spdlog/nlohmann_json/libssh2 are installed above, so
+            # cmake/Dependencies.cmake's find_package() checks pick them up
+            # directly instead of building them from source via FetchContent.
             cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-            cmake --build build --config Release
+            cmake --build build --config Release --parallel
           elif [ -f Makefile ] || [ -f makefile ]; then
             echo "Detected Makefile project"
             make -j"$(nproc)"
@@ -116,6 +120,24 @@ jobs:
       - name: Enable MSVC developer environment
         uses: ilammy/msvc-dev-cmd@v1
 
+      # No system spdlog/nlohmann_json/libssh2 packages are installed on this
+      # runner, so cmake/Dependencies.cmake falls back to building all three
+      # from source via FetchContent on every run - the bulk of this job's
+      # time. Cache that output (keyed on the file that pins their versions)
+      # so unrelated app-source-only changes reuse it instead of rebuilding
+      # spdlog/libssh2 from scratch each time.
+      # Key includes the generator: a cache entry's key is immutable once
+      # created, so switching the build below from the implicit MSBuild
+      # solution generator to Ninja needs a new key - reusing the old one
+      # would keep restoring MSBuild-format build output that Ninja can't
+      # use, and (since that key already exists) never get overwritten with
+      # a Ninja-compatible one.
+      - name: Cache CMake FetchContent dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: ${{ runner.os }}-ninja-fetchcontent-${{ hashFiles('cmake/Dependencies.cmake') }}
+
       - name: Auto-detect and build
         shell: pwsh
         run: |
@@ -126,8 +148,19 @@ jobs:
 
           if (Test-Path "CMakeLists.txt") {
             Write-Host "Detected CMake project"
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
-            cmake --build build --config Release
+            # CMakePresets.json already builds this project with Ninja+cl.exe
+            # on Windows (see the "base"/"debug"/"release" presets) - this step
+            # was the odd one out, using raw cmake with no -G and therefore
+            # falling back to the default Visual Studio/MSBuild solution
+            # generator. That generator only parallelizes at the *project*
+            # level (--parallel//m), which this codebase's strictly layered
+            # target graph (app -> ui -> viewmodels -> services -> core) barely
+            # exercises. Ninja schedules every compile edge across the *whole*
+            # dependency graph, so independent files within one target (e.g.
+            # opencosmos_ui's 30+ source files) parallelize too, matching how
+            # the Linux job already builds this project.
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+            cmake --build build --parallel
           } elseif (Test-Path "go.mod") {
             Write-Host "Detected Go project"
             New-Item -ItemType Directory -Force -Path build | Out-Null
@@ -182,6 +215,25 @@ jobs:
           }
           & $windeployqt --release --no-translations --no-opengl-sw --compiler-runtime `
             (Join-Path $portable "OpenC3DevToolkit.exe")
+          # $ErrorActionPreference = "Stop" only turns PowerShell/cmdlet errors
+          # into terminating errors - it does NOT catch a non-zero exit code
+          # from an external .exe like windeployqt, so check it explicitly.
+          # A silent windeployqt failure here would ship a portable zip that
+          # launches to literally nothing (see the platform-plugin check below).
+          if ($LASTEXITCODE -ne 0) {
+            throw "windeployqt failed with exit code $LASTEXITCODE"
+          }
+
+          # Without the platform plugin, Qt cannot create any window on
+          # startup and the process exits immediately with no visible error
+          # (a packaged GUI-subsystem .exe has no console) - the exact
+          # 'nothing happens when I run the portable app' symptom. Verify it
+          # made it into the package before we ship it, rather than finding
+          # out from a user report.
+          $platformPlugin = Join-Path $portable "platforms\qwindows.dll"
+          if (-not (Test-Path $platformPlugin)) {
+            throw "windeployqt did not produce platforms\qwindows.dll - the packaged app would be unable to show any window."
+          }
 
           Get-ChildItem -Path $portable -Recurse -File |
             Where-Object { $_.Extension -in ".ilk", ".pdb" } |
@@ -209,8 +261,12 @@ jobs:
             Remove-Item -Force $vcRedist
           }
 
+          # Optimal (the default) spends noticeably more CPU time for a small
+          # size reduction on a folder that's mostly already-compressed DLLs;
+          # Fastest is a better trade for a CI artifact.
           Compress-Archive -Path "$portable/*" `
-            -DestinationPath "OpenC3DevToolkit-portable-windows.zip" -Force
+            -DestinationPath "OpenC3DevToolkit-portable-windows.zip" `
+            -CompressionLevel Fastest -Force
 
       - name: Upload Windows portable package
         uses: actions/upload-artifact@v4

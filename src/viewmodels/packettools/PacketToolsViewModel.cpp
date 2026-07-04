@@ -1,5 +1,6 @@
 #include "PacketToolsViewModel.h"
 #include "core/logging/Logger.h"
+#include "core/connection/ShellQuote.h"
 
 #include <QtConcurrent/QtConcurrent>
 #include <QMetaObject>
@@ -121,21 +122,39 @@ void PacketToolsViewModel::analyzePackets(const QString& remotePath,
     setStatus("Analyzing…");
 
     (void)QtConcurrent::run([this, path, filt] {
-        const std::string cmd = "grep -c " +
-            (filt.empty() ? std::string(".") : filt) + " " + path +
-            " 2>/dev/null || echo 0";
-        const std::string count = fs_.readFile("/dev/stdin"); // fallback stub
-        Q_UNUSED(count);
+        using OpenC3::Core::Connection::shellQuote;
 
-        // Real impl would parse binary COSMOS packet logs.
-        const QString summary = filt.empty()
-            ? "Packet analysis: connect to view live data."
-            : "Filter: " + QString::fromStdString(filt) + " — connect for results.";
+        const std::string quotedPath = shellQuote(path);
+        const std::string cmd = filt.empty()
+            ? "if [ -r " + quotedPath + " ]; then wc -l < " + quotedPath +
+                  " 2>/dev/null || printf '0\n'; else printf 'ERROR: cannot read %s\n' " +
+                  quotedPath + "; fi"
+            : "if [ -r " + quotedPath + " ]; then LC_ALL=C grep -F -c -- " +
+                  shellQuote(filt) + " " + quotedPath +
+                  " 2>/dev/null || true; else printf 'ERROR: cannot read %s\n' " +
+                  quotedPath + "; fi";
 
-        QMetaObject::invokeMethod(this, [this, summary] {
+        const QString output = QString::fromStdString(fs_.executeCommand(cmd)).trimmed();
+        bool ok = false;
+        const int matches = output.toInt(&ok);
+
+        const QString filterText = filt.empty()
+            ? QStringLiteral("all lines")
+            : QStringLiteral("filter \"%1\"").arg(QString::fromStdString(filt));
+        const QString summary = ok
+            ? QStringLiteral("Packet analysis: %1 matching line(s) for %2 in %3.")
+                  .arg(matches)
+                  .arg(filterText)
+                  .arg(QString::fromStdString(path))
+            : QStringLiteral("Packet analysis failed for %1: %2")
+                  .arg(QString::fromStdString(path),
+                       output.isEmpty() ? QStringLiteral("command returned no output") : output);
+
+        QMetaObject::invokeMethod(this, [this, summary, ok] {
             emit analysisReady(summary);
             setBusy(false);
-            setStatus("Analysis complete.");
+            setStatus(ok ? QStringLiteral("Analysis complete.")
+                         : QStringLiteral("Analysis failed."));
         }, Qt::QueuedConnection);
     });
 }

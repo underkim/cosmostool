@@ -10,6 +10,8 @@
 #include <QFrame>
 #include <QStyle>
 
+#include <cstddef>
+
 namespace OpenC3::UI::Views {
 
 DashboardView::DashboardView(
@@ -28,13 +30,13 @@ void DashboardView::setupUi()
     root->setSpacing(16);
 
     // ── Page title ────────────────────────────────────────────────────────────
-    auto* title = new QLabel("Home", this);
-    QFont tf = title->font();
+    auto* pageTitle = new QLabel("Home", this);
+    QFont tf = pageTitle->font();
     tf.setPointSize(18);
     tf.setBold(true);
-    title->setFont(tf);
-    title->setObjectName("PageTitle");
-    root->addWidget(title);
+    pageTitle->setFont(tf);
+    pageTitle->setObjectName("PageTitle");
+    root->addWidget(pageTitle);
 
     // ── Guidance line — tells a first-time user what to do next ────────────────
     guidanceLabel_ = new QLabel(this);
@@ -60,9 +62,9 @@ void DashboardView::setupUi()
     auto* stepLayout = new QHBoxLayout;
     stepLayout->setSpacing(12);
 
-    auto addStepCard = [&](int index,
+    auto addStepCard = [&](std::size_t index,
                            const QString& step,
-                           const QString& title,
+                           const QString& cardTitle,
                            const QString& description,
                            auto signal) {
         auto* card = new QFrame(actionsGroup);
@@ -77,7 +79,7 @@ void DashboardView::setupUi()
         auto* stepLabel = new QLabel(step, card);
         stepLabel->setObjectName("StepEyebrow");
 
-        auto* titleLabel = new QLabel(title, card);
+        auto* titleLabel = new QLabel(cardTitle, card);
         QFont titleFont = titleLabel->font();
         titleFont.setBold(true);
         titleLabel->setFont(titleFont);
@@ -89,7 +91,7 @@ void DashboardView::setupUi()
 
         stepBadges_[index] = new Widgets::StatusBadge(
             "Pending", Widgets::BadgeStyle::Neutral, card);
-        stepButtons_[index] = new QPushButton(title, card);
+        stepButtons_[index] = new QPushButton(cardTitle, card);
         connect(stepButtons_[index], &QPushButton::clicked, this, signal);
 
         cardLayout->addWidget(stepLabel);
@@ -127,6 +129,7 @@ void DashboardView::setupUi()
     };
 
     addToolLink("CMD / TLM",    &DashboardView::openCmdTlmRequested);
+    addToolLink("Validator",    &DashboardView::openValidatorRequested);
     addToolLink("Packet Tools", &DashboardView::openPacketToolsRequested);
     addToolLink("Logs",         &DashboardView::openLogsRequested);
     toolsRow->addStretch();
@@ -236,11 +239,11 @@ void DashboardView::updateHomeGuidance()
     const bool connected = connection.startsWith("Connected");
     const bool dockerRunning = docker.startsWith("Running");
 
-    const int nextStep = !connected ? 0 : (!dockerRunning ? 1 : 2);
+    const std::size_t nextStep = !connected ? 0U : (!dockerRunning ? 1U : 2U);
 
-    for (int i = 0; i < 3; ++i) {
-        const bool complete = (i == 0 && connected)
-            || (i == 1 && connected && dockerRunning);
+    for (std::size_t i = 0; i < stepButtons_.size(); ++i) {
+        const bool complete = (i == 0U && connected)
+            || (i == 1U && connected && dockerRunning);
         const bool current = i == nextStep;
 
         stepBadges_[i]->setStyle(
@@ -252,7 +255,7 @@ void DashboardView::updateHomeGuidance()
         stepButtons_[i]->setObjectName(current ? "PrimaryButton" : "");
         stepButtons_[i]->style()->unpolish(stepButtons_[i]);
         stepButtons_[i]->style()->polish(stepButtons_[i]);
-        stepButtons_[i]->setEnabled(!complete || i == 2);
+        stepButtons_[i]->setEnabled(!complete || i == 2U);
     }
 
     if (!connected) {
