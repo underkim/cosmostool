@@ -56,6 +56,44 @@ TEST_F(DoctorServiceTest, CpuUsageFailWhenAbove95Percent)
     EXPECT_EQ(r.status, HealthStatus::Fail);
 }
 
+TEST_F(DoctorServiceTest, CpuUsageSkippedWhenOutputUnparseable)
+{
+    // Unexpected/empty awk output (e.g. a distro whose `top` format differs)
+    // must not be silently treated as "0% - Pass".
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("top")))
+        .WillOnce(Return(ExecutorResult::ok("")));
+
+    const auto r = sut_.runCheck("cpu_usage");
+    EXPECT_EQ(r.status, HealthStatus::Skipped);
+}
+
+TEST_F(DoctorServiceTest, MemoryUsageSkippedWhenOutputUnparseable)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("free")))
+        .WillOnce(Return(ExecutorResult::ok("")));
+
+    const auto r = sut_.runCheck("memory_usage");
+    EXPECT_EQ(r.status, HealthStatus::Skipped);
+}
+
+TEST_F(DoctorServiceTest, DiskSpaceSkippedWhenOutputUnparseable)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("df")))
+        .WillOnce(Return(ExecutorResult::ok("")));
+
+    const auto r = sut_.runCheck("disk_space");
+    EXPECT_EQ(r.status, HealthStatus::Skipped);
+}
+
+TEST_F(DoctorServiceTest, ContainerCountSkippedWhenOutputUnparseable)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok("")));
+
+    const auto r = sut_.runCheck("cosmos_containers");
+    EXPECT_EQ(r.status, HealthStatus::Skipped);
+}
+
 TEST_F(DoctorServiceTest, RunAllReturnsSameCountAsChecks)
 {
     // Allow any execute calls — return safe defaults

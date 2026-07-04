@@ -141,7 +141,13 @@ HealthCheckResult DoctorService::checkCpuUsage()
         return r;
     }
     double cpu = 0.0;
-    try { cpu = std::stod(res.stdOut); } catch (...) {}
+    try {
+        cpu = std::stod(res.stdOut);
+    } catch (...) {
+        r.status = HealthStatus::Skipped;
+        r.detail = "Could not parse CPU stats output";
+        return r;
+    }
     r.detail = std::to_string(static_cast<int>(cpu)) + "% in use";
 
     if (cpu < 80.0)      r.status = HealthStatus::Pass;
@@ -168,7 +174,13 @@ HealthCheckResult DoctorService::checkMemoryUsage()
         return r;
     }
     double pct = 0.0;
-    try { pct = std::stod(res.stdOut); } catch (...) {}
+    try {
+        pct = std::stod(res.stdOut);
+    } catch (...) {
+        r.status = HealthStatus::Skipped;
+        r.detail = "Could not parse memory stats output";
+        return r;
+    }
     r.detail = std::to_string(static_cast<int>(pct)) + "% used";
 
     if (pct < 80.0)      r.status = HealthStatus::Pass;
@@ -195,7 +207,13 @@ HealthCheckResult DoctorService::checkDiskSpace()
         return r;
     }
     int pct = 0;
-    try { pct = std::stoi(res.stdOut); } catch (...) {}
+    try {
+        pct = std::stoi(res.stdOut);
+    } catch (...) {
+        r.status = HealthStatus::Skipped;
+        r.detail = "Could not parse disk stats output";
+        return r;
+    }
     r.detail = std::to_string(pct) + "% used";
 
     if (pct < 80)      r.status = HealthStatus::Pass;
@@ -222,7 +240,13 @@ HealthCheckResult DoctorService::checkOpenC3Containers()
         return r;
     }
     int count = 0;
-    try { count = std::stoi(res.stdOut); } catch (...) {}
+    try {
+        count = std::stoi(res.stdOut);
+    } catch (...) {
+        r.status = HealthStatus::Skipped;
+        r.detail = "Could not parse container count output";
+        return r;
+    }
 
     if (count >= 5) {
         r.status = HealthStatus::Pass;
