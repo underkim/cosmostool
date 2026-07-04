@@ -5,6 +5,7 @@
 #include <QFormLayout>
 #include <QSplitter>
 #include <QGroupBox>
+#include <QFrame>
 #include <QLabel>
 #include <QFont>
 #include <QUuid>
@@ -42,8 +43,54 @@ void SettingsView::setupUi()
 
     // ── Status ────────────────────────────────────────────────────────────────
     statusLabel_ = new QLabel("Status: Disconnected", this);
-    statusLabel_->setObjectName("SubLabel");
+    statusLabel_->setObjectName("StatusBanner");
+    statusLabel_->setWordWrap(true);
     root->addWidget(statusLabel_);
+
+    // ── First-run connection cards ────────────────────────────────────────────
+    auto* startCards = new QHBoxLayout;
+    startCards->setSpacing(12);
+
+    auto* quickCard = new QFrame(this);
+    quickCard->setObjectName("ActionCard");
+    auto* quickCardLayout = new QVBoxLayout(quickCard);
+    quickCardLayout->setContentsMargins(14, 12, 14, 12);
+    quickCardLayout->setSpacing(6);
+    auto* quickTitle = new QLabel("Quick WSL", quickCard);
+    quickTitle->setObjectName("CardTitle");
+    auto* quickDesc = new QLabel(
+        "Best for local testing. Auto-detect WSL and create a /cosmos profile.",
+        quickCard);
+    quickDesc->setObjectName("SubLabel");
+    quickDesc->setWordWrap(true);
+    quickWslBtn_ = new QPushButton("Create WSL Profile", quickCard);
+    quickWslBtn_->setObjectName("PrimaryButton");
+    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
+    quickCardLayout->addWidget(quickTitle);
+    quickCardLayout->addWidget(quickDesc, 1);
+    quickCardLayout->addWidget(quickWslBtn_, 0, Qt::AlignLeft);
+
+    auto* customCard = new QFrame(this);
+    customCard->setObjectName("ActionCard");
+    auto* customCardLayout = new QVBoxLayout(customCard);
+    customCardLayout->setContentsMargins(14, 12, 14, 12);
+    customCardLayout->setSpacing(6);
+    auto* customTitle = new QLabel("Custom Profile", customCard);
+    customTitle->setObjectName("CardTitle");
+    auto* customDesc = new QLabel(
+        "Use SSH, advanced WSL settings, custom paths, or saved credentials.",
+        customCard);
+    customDesc->setObjectName("SubLabel");
+    customDesc->setWordWrap(true);
+    addBtn_ = new QPushButton("Create Custom Profile", customCard);
+    addBtn_->setToolTip("Create a blank connection profile for SSH or advanced setup.");
+    customCardLayout->addWidget(customTitle);
+    customCardLayout->addWidget(customDesc, 1);
+    customCardLayout->addWidget(addBtn_, 0, Qt::AlignLeft);
+
+    startCards->addWidget(quickCard);
+    startCards->addWidget(customCard);
+    root->addLayout(startCards);
 
     // ── Splitter: list | form ─────────────────────────────────────────────────
     auto* splitter = new QSplitter(Qt::Horizontal, this);
@@ -57,19 +104,14 @@ void SettingsView::setupUi()
     profileList_->setModel(vm_.profileModel());
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    auto* listBtns = new QHBoxLayout;
-    addBtn_      = new QPushButton("Custom", leftPane);
-    quickWslBtn_ = new QPushButton("Quick WSL", leftPane);
-    deleteBtn_   = new QPushButton("− Delete", leftPane);
-    addBtn_->setToolTip("Create a blank connection profile for SSH or advanced setup.");
-    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
+    auto* manageBtns = new QHBoxLayout;
+    deleteBtn_ = new QPushButton("Delete", leftPane);
     deleteBtn_->setToolTip("Select a connection profile first.");
-    listBtns->addWidget(addBtn_);
-    listBtns->addWidget(quickWslBtn_);
-    listBtns->addWidget(deleteBtn_);
+    manageBtns->addWidget(deleteBtn_);
+    manageBtns->addStretch();
 
     profileHintLabel_ = new QLabel(
-        "New here? Use Quick WSL for local OpenC3, or Custom for SSH/advanced setup.",
+        "Start with the cards above, then select a saved profile to review, connect, or delete it.",
         leftPane);
     profileHintLabel_->setObjectName("SubLabel");
     profileHintLabel_->setWordWrap(true);
@@ -86,7 +128,7 @@ void SettingsView::setupUi()
     leftLayout->addWidget(new QLabel("Connection Profiles:", leftPane));
     leftLayout->addWidget(profileList_);
     leftLayout->addWidget(profileHintLabel_);
-    leftLayout->addLayout(listBtns);
+    leftLayout->addLayout(manageBtns);
     leftLayout->addLayout(connBtns);
 
     // ── Right pane — profile form ─────────────────────────────────────────────

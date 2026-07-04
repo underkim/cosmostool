@@ -90,7 +90,8 @@ void CmdTlmView::setupUi()
     // ── Connection hint ───────────────────────────────────────────────────────
     connectionHint_ = new QLabel(
         "Connect to a remote environment, then click Browse to choose a file from /cosmos/targets.", this);
-    connectionHint_->setObjectName("SubLabel");
+    connectionHint_->setObjectName("StatusBanner");
+    connectionHint_->setWordWrap(true);
     root->addWidget(connectionHint_);
 
     // ── Toolbar — path ────────────────────────────────────────────────────────
@@ -244,7 +245,8 @@ void CmdTlmView::setupUi()
     // ── Status bar ────────────────────────────────────────────────────────────
     statusLabel_ = new QLabel(
         "Open a .txt CMD/TLM file to enable insert buttons.", this);
-    statusLabel_->setObjectName("SubLabel");
+    statusLabel_->setObjectName("StatusBanner");
+    statusLabel_->setWordWrap(true);
     root->addWidget(statusLabel_);
 
     // Initial path

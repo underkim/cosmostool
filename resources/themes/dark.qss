@@ -323,6 +323,30 @@ QLabel#SubLabel {
     font-size: 12px;
 }
 
+QLabel#StatusBanner {
+    background-color: #252a31;
+    color: #dbeafe;
+    border: 1px solid #31516b;
+    border-left: 4px solid #0e639c;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+QFrame#ActionCard {
+    background-color: #252526;
+    border: 1px solid #474747;
+    border-radius: 10px;
+}
+QFrame#ActionCard:hover {
+    border-color: #0e639c;
+    background-color: #292d33;
+}
+QLabel#CardTitle {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+}
+
 
 /* ── Dashboard Step Cards ─────────────────────────────────── */
 QFrame#StepCard {

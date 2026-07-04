@@ -254,7 +254,8 @@ void PluginView::setupUi()
     root->addLayout(toolbarBlock);
 
     statusLabel_ = new QLabel(this);
-    statusLabel_->setObjectName("SubLabel");
+    statusLabel_->setObjectName("StatusBanner");
+    statusLabel_->setWordWrap(true);
     root->addWidget(statusLabel_);
 
     pluginSummaryLabel_ = new QLabel("Select a plugin folder to inspect and edit its files.", this);
