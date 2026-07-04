@@ -60,6 +60,8 @@ private slots:
     void onApplyBlockClicked();
     void onStructureCellChanged(int row, int column);
     void onToggleReferenceClicked();
+    void onBrowseGoClicked();
+    void onBrowseItemDoubleClicked(QListWidgetItem* item);
 
 signals:
     void openCmdTlmRequested(const QString& remoteFilePath);
@@ -73,6 +75,7 @@ private:
     void populateComponentList(const QStringList& files, const QString& pluginRootPath);
     void setComponentHint(const QString& text);
     void openSelectedComponent(QListWidgetItem* item);
+    void openBrowsePath(const QString& remotePath);
     void insertTextAtCursor(const QString& text);
     void refreshStructureTable();
     void refreshBlockEditor();
@@ -120,9 +123,18 @@ private:
     QTabWidget*  detailTabs_{nullptr};
     QTabWidget*  componentEditorTabs_{nullptr};
     QTextEdit*   detailEdit_{nullptr};
+    QTabWidget*  filesTabs_{nullptr};
     QListWidget* componentList_{nullptr};
     QLabel*      componentHintLabel_{nullptr};
     QLabel*      componentListEmptyLabel_{nullptr};
+    // "Browse" tab: unrestricted remote directory browsing (not scoped to the
+    // selected plugin's root), reusing cmdTlmVm_.listDirectory()/openFile()
+    // the same way the (now-retired) standalone CMD/TLM screen did.
+    QLineEdit*   browsePathEdit_{nullptr};
+    QPushButton* browseGoBtn_{nullptr};
+    QListWidget* browseList_{nullptr};
+    QLabel*      browseEmptyLabel_{nullptr};
+    QString      currentBrowseDir_;
     QLabel*      componentPathLabel_{nullptr};
     QTextEdit*   componentEditor_{nullptr};
     QTextEdit*   componentDiagnostics_{nullptr};
@@ -163,6 +175,12 @@ private:
     QAction*     applyStructureAction_{nullptr};
     Widgets::CmdTlmHighlighter* highlighter_{nullptr};
     QString     currentPluginRoot_;
+    // Set right before cmdTlmVm_.openFile() is called (from either the
+    // plugin-scoped list or the Browse tab); the fileOpened handler only
+    // reacts if the reported path matches, instead of prefix-matching
+    // currentPluginRoot_ - lets a single view safely handle opens that
+    // originate outside the current plugin's root.
+    QString     pendingOpenPath_;
     QString     currentComponentPath_;
     QString     currentComponentDisplayPath_;
     QString     firstCmdTlmComponentPath_;

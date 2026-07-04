@@ -302,22 +302,56 @@ void PluginView::setupUi()
     pluginListLayout->addWidget(tableView_, 1);
     leftLayout->addWidget(pluginListGroup, 1);
 
-    auto* componentListGroup = new QGroupBox("Plugin Files", leftPane);
-    auto* componentListLayout = new QVBoxLayout(componentListGroup);
-    componentListLayout->setContentsMargins(8, 14, 8, 8);
+    auto* componentListGroup = new QGroupBox("Files", leftPane);
+    auto* componentListGroupLayout = new QVBoxLayout(componentListGroup);
+    componentListGroupLayout->setContentsMargins(8, 14, 8, 8);
+
+    filesTabs_ = new QTabWidget(componentListGroup);
+    componentListGroupLayout->addWidget(filesTabs_);
+
+    // ── "Plugin Files" tab: scoped to the selected plugin's root ─────────────
+    auto* pluginFilesTab = new QWidget(filesTabs_);
+    auto* componentListLayout = new QVBoxLayout(pluginFilesTab);
+    componentListLayout->setContentsMargins(0, 8, 0, 0);
     componentListLayout->setSpacing(6);
-    componentHintLabel_ = new QLabel("Select a plugin first.", componentListGroup);
+    componentHintLabel_ = new QLabel("Select a plugin first.", pluginFilesTab);
     componentHintLabel_->setObjectName("SubLabel");
     componentHintLabel_->setWordWrap(true);
-    componentListEmptyLabel_ = new QLabel("Select a plugin folder to list editable plugin files.", componentListGroup);
+    componentListEmptyLabel_ = new QLabel("Select a plugin folder to list editable plugin files.", pluginFilesTab);
     componentListEmptyLabel_->setObjectName("SubLabel");
     componentListEmptyLabel_->setWordWrap(true);
-    componentList_ = new QListWidget(componentListGroup);
+    componentList_ = new QListWidget(pluginFilesTab);
     componentList_->setObjectName("PluginComponentList");
     componentList_->setMinimumWidth(280);
     componentListLayout->addWidget(componentHintLabel_);
     componentListLayout->addWidget(componentListEmptyLabel_);
     componentListLayout->addWidget(componentList_, 1);
+    filesTabs_->addTab(pluginFilesTab, "Plugin Files");
+
+    // ── "Browse" tab: unrestricted remote directory browsing ─────────────────
+    auto* browseTab = new QWidget(filesTabs_);
+    auto* browseLayout = new QVBoxLayout(browseTab);
+    browseLayout->setContentsMargins(0, 8, 0, 0);
+    browseLayout->setSpacing(6);
+    auto* browsePathRow = new QHBoxLayout;
+    browsePathRow->setSpacing(6);
+    browsePathEdit_ = new QLineEdit(browseTab);
+    browsePathEdit_->setPlaceholderText("/cosmos/targets");
+    browseGoBtn_ = new QPushButton("Go", browseTab);
+    browsePathRow->addWidget(browsePathEdit_, 1);
+    browsePathRow->addWidget(browseGoBtn_);
+    browseEmptyLabel_ = new QLabel(
+        "Browse any remote path - not limited to the selected plugin.", browseTab);
+    browseEmptyLabel_->setObjectName("SubLabel");
+    browseEmptyLabel_->setWordWrap(true);
+    browseList_ = new QListWidget(browseTab);
+    browseList_->setObjectName("PluginBrowseList");
+    browsePathEdit_->setText("/cosmos/targets");
+    browseLayout->addLayout(browsePathRow);
+    browseLayout->addWidget(browseEmptyLabel_);
+    browseLayout->addWidget(browseList_, 1);
+    filesTabs_->addTab(browseTab, "Browse");
+
     leftLayout->addWidget(componentListGroup, 1);
     leftPane->setMinimumWidth(330);
 
@@ -635,6 +669,8 @@ void PluginView::bindViewModel()
     connect(addTargetBtn_, &QPushButton::clicked, this, &PluginView::onAddTargetClicked);
     connect(addTargetAction_, &QAction::triggered, this, &PluginView::onAddTargetClicked);
     connect(openComponentBtn_, &QPushButton::clicked, this, &PluginView::onOpenComponentClicked);
+    connect(browseGoBtn_, &QPushButton::clicked, this, &PluginView::onBrowseGoClicked);
+    connect(browseList_, &QListWidget::itemDoubleClicked, this, &PluginView::onBrowseItemDoubleClicked);
     connect(saveComponentBtn_, &QPushButton::clicked, this, &PluginView::onSaveComponentClicked);
     connect(validateComponentBtn_, &QPushButton::clicked, this, &PluginView::onValidateComponentClicked);
     connect(validateOfflineBtn_, &QPushButton::clicked, this, &PluginView::onValidateOfflineClicked);
@@ -815,10 +851,18 @@ void PluginView::bindViewModel()
     connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::pluginFilesListed,
             this, &PluginView::populateComponentList);
 
+    connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::directoryListed,
+            this, [this](const QStringList& entries, const QString& path) {
+                currentBrowseDir_ = path;
+                browseList_->clear();
+                for (const QString& e : entries)
+                    browseList_->addItem(e);
+                browseEmptyLabel_->setVisible(entries.isEmpty());
+            });
+
     connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::fileOpened,
             this, [this](const QString& path, const QString& content) {
-                if (currentPluginRoot_.isEmpty()
-                    || !path.startsWith(currentPluginRoot_ + "/", Qt::CaseInsensitive))
+                if (path != pendingOpenPath_)
                     return;
 
                 currentComponentPath_ = path;
@@ -1406,7 +1450,40 @@ void PluginView::openSelectedComponent(QListWidgetItem* item)
         return;
     const QString path = item->data(Qt::UserRole).toString();
     if (path.isEmpty()) return;
+    pendingOpenPath_ = path;
     cmdTlmVm_.openFile(path);
+}
+
+void PluginView::openBrowsePath(const QString& remotePath)
+{
+    if (remotePath.isEmpty()) return;
+    if (!confirmDiscardUnsavedChanges())
+        return;
+    pendingOpenPath_ = remotePath;
+    cmdTlmVm_.openFile(remotePath);
+}
+
+void PluginView::onBrowseGoClicked()
+{
+    cmdTlmVm_.listDirectory(browsePathEdit_->text().trimmed());
+}
+
+void PluginView::onBrowseItemDoubleClicked(QListWidgetItem* item)
+{
+    if (!item) return;
+    const QString name = item->text();
+    const QString path = (currentBrowseDir_.isEmpty() || currentBrowseDir_.endsWith('/'))
+                         ? currentBrowseDir_ + name
+                         : currentBrowseDir_ + '/' + name;
+
+    // Heuristic: no extension or trailing slash -> directory (matches the
+    // same convention the retired standalone CMD/TLM browser used).
+    if (!name.contains('.') || name.endsWith('/')) {
+        browsePathEdit_->setText(path.endsWith('/') ? path.chopped(1) : path);
+        cmdTlmVm_.listDirectory(browsePathEdit_->text());
+    } else {
+        openBrowsePath(path);
+    }
 }
 
 void PluginView::insertTextAtCursor(const QString& text)
