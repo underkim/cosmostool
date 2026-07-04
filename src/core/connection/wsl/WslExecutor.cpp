@@ -2,6 +2,7 @@
 #include "core/logging/Logger.h"
 #include "core/connection/ShellQuote.h"
 
+#include <algorithm>
 #include <sstream>
 
 #ifdef _WIN32
@@ -79,7 +80,10 @@ static ExecutorResult runWin32Process(const std::string& commandLine)
 
 static ExecutorResult runWin32ProcessStreaming(
     const std::string&                      commandLine,
-    std::function<void(const std::string&)> onOutput)
+    std::function<void(const std::string&)> onOutput,
+    std::atomic_bool&                       cancelStreaming,
+    std::function<void(HANDLE)>             onProcessStarted,
+    std::function<void(HANDLE)>             onProcessFinished)
 {
     SECURITY_ATTRIBUTES sa{};
     sa.nLength        = sizeof(sa);
@@ -109,10 +113,13 @@ static ExecutorResult runWin32ProcessStreaming(
         return ExecutorResult::fail("CreateProcess failed");
     }
 
+    if (onProcessStarted) onProcessStarted(pi.hProcess);
+
     std::string accumulated;
     char        buf[4096];
     DWORD       bytesRead = 0;
-    while (ReadFile(hReadPipe, buf, sizeof(buf) - 1, &bytesRead, nullptr)
+    while (!cancelStreaming.load(std::memory_order_acquire)
+           && ReadFile(hReadPipe, buf, sizeof(buf) - 1, &bytesRead, nullptr)
            && bytesRead > 0) {
         buf[bytesRead] = '\0';
         std::string chunk(buf, bytesRead);
@@ -124,6 +131,7 @@ static ExecutorResult runWin32ProcessStreaming(
     WaitForSingleObject(pi.hProcess, INFINITE);
     DWORD exitCode = 0;
     GetExitCodeProcess(pi.hProcess, &exitCode);
+    if (onProcessFinished) onProcessFinished(pi.hProcess);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
@@ -145,6 +153,7 @@ WslExecutor::~WslExecutor()
 bool WslExecutor::connect()
 {
     if (connected_) return true;
+    cancelStreaming_.store(false, std::memory_order_release);
 
     const std::string probe =
         "wsl.exe -d " + config_.wslDistribution + " -- echo OK";
@@ -165,9 +174,31 @@ bool WslExecutor::connect()
 void WslExecutor::disconnect()
 {
     if (!connected_) return;
+    cancelStreaming();
     connected_ = false;
     Logging::Logger::info("[WslExecutor] Disconnected from '{}'",
                           config_.wslDistribution);
+}
+
+void WslExecutor::cancelStreaming()
+{
+    cancelStreaming_.store(true, std::memory_order_release);
+#ifdef _WIN32
+    std::vector<void*> handles;
+    {
+        std::lock_guard<std::mutex> lock(activeProcessMutex_);
+        handles = activeStreamingProcesses_;
+    }
+    for (void* handle : handles) {
+        if (handle) {
+            // Long-running log commands (tail -f, journalctl -f, docker logs
+            // -f) do not exit just because the UI stops listening. Terminating
+            // the active wsl.exe process ensures closing the app cannot leave a
+            // hidden streaming process behind.
+            TerminateProcess(static_cast<HANDLE>(handle), 1);
+        }
+    }
+#endif
 }
 
 bool WslExecutor::isConnected() const noexcept { return connected_; }
@@ -184,6 +215,7 @@ ExecutorResult WslExecutor::executeStreaming(
     std::function<void(const std::string&)> onOutput)
 {
     if (!connected_) return ExecutorResult::fail("Not connected");
+    cancelStreaming_.store(false, std::memory_order_release);
     Logging::Logger::debug("[WslExecutor] streaming: {}", command);
     return runProcessStreaming(buildWslCommand(command), std::move(onOutput));
 }
@@ -266,13 +298,29 @@ ExecutorResult WslExecutor::runProcessStreaming(
     std::function<void(const std::string&)> onOutput)
 {
 #ifdef _WIN32
-    return runWin32ProcessStreaming(fullCommand, std::move(onOutput));
+    return runWin32ProcessStreaming(
+        fullCommand,
+        std::move(onOutput),
+        cancelStreaming_,
+        [this](HANDLE handle) {
+            std::lock_guard<std::mutex> lock(activeProcessMutex_);
+            activeStreamingProcesses_.push_back(handle);
+        },
+        [this](HANDLE handle) {
+            std::lock_guard<std::mutex> lock(activeProcessMutex_);
+            activeStreamingProcesses_.erase(
+                std::remove(activeStreamingProcesses_.begin(),
+                            activeStreamingProcesses_.end(),
+                            static_cast<void*>(handle)),
+                activeStreamingProcesses_.end());
+        });
 #else
     FILE* pipe = popen((fullCommand + " 2>&1").c_str(), "r");
     if (!pipe) return ExecutorResult::fail("popen failed");
     std::string out;
     char buf[4096];
-    while (fgets(buf, sizeof(buf), pipe)) {
+    while (!cancelStreaming_.load(std::memory_order_acquire)
+           && fgets(buf, sizeof(buf), pipe)) {
         out += buf;
         if (onOutput) onOutput(std::string(buf));
     }

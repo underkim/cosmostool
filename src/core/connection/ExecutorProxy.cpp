@@ -45,6 +45,11 @@ ExecutorResult ExecutorProxy::executeStreaming(
                    ->executeStreaming(command, std::move(onOutput));
 }
 
+void ExecutorProxy::cancelStreaming()
+{
+    current_.load(std::memory_order_acquire)->cancelStreaming();
+}
+
 bool ExecutorProxy::uploadFile(const std::string& localPath,
                                const std::string& remotePath)
 {

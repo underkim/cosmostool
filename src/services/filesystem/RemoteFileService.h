@@ -22,6 +22,7 @@ public:
 
     void streamCommand(const std::string&                      command,
                        std::function<void(const std::string&)> onLine) override;
+    void cancelStreamingCommand() override;
 
 private:
     Core::Connection::ICommandExecutor& executor_;

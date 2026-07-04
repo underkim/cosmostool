@@ -3,6 +3,7 @@
 
 #include <QtConcurrent/QtConcurrent>
 #include <QMetaObject>
+#include <QPointer>
 
 namespace OpenC3::ViewModels {
 
@@ -71,20 +72,24 @@ void LogViewerViewModel::startStream(const QString& command)
     setStatus("Streaming: " + command);
     const std::string cmd = command.toStdString();
 
-    (void)QtConcurrent::run([this, cmd, stopFlag, fsPtr] {
-        fsPtr->streamCommand(cmd, [stopFlag, this](const std::string& line) {
+    QPointer<LogViewerViewModel> self(this);
+
+    (void)QtConcurrent::run([self, cmd, stopFlag, fsPtr] {
+        fsPtr->streamCommand(cmd, [stopFlag, self](const std::string& line) {
             if (stopFlag->load(std::memory_order_acquire)) return;
-            // Safe even if `this` was destroyed by now: Qt's context-object
-            // overload of invokeMethod only runs the functor if the context
-            // (`this`) is still alive when the event is processed.
-            QMetaObject::invokeMethod(this, [this, qline = QString::fromStdString(line)] {
-                emit logLineReceived(qline);
+            if (!self) return;
+            // Safe if the view-model is gone: QPointer is cleared on QObject
+            // destruction, and the queued functor re-checks before emitting.
+            QMetaObject::invokeMethod(self, [self, qline = QString::fromStdString(line)] {
+                if (self) emit self->logLineReceived(qline);
             }, Qt::QueuedConnection);
         });
-        QMetaObject::invokeMethod(this, [this] {
-            setStreaming(false);
-            setStatus("Stream ended.");
-            emit streamEnded();
+        if (!self) return;
+        QMetaObject::invokeMethod(self, [self] {
+            if (!self) return;
+            self->setStreaming(false);
+            self->setStatus("Stream ended.");
+            emit self->streamEnded();
         }, Qt::QueuedConnection);
     });
 }
@@ -92,6 +97,7 @@ void LogViewerViewModel::startStream(const QString& command)
 void LogViewerViewModel::stopStream()
 {
     if (stopFlag_) stopFlag_->store(true, std::memory_order_release);
+    fs_.cancelStreamingCommand();
     setStreaming(false);
     setStatus("Stream stopped.");
 }

@@ -4,7 +4,10 @@
 #include "core/connection/ConnectionConfig.h"
 
 #include <functional>
+#include <atomic>
+#include <mutex>
 #include <string>
+#include <vector>
 
 namespace OpenC3::Core::Connection {
 
@@ -35,6 +38,7 @@ public:
     [[nodiscard]] ExecutorResult executeStreaming(
         const std::string&                      command,
         std::function<void(const std::string&)> onOutput) override;
+    void cancelStreaming() override;
 
     [[nodiscard]] bool uploadFile(
         const std::string& localPath,
@@ -63,6 +67,12 @@ private:
 
     ConnectionConfig config_;
     bool             connected_{false};
+    std::atomic_bool cancelStreaming_{false};
+
+#ifdef _WIN32
+    mutable std::mutex activeProcessMutex_;
+    std::vector<void*> activeStreamingProcesses_;
+#endif
 };
 
 } // namespace OpenC3::Core::Connection

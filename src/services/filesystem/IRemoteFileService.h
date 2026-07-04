@@ -30,6 +30,9 @@ public:
     virtual void streamCommand(
         const std::string&                      command,
         std::function<void(const std::string&)> onLine) = 0;
+
+    /// Best-effort cancellation for the currently active streaming command.
+    virtual void cancelStreamingCommand() {}
 };
 
 } // namespace OpenC3::Services

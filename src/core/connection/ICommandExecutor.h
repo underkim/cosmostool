@@ -43,6 +43,11 @@ public:
         const std::string&                       command,
         std::function<void(const std::string&)>  onOutput) = 0;
 
+    /// Best-effort cancellation for any active streaming command started via
+    /// executeStreaming(). Implementations that own a child process/channel
+    /// should terminate it; implementations without streaming state may no-op.
+    virtual void cancelStreaming() {}
+
     // ── File operations ───────────────────────────────────────────────────────
 
     [[nodiscard]] virtual bool uploadFile(

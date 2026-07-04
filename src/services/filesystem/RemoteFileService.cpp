@@ -40,4 +40,9 @@ void RemoteFileService::streamCommand(
     (void)executor_.executeStreaming(command, std::move(onLine));
 }
 
+void RemoteFileService::cancelStreamingCommand()
+{
+    executor_.cancelStreaming();
+}
+
 } // namespace OpenC3::Services

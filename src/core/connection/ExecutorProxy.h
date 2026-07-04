@@ -29,6 +29,7 @@ public:
     [[nodiscard]] ExecutorResult executeStreaming(
         const std::string&                      command,
         std::function<void(const std::string&)> onOutput) override;
+    void cancelStreaming() override;
 
     [[nodiscard]] bool uploadFile(const std::string& localPath,
                                   const std::string& remotePath) override;
