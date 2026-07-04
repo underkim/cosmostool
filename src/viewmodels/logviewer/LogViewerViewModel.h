@@ -4,8 +4,8 @@
 #include "services/connection/IConnectionService.h"
 #include "services/filesystem/IRemoteFileService.h"
 
-#include <QAtomicInt>
 #include <QString>
+#include <atomic>
 #include <memory>
 
 namespace OpenC3::ViewModels {
@@ -48,7 +48,13 @@ private:
     Services::IRemoteFileService& fs_;
     bool                          streaming_{false};
     QString                       status_;
-    QAtomicInt                    stopFlag_{0};
+
+    // Shared (not `this`-owned) so the background worker thread - which may
+    // still be inside the blocking fs_.streamCommand() call after this
+    // ViewModel is destroyed, since stopStream() cannot interrupt that call
+    // - never dereferences freed ViewModel memory. See startStream()/
+    // stopStream() for how this is captured by value into the worker lambda.
+    std::shared_ptr<std::atomic<bool>> stopFlag_;
 };
 
 } // namespace OpenC3::ViewModels

@@ -45,9 +45,15 @@ bool ConnectionService::connect(const std::string& profileId)
 void ConnectionService::disconnect()
 {
     if (executor_) executor_->disconnect();
-    executor_.reset();
     activeProfile_.reset();
+    // Fire Disconnected (which resets ExecutorProxy to the null executor,
+    // see Application::registerServices()) *before* destroying the real
+    // executor object below. Domain services (Docker/System/Doctor/...)
+    // hold a stable ExecutorProxy& and may be mid-call from a background
+    // thread; reversing this order would let such a call dereference the
+    // executor after executor_.reset() has already freed it.
     setState(ConnectionState::Disconnected);
+    executor_.reset();
 }
 
 ConnectionState ConnectionService::state() const noexcept { return state_; }
