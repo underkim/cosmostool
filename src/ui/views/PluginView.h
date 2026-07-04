@@ -110,6 +110,9 @@ private:
     QPushButton* scaffoldBtn_{nullptr};
     QPushButton* addTargetBtn_{nullptr};
     QWidget*     selectedPluginActions_{nullptr};
+    QToolButton* moreMenuBtn_{nullptr};
+    QAction*     addTargetAction_{nullptr};
+    QAction*     removeAction_{nullptr};
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
     QLabel*      pluginSummaryLabel_{nullptr};

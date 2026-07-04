@@ -181,8 +181,8 @@ void PluginView::setupUi()
     scaffoldBtn_ = new QPushButton("New Plugin", this);
     addTargetBtn_ = new QPushButton("Add Target", this);
     validateBtn_ = new QPushButton("Check", this);
-    buildBtn_ = new QPushButton("Build", this);
-    installBtn_ = new QPushButton("Install", this);
+    buildBtn_ = new QPushButton("Build Gem", this);
+    installBtn_ = new QPushButton("Install Gem", this);
     refreshBtn_ = new QPushButton(QString::fromUtf8("↻"), this);
     removeBtn_ = new QPushButton("Remove", this);
 
@@ -195,23 +195,19 @@ void PluginView::setupUi()
     progressBar_->setVisible(false);
     progressBar_->setFixedWidth(120);
 
-    scaffoldBtn_->setText("New Plugin");
-    addTargetBtn_->setText("Add Target");
-    validateBtn_->setText("Check");
-    buildBtn_->setText("Build");
-    installBtn_->setText("Install");
-    refreshBtn_->setText(QString::fromUtf8("↻"));
-    removeBtn_->setText("Remove");
-
     scaffoldBtn_->setToolTip("Create a new plugin locally.");
-    addTargetBtn_->setToolTip("Add a target to the selected local plugin folder.");
-    validateBtn_->setToolTip(
-        "Check the selected plugin with openc3cli before building or installing.");
-    buildBtn_->setToolTip("Build the selected local plugin into a gem. Save any open file first.");
-    installBtn_->setToolTip(
-        "Install a local .gem file into OpenC3 (requires a connection).");
+    validateBtn_->setToolTip("Check with openc3cli before building or installing.");
+    buildBtn_->setToolTip("Build the selected plugin into a gem. Save any open file first.");
+    installBtn_->setToolTip("Install a local .gem file into OpenC3.");
     refreshBtn_->setToolTip("Refresh the local/remote plugin list.");
-    removeBtn_->setToolTip("Remove the selected plugin from OpenC3 (requires a connection).");
+
+    // Add Target and Remove are secondary/less-frequent actions - kept as
+    // real QPushButtons (so existing clicked-signal wiring is untouched) but
+    // never added to a visible layout. Their enabled/tooltip state is
+    // mirrored onto addTargetAction_/removeAction_ below, which are what the
+    // user actually sees and clicks, in the "More" menu.
+    addTargetBtn_->setToolTip("Add a target to the selected local plugin folder.");
+    removeBtn_->setToolTip("Remove the selected plugin from OpenC3.");
 
     buildBtn_->setObjectName("PrimaryButton");
     refreshBtn_->setObjectName("SecondaryIconButton");
@@ -222,7 +218,7 @@ void PluginView::setupUi()
     // decides the true minimum. A fixed magic-number floor smaller than that
     // sizeHint is exactly what let text get clipped on other font/DPI setups.
     const QList<QPushButton*> topButtons = {
-        scaffoldBtn_, addTargetBtn_, validateBtn_, buildBtn_, installBtn_, removeBtn_
+        scaffoldBtn_, validateBtn_, buildBtn_, installBtn_
     };
     for (auto* button : topButtons)
         button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -231,21 +227,28 @@ void PluginView::setupUi()
     auto* selectedPluginActionsLayout = new QHBoxLayout(selectedPluginActions_);
     selectedPluginActionsLayout->setContentsMargins(0, 0, 0, 0);
     selectedPluginActionsLayout->setSpacing(8);
-    // Primary (Check/Build/Install) first, then a wider gap before the
-    // secondary/less-frequent actions (Add Target/Remove) - reduces visual
-    // density without hiding either behind a menu.
     selectedPluginActionsLayout->addWidget(validateBtn_);
     selectedPluginActionsLayout->addWidget(buildBtn_);
     selectedPluginActionsLayout->addWidget(installBtn_);
-    selectedPluginActionsLayout->addSpacing(16);
-    selectedPluginActionsLayout->addWidget(addTargetBtn_);
-    selectedPluginActionsLayout->addWidget(removeBtn_);
     selectedPluginActions_->setVisible(false);
+
+    // Secondary actions (Add Target/Remove) live behind a "More" menu instead
+    // of as always-visible buttons - same slots, less toolbar clutter.
+    moreMenuBtn_ = new QToolButton(this);
+    moreMenuBtn_->setText("More " + QString::fromUtf8("▾"));
+    moreMenuBtn_->setToolTip("Add a target, or remove this plugin.");
+    moreMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+    auto* moreMenu = new QMenu(moreMenuBtn_);
+    addTargetAction_ = moreMenu->addAction("Add Target");
+    removeAction_    = moreMenu->addAction("Remove");
+    moreMenuBtn_->setMenu(moreMenu);
+    moreMenuBtn_->setVisible(false);
 
     toolbarBlock->addWidget(scaffoldBtn_);
     toolbarBlock->addWidget(refreshBtn_);
     toolbarBlock->addSpacing(8);
     toolbarBlock->addWidget(selectedPluginActions_);
+    toolbarBlock->addWidget(moreMenuBtn_);
     toolbarBlock->addStretch();
     toolbarBlock->addWidget(progressBar_);
     root->addLayout(toolbarBlock);
@@ -349,11 +352,11 @@ void PluginView::setupUi()
     componentEditRow->setSpacing(6);
     componentPathLabel_ = new QLabel("Select a plugin file", editorPane);
     componentPathLabel_->setObjectName("PluginFilePath");
-    openComponentBtn_ = new QPushButton("Open File", editorPane);
+    openComponentBtn_ = new QPushButton("Open", editorPane);
     saveComponentBtn_ = new QPushButton("Save", editorPane);
-    validateComponentBtn_ = new QPushButton("Check File", editorPane);
-    validateOfflineBtn_ = new QPushButton("Check Offline", editorPane);
-    openInCmdTlmBtn_ = new QPushButton("Open in CMD/TLM", editorPane);
+    validateComponentBtn_ = new QPushButton("Check", editorPane);
+    validateOfflineBtn_ = new QPushButton("Offline Check", editorPane);
+    openInCmdTlmBtn_ = new QPushButton("Open CMD/TLM", editorPane);
     startCmdTlmEditBtn_ = new QPushButton("Edit CMD/TLM", editorPane);
     insertCmdBtn_ = new QPushButton("+ COMMAND", editorPane);
     insertTlmBtn_ = new QPushButton("+ TELEMETRY", editorPane);
@@ -363,15 +366,14 @@ void PluginView::setupUi()
     refreshStructureBtn_ = new QPushButton("Refresh", editorPane);
     applyStructureBtn_ = new QPushButton("Apply", editorPane);
     toggleReferenceBtn_ = new QPushButton("Reference", editorPane);
-    openComponentBtn_->setText("Open File");
+    openComponentBtn_->setText("Open");
     saveComponentBtn_->setText("Save");
-    validateComponentBtn_->setText("Check File");
-    validateComponentBtn_->setToolTip("Check the selected CMD/TLM file and refresh the structure view.");
-    validateOfflineBtn_->setText("Check Offline");
+    validateComponentBtn_->setText("Check");
+    validateComponentBtn_->setToolTip("Check this file and refresh the structure view.");
+    validateOfflineBtn_->setText("Offline Check");
     validateOfflineBtn_->setToolTip(
-        "Run the full per-rule offline validator on this file in the Validator view "
-        "(works for cmd_tlm, screen, plugin.txt, target.txt).");
-    openInCmdTlmBtn_->setText("Open in CMD/TLM");
+        "Full per-rule offline check in the Validator view.");
+    openInCmdTlmBtn_->setText("Open CMD/TLM");
     startCmdTlmEditBtn_->setText("Edit CMD/TLM");
     startCmdTlmEditBtn_->setToolTip(
         "Open the first CMD/TLM file in this plugin and start the common edit flow.");
@@ -395,15 +397,16 @@ void PluginView::setupUi()
     validateMenuBtn_->setToolTip("More ways to check this file.");
     validateMenuBtn_->setPopupMode(QToolButton::InstantPopup);
     auto* validateMenu = new QMenu(validateMenuBtn_);
-    validateOfflineAction_ = validateMenu->addAction("Check Offline");
+    validateOfflineAction_ = validateMenu->addAction("Offline Check");
     validateMenuBtn_->setMenu(validateMenu);
 
     insertMenuBtn_ = new QToolButton(editorPane);
     insertMenuBtn_->setText("Insert ▾");
+    insertMenuBtn_->setToolTip("Insert a COMMAND/TELEMETRY template or a field.");
     insertMenuBtn_->setPopupMode(QToolButton::InstantPopup);
     auto* insertMenu = new QMenu(insertMenuBtn_);
-    insertCmdAction_ = insertMenu->addAction("+ COMMAND");
-    insertTlmAction_ = insertMenu->addAction("+ TELEMETRY");
+    insertCmdAction_ = insertMenu->addAction("COMMAND");
+    insertTlmAction_ = insertMenu->addAction("TELEMETRY");
     addFieldAction_ = insertMenu->addAction("Add Field");
     insertMenuBtn_->setMenu(insertMenu);
 
@@ -624,10 +627,12 @@ void PluginView::bindViewModel()
     connect(refreshBtn_, &QPushButton::clicked, &vm_, &ViewModels::PluginViewModel::refresh);
     connect(installBtn_, &QPushButton::clicked, this, &PluginView::onInstallClicked);
     connect(removeBtn_, &QPushButton::clicked, this, &PluginView::onRemoveClicked);
+    connect(removeAction_, &QAction::triggered, this, &PluginView::onRemoveClicked);
     connect(validateBtn_, &QPushButton::clicked, this, &PluginView::onValidateClicked);
     connect(buildBtn_, &QPushButton::clicked, this, &PluginView::onBuildClicked);
     connect(scaffoldBtn_, &QPushButton::clicked, this, &PluginView::onScaffoldClicked);
     connect(addTargetBtn_, &QPushButton::clicked, this, &PluginView::onAddTargetClicked);
+    connect(addTargetAction_, &QAction::triggered, this, &PluginView::onAddTargetClicked);
     connect(openComponentBtn_, &QPushButton::clicked, this, &PluginView::onOpenComponentClicked);
     connect(saveComponentBtn_, &QPushButton::clicked, this, &PluginView::onSaveComponentClicked);
     connect(validateComponentBtn_, &QPushButton::clicked, this, &PluginView::onValidateComponentClicked);
@@ -1140,7 +1145,7 @@ void PluginView::onOpenInCmdTlmClicked()
 {
     if (currentComponentPath_.isEmpty()) return;
     if (!isCmdTlmFile(currentComponentPath_)) {
-        componentDiagnostics_->setPlainText("Open in CMD/TLM is available for cmd_tlm files.");
+        componentDiagnostics_->setPlainText("Open CMD/TLM is available for cmd_tlm files.");
         return;
     }
     emit openCmdTlmRequested(currentComponentPath_);
@@ -1319,10 +1324,14 @@ void PluginView::updateActionHints()
     const QString busyReason = "Wait for the current plugin operation to finish.";
 
     refreshBtn_->setToolTip(connectReason);
-    addTargetBtn_->setToolTip(!hasPlugin ? selectPluginReason : "Add a target folder structure to the selected plugin.");
-    buildBtn_->setToolTip(!hasPlugin ? selectPluginReason : (busy ? busyReason : "Build the selected plugin gem."));
-    removeBtn_->setToolTip(!hasPlugin ? selectPluginReason : (busy ? busyReason : "Remove the selected installed plugin."));
-    validateBtn_->setToolTip(!hasPlugin ? selectPluginReason : "Check this plugin with openc3cli before build/install. For file-level checks, open a file first.");
+    // Add Target/Build/Remove/Check are only ever visible once a plugin is
+    // selected (see updateGroupedActionState()), so their tooltip only needs
+    // the short, unconditional purpose - "select a plugin first" is already
+    // covered by the inline hint below instead of being repeated here.
+    addTargetBtn_->setToolTip("Add a target folder structure to this plugin.");
+    buildBtn_->setToolTip(busy ? busyReason : "Build this plugin into a gem.");
+    removeBtn_->setToolTip(busy ? busyReason : "Remove this plugin from OpenC3.");
+    validateBtn_->setToolTip("Check this plugin with openc3cli.");
     openComponentBtn_->setToolTip(!hasSelectedFile ? "Select a plugin file first." : "Open the selected plugin file.");
     startCmdTlmEditBtn_->setToolTip(firstCmdTlmComponentPath_.isEmpty() ? fileReason : "Open the first CMD/TLM definition and start editing.");
     saveComponentBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : "Save the open plugin file.");
@@ -1340,9 +1349,9 @@ void PluginView::updateActionHints()
     applyStructureBtn_->setToolTip(!cmdTlm ? fileReason : "Apply the selected structure row to the source text.");
 
     if (!hasPlugin)
-        statusLabel_->setText("Select a plugin to show build, install, and target actions.");
+        statusLabel_->setText("Select a plugin to check, build, or install.");
     else if (!hasOpenFile)
-        statusLabel_->setText("Open a plugin file to edit, check, and save it. Advanced actions are in Check, Insert, and Fields.");
+        statusLabel_->setText("Open a file, then edit and save. Advanced actions are in Check, Insert, and Fields.");
 
     updateGroupedActionState();
     updateWorkflowHint();
@@ -1354,25 +1363,32 @@ void PluginView::updateWorkflowHint()
     if (!workflowHintLabel_ || !tableView_ || !tableView_->selectionModel())
         return;
 
-    const bool hasPlugin = tableView_->selectionModel()->hasSelection();
+    const bool hasPlugin   = tableView_->selectionModel()->hasSelection();
     const bool hasOpenFile = !currentComponentPath_.isEmpty();
-    const bool cmdTlm = isCmdTlmFile(currentComponentPath_);
+    const bool cmdTlm      = isCmdTlmFile(currentComponentPath_);
+    const bool saved       = hasOpenFile && !componentDirty_;
 
+    static const QString steps = QString::fromUtf8(
+        "1. Select Plugin → 2. Open File → 3. Edit CMD/TLM → 4. Check → 5. Build → 6. Install");
+
+    QString next;
     if (!hasPlugin) {
-        workflowHintLabel_->setText(
-            "Start: create or refresh plugins, then select one to show build/install actions.");
-        return;
+        next = "Create or refresh plugins first.";
+    } else if (!hasOpenFile) {
+        next = "Open a plugin file to edit.";
+    } else if (cmdTlm && !saved) {
+        next = "Edit fields, then Check and Save.";
+    } else if (cmdTlm && saved && !infraVm_.isConnected()) {
+        next = "Connect before installing.";
+    } else if (cmdTlm) {
+        next = "Build Gem when ready.";
+    } else if (!saved) {
+        next = "Review this file, then Save.";
+    } else {
+        next = "Saved. Return to plugin actions when ready.";
     }
 
-    if (!hasOpenFile) {
-        workflowHintLabel_->setText(
-            "Next: open a file. For the usual CMD/TLM workflow, choose Edit CMD/TLM.");
-        return;
-    }
-
-    workflowHintLabel_->setText(cmdTlm
-        ? "Next: check the CMD/TLM file, save changes, then build and install."
-        : "Next: review this file, save changes, then return to plugin actions.");
+    workflowHintLabel_->setText(steps + "   —   " + next);
 }
 
 void PluginView::updateComponentEmptyState()
@@ -1802,6 +1818,12 @@ void PluginView::updateGroupedActionState()
     const bool hasPlugin = tableView_ && tableView_->selectionModel()->hasSelection();
     if (selectedPluginActions_)
         selectedPluginActions_->setVisible(hasPlugin);
+    if (moreMenuBtn_)
+        moreMenuBtn_->setVisible(hasPlugin);
+    if (addTargetAction_)
+        addTargetAction_->setEnabled(addTargetBtn_ && addTargetBtn_->isEnabled());
+    if (removeAction_)
+        removeAction_->setEnabled(removeBtn_ && removeBtn_->isEnabled());
 
     if (validateOfflineAction_)
         validateOfflineAction_->setEnabled(validateOfflineBtn_ && validateOfflineBtn_->isEnabled());
