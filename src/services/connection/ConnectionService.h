@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -37,6 +38,16 @@ private:
     std::optional<Models::ConnectionProfile>          activeProfile_;
 
     std::vector<std::function<void(const ConnectionEvent&)>> stateCallbacks_;
+
+    // connect() runs on a background thread (SettingsViewModel::connectToProfile
+    // via QtConcurrent::run) while disconnect() is invoked synchronously from
+    // the GUI thread - without this, rapid Connect-then-Disconnect clicks (or
+    // even just clicking Disconnect before the "Connecting" UI-disable round
+    // trip lands) let both run concurrently and mutate executor_/state_/
+    // activeProfile_ unsynchronized. Recursive because setState() invokes
+    // stateCallbacks_ synchronously while already locked, and those callbacks
+    // (see Application::registerServices()) call back into executor().
+    mutable std::recursive_mutex mutex_;
 };
 
 } // namespace OpenC3::Services

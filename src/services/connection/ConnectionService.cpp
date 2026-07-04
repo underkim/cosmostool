@@ -11,6 +11,8 @@ ConnectionService::ConnectionService(ISettingsService& settings)
 
 bool ConnectionService::connect(const std::string& profileId)
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     setState(ConnectionState::Connecting);
 
     auto maybeProfile = settings_.profileById(profileId);
@@ -44,6 +46,8 @@ bool ConnectionService::connect(const std::string& profileId)
 
 void ConnectionService::disconnect()
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     if (executor_) executor_->disconnect();
     activeProfile_.reset();
     // Fire Disconnected (which resets ExecutorProxy to the null executor,
@@ -56,27 +60,35 @@ void ConnectionService::disconnect()
     executor_.reset();
 }
 
-ConnectionState ConnectionService::state() const noexcept { return state_; }
+ConnectionState ConnectionService::state() const noexcept
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return state_;
+}
 
 const Models::ConnectionProfile*
 ConnectionService::activeProfile() const noexcept
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return activeProfile_ ? &*activeProfile_ : nullptr;
 }
 
 std::string ConnectionService::cosmosRootPath() const noexcept
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return activeProfile_ ? activeProfile_->cosmosRootPath : "/cosmos";
 }
 
 void ConnectionService::onStateChanged(
     std::function<void(const ConnectionEvent&)> cb)
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     stateCallbacks_.push_back(std::move(cb));
 }
 
 Core::Connection::ICommandExecutor* ConnectionService::executor() const noexcept
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return executor_.get();
 }
 
