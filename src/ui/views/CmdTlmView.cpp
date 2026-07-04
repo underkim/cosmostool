@@ -127,15 +127,15 @@ void CmdTlmView::setupUi()
     fileLabel_->setObjectName("SubLabel");
     auto* referenceBtn = new QPushButton("Reference", editorGroup);
     referenceBtn->setCheckable(true);
-    validateBtn_    = new QPushButton("Validate", editorGroup);
-    openInValidatorBtn_ = new QPushButton("Open in Validator", editorGroup);
+    validateBtn_    = new QPushButton("Check", editorGroup);
+    openInValidatorBtn_ = new QPushButton("Validator", editorGroup);
     saveBtn_        = new QPushButton("Save", editorGroup);
     saveBtn_->setObjectName("PrimaryButton");
     saveBtn_->setEnabled(false);
     validateBtn_->setEnabled(false);
     openInValidatorBtn_->setEnabled(false);
     openInValidatorBtn_->setToolTip(
-        "Run the full per-rule (offline) validator on this content");
+        "Open in the Validator view for the full per-rule (offline) check.");
     // No hardcoded pixel-width floor: each button's own sizeHint already
     // reserves exactly the space its text needs for the current font/DPI,
     // so a smaller fixed minimum here would be what actually risks clipping.
@@ -146,7 +146,10 @@ void CmdTlmView::setupUi()
     editorHeader->addWidget(saveBtn_);
     editorLayout->addLayout(editorHeader);
 
-    auto* insertBar = new QHBoxLayout;
+    // Hidden backing buttons: kept only so the existing clicked-signal wiring
+    // is untouched. The user-visible control is insertMenuBtn_ below, whose
+    // menu actions trigger the same slots (mirrors the Check/Insert/Fields
+    // menu pattern already used in PluginView).
     insertCmdBtn_   = new QPushButton("+ COMMAND",   editorGroup);
     insertTlmBtn_   = new QPushButton("+ TELEMETRY", editorGroup);
     insertParamBtn_ = new QPushButton("+ PARAMETER", editorGroup);
@@ -155,10 +158,19 @@ void CmdTlmView::setupUi()
     insertTlmBtn_->hide();
     insertParamBtn_->hide();
     addFieldBtn_->hide();
-    insertBar->addWidget(insertCmdBtn_);
-    insertBar->addWidget(insertTlmBtn_);
-    insertBar->addWidget(insertParamBtn_);
-    insertBar->addWidget(addFieldBtn_);
+
+    auto* insertBar = new QHBoxLayout;
+    insertMenuBtn_ = new QToolButton(editorGroup);
+    insertMenuBtn_->setText("Insert " + QString::fromUtf8("▾"));
+    insertMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+    insertMenuBtn_->setVisible(false);
+    auto* insertMenu = new QMenu(insertMenuBtn_);
+    insertCmdAction_   = insertMenu->addAction("COMMAND");
+    insertTlmAction_   = insertMenu->addAction("TELEMETRY");
+    insertParamAction_ = insertMenu->addAction("PARAMETER");
+    addFieldAction_    = insertMenu->addAction("Add Field...");
+    insertMenuBtn_->setMenu(insertMenu);
+    insertBar->addWidget(insertMenuBtn_);
     insertBar->addStretch();
     editorLayout->addLayout(insertBar);
 
@@ -256,6 +268,10 @@ void CmdTlmView::bindViewModel()
     connect(insertTlmBtn_,  &QPushButton::clicked, this, &CmdTlmView::onInsertTlm);
     connect(insertParamBtn_,&QPushButton::clicked, this, &CmdTlmView::onInsertParam);
     connect(addFieldBtn_,   &QPushButton::clicked, this, &CmdTlmView::onAddField);
+    connect(insertCmdAction_,   &QAction::triggered, this, &CmdTlmView::onInsertCmd);
+    connect(insertTlmAction_,   &QAction::triggered, this, &CmdTlmView::onInsertTlm);
+    connect(insertParamAction_, &QAction::triggered, this, &CmdTlmView::onInsertParam);
+    connect(addFieldAction_,    &QAction::triggered, this, &CmdTlmView::onAddField);
 
     connect(fileList_, &QListWidget::itemDoubleClicked,
             this, &CmdTlmView::onFileItemDoubleClicked);
@@ -313,14 +329,8 @@ void CmdTlmView::bindViewModel()
                 saveBtn_->setEnabled(true);
                 validateBtn_->setEnabled(isTxt);
                 openInValidatorBtn_->setEnabled(isTxt);
-                insertCmdBtn_->setVisible(isTxt);
-                insertTlmBtn_->setVisible(isTxt);
-                insertParamBtn_->setVisible(isTxt);
-                addFieldBtn_->setVisible(isTxt);
-                insertCmdBtn_->setEnabled(isTxt);
-                insertTlmBtn_->setEnabled(isTxt);
-                insertParamBtn_->setEnabled(isTxt);
-                addFieldBtn_->setEnabled(isTxt);
+                insertMenuBtn_->setVisible(isTxt);
+                insertMenuBtn_->setEnabled(isTxt);
                 updateActionHints();
             });
 
@@ -549,19 +559,22 @@ void CmdTlmView::updateActionHints()
     const QString busyReason = "Wait for the current CMD/TLM operation to finish.";
 
     browseBtn_->setToolTip(connected ? "Browse the selected remote directory." : connectReason);
-    const QString editTip = !connected ? connectReason : (!isTxt ? fileReason : "Insert CMD/TLM text into the open file.");
-    insertCmdBtn_->setToolTip(editTip);
-    insertTlmBtn_->setToolTip(editTip);
-    insertParamBtn_->setToolTip(editTip);
-    addFieldBtn_->setToolTip(editTip);
-    validateBtn_->setToolTip(!isTxt ? fileReason : "Validate the open CMD/TLM .txt file.");
-    openInValidatorBtn_->setToolTip(!isTxt ? fileReason : "Run the full per-rule (offline) validator on this content.");
+    const QString editTip = !connected ? connectReason : (!isTxt ? fileReason : "Insert a COMMAND/TELEMETRY template or a field.");
+    insertMenuBtn_->setToolTip(editTip);
+    validateBtn_->setToolTip("Check the open CMD/TLM file.");
+    openInValidatorBtn_->setToolTip("Run full offline validation in the Validator view.");
     saveBtn_->setToolTip(!hasFile ? fileReason : (busy ? busyReason : "Save the open file."));
 
     if (!connected)
         statusLabel_->setText(connectReason);
     else if (!hasFile)
-        statusLabel_->setText("Browse and open a CMD/TLM .txt file to enable editing actions.");
+        statusLabel_->setText("Open a file, then edit and save.");
+    else if (!isTxt)
+        statusLabel_->setText("This file isn't CMD/TLM - edit and save only.");
+    else if (editor_->document()->isModified())
+        statusLabel_->setText("Unsaved changes. Check, then Save.");
+    else
+        statusLabel_->setText("Saved. Check it before moving on, if needed.");
 }
 
 void CmdTlmView::updateEmptyStateLabels()

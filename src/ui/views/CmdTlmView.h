@@ -7,6 +7,9 @@
 #include <QTreeWidget>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QToolButton>
+#include <QMenu>
+#include <QAction>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -81,6 +84,11 @@ private:
     QPushButton* insertTlmBtn_{nullptr};
     QPushButton* insertParamBtn_{nullptr};
     QPushButton* addFieldBtn_{nullptr};
+    QToolButton* insertMenuBtn_{nullptr};
+    QAction*     insertCmdAction_{nullptr};
+    QAction*     insertTlmAction_{nullptr};
+    QAction*     insertParamAction_{nullptr};
+    QAction*     addFieldAction_{nullptr};
     QPushButton* validateBtn_{nullptr};
     QPushButton* openInValidatorBtn_{nullptr};
     QPushButton* saveBtn_{nullptr};
