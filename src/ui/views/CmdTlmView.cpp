@@ -136,9 +136,9 @@ void CmdTlmView::setupUi()
     openInValidatorBtn_->setEnabled(false);
     openInValidatorBtn_->setToolTip(
         "Run the full per-rule (offline) validator on this content");
-    openInValidatorBtn_->setMinimumWidth(140);
-    validateBtn_->setMinimumWidth(90);
-    saveBtn_->setMinimumWidth(80);
+    // No hardcoded pixel-width floor: each button's own sizeHint already
+    // reserves exactly the space its text needs for the current font/DPI,
+    // so a smaller fixed minimum here would be what actually risks clipping.
     editorHeader->addWidget(fileLabel_, 1);
     editorHeader->addWidget(referenceBtn);
     editorHeader->addWidget(validateBtn_);
@@ -151,10 +151,6 @@ void CmdTlmView::setupUi()
     insertTlmBtn_   = new QPushButton("+ TELEMETRY", editorGroup);
     insertParamBtn_ = new QPushButton("+ PARAMETER", editorGroup);
     addFieldBtn_    = new QPushButton("Add Field...", editorGroup);
-    insertCmdBtn_->setMinimumWidth(110);
-    insertTlmBtn_->setMinimumWidth(120);
-    insertParamBtn_->setMinimumWidth(120);
-    addFieldBtn_->setMinimumWidth(110);
     insertCmdBtn_->hide();
     insertTlmBtn_->hide();
     insertParamBtn_->hide();

@@ -180,7 +180,7 @@ void PluginView::setupUi()
     toolbarBlock->setSpacing(8);
     scaffoldBtn_ = new QPushButton("New Plugin", this);
     addTargetBtn_ = new QPushButton("Add Target", this);
-    validateBtn_ = new QPushButton("Validate Build", this);
+    validateBtn_ = new QPushButton("Check", this);
     buildBtn_ = new QPushButton("Build", this);
     installBtn_ = new QPushButton("Install", this);
     refreshBtn_ = new QPushButton(QString::fromUtf8("↻"), this);
@@ -197,7 +197,7 @@ void PluginView::setupUi()
 
     scaffoldBtn_->setText("New Plugin");
     addTargetBtn_->setText("Add Target");
-    validateBtn_->setText("Check Plugin");
+    validateBtn_->setText("Check");
     buildBtn_->setText("Build");
     installBtn_->setText("Install");
     refreshBtn_->setText(QString::fromUtf8("↻"));
@@ -217,24 +217,28 @@ void PluginView::setupUi()
     refreshBtn_->setObjectName("SecondaryIconButton");
     refreshBtn_->setFixedWidth(36);
 
+    // Preferred (not Minimum + a hardcoded pixel floor) so each button's own
+    // accurate sizeHint - which already accounts for the current font/DPI -
+    // decides the true minimum. A fixed magic-number floor smaller than that
+    // sizeHint is exactly what let text get clipped on other font/DPI setups.
     const QList<QPushButton*> topButtons = {
-        scaffoldBtn_, addTargetBtn_, validateBtn_, buildBtn_, installBtn_
+        scaffoldBtn_, addTargetBtn_, validateBtn_, buildBtn_, installBtn_, removeBtn_
     };
-    for (auto* button : topButtons) {
-        button->setMinimumWidth(96);
-        button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    }
-    removeBtn_->setMinimumWidth(96);
-    removeBtn_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    for (auto* button : topButtons)
+        button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     selectedPluginActions_ = new QWidget(this);
     auto* selectedPluginActionsLayout = new QHBoxLayout(selectedPluginActions_);
     selectedPluginActionsLayout->setContentsMargins(0, 0, 0, 0);
     selectedPluginActionsLayout->setSpacing(8);
-    selectedPluginActionsLayout->addWidget(addTargetBtn_);
+    // Primary (Check/Build/Install) first, then a wider gap before the
+    // secondary/less-frequent actions (Add Target/Remove) - reduces visual
+    // density without hiding either behind a menu.
     selectedPluginActionsLayout->addWidget(validateBtn_);
     selectedPluginActionsLayout->addWidget(buildBtn_);
     selectedPluginActionsLayout->addWidget(installBtn_);
+    selectedPluginActionsLayout->addSpacing(16);
+    selectedPluginActionsLayout->addWidget(addTargetBtn_);
     selectedPluginActionsLayout->addWidget(removeBtn_);
     selectedPluginActions_->setVisible(false);
 
@@ -349,15 +353,15 @@ void PluginView::setupUi()
     saveComponentBtn_ = new QPushButton("Save", editorPane);
     validateComponentBtn_ = new QPushButton("Check File", editorPane);
     validateOfflineBtn_ = new QPushButton("Check Offline", editorPane);
-    openInCmdTlmBtn_ = new QPushButton("Open in CMD/TLM Editor", editorPane);
-    startCmdTlmEditBtn_ = new QPushButton("Start CMD/TLM Edit", editorPane);
+    openInCmdTlmBtn_ = new QPushButton("Open in CMD/TLM", editorPane);
+    startCmdTlmEditBtn_ = new QPushButton("Edit CMD/TLM", editorPane);
     insertCmdBtn_ = new QPushButton("+ COMMAND", editorPane);
     insertTlmBtn_ = new QPushButton("+ TELEMETRY", editorPane);
     addFieldBtn_ = new QPushButton("Add Field", editorPane);
     addStructureFieldBtn_ = new QPushButton("Add Row", editorPane);
     deleteStructureFieldBtn_ = new QPushButton("Delete Row", editorPane);
-    refreshStructureBtn_ = new QPushButton("Refresh Structure", editorPane);
-    applyStructureBtn_ = new QPushButton("Apply Selected", editorPane);
+    refreshStructureBtn_ = new QPushButton("Refresh", editorPane);
+    applyStructureBtn_ = new QPushButton("Apply", editorPane);
     toggleReferenceBtn_ = new QPushButton("Reference", editorPane);
     openComponentBtn_->setText("Open File");
     saveComponentBtn_->setText("Save");
@@ -367,7 +371,7 @@ void PluginView::setupUi()
     validateOfflineBtn_->setToolTip(
         "Run the full per-rule offline validator on this file in the Validator view "
         "(works for cmd_tlm, screen, plugin.txt, target.txt).");
-    openInCmdTlmBtn_->setText("Open in CMD/TLM Editor");
+    openInCmdTlmBtn_->setText("Open in CMD/TLM");
     startCmdTlmEditBtn_->setText("Edit CMD/TLM");
     startCmdTlmEditBtn_->setToolTip(
         "Open the first CMD/TLM file in this plugin and start the common edit flow.");
@@ -377,9 +381,9 @@ void PluginView::setupUi()
     addStructureFieldBtn_->setToolTip("Add a structure row to the current CMD/TLM file.");
     deleteStructureFieldBtn_->setText("Delete Row");
     deleteStructureFieldBtn_->setToolTip("Delete the selected structure row.");
-    refreshStructureBtn_->setText("Refresh Structure");
+    refreshStructureBtn_->setText("Refresh");
     refreshStructureBtn_->setToolTip("Re-read the file into the structure editor.");
-    applyStructureBtn_->setText("Apply Selected");
+    applyStructureBtn_->setText("Apply");
     applyStructureBtn_->setToolTip("Apply the selected structure change to the editor buffer.");
     toggleReferenceBtn_->setText("Reference");
     toggleReferenceBtn_->setMinimumWidth(120);
@@ -387,7 +391,8 @@ void PluginView::setupUi()
     toggleReferenceBtn_->setToolTip("Show or hide the CMD/TLM quick reference side panel.");
 
     validateMenuBtn_ = new QToolButton(editorPane);
-    validateMenuBtn_->setText("Validate ▾");
+    validateMenuBtn_->setText("Check ▾");
+    validateMenuBtn_->setToolTip("More ways to check this file.");
     validateMenuBtn_->setPopupMode(QToolButton::InstantPopup);
     auto* validateMenu = new QMenu(validateMenuBtn_);
     validateOfflineAction_ = validateMenu->addAction("Check Offline");
@@ -403,13 +408,14 @@ void PluginView::setupUi()
     insertMenuBtn_->setMenu(insertMenu);
 
     structureMenuBtn_ = new QToolButton(editorPane);
-    structureMenuBtn_->setText("Structure ▾");
+    structureMenuBtn_->setText("Fields ▾");
+    structureMenuBtn_->setToolTip("Edit structure rows in the raw text.");
     structureMenuBtn_->setPopupMode(QToolButton::InstantPopup);
     auto* structureMenu = new QMenu(structureMenuBtn_);
     addStructureFieldAction_ = structureMenu->addAction("Add Row");
     deleteStructureFieldAction_ = structureMenu->addAction("Delete Row");
-    refreshStructureAction_ = structureMenu->addAction("Refresh Structure");
-    applyStructureAction_ = structureMenu->addAction("Apply Selected");
+    refreshStructureAction_ = structureMenu->addAction("Refresh");
+    applyStructureAction_ = structureMenu->addAction("Apply");
     structureMenuBtn_->setMenu(structureMenu);
 
     auto* fileOpenRow = new QHBoxLayout;
@@ -433,17 +439,21 @@ void PluginView::setupUi()
     refreshStructureBtn_->setEnabled(false);
     applyStructureBtn_->setEnabled(false);
     updateComponentEmptyState();
-    openComponentBtn_->setMinimumWidth(90);
-    saveComponentBtn_->setMinimumWidth(80);
-    validateComponentBtn_->setMinimumWidth(100);
+    // No hardcoded pixel-width floors on the buttons below that are actually
+    // shown in the UI (openComponentBtn_/saveComponentBtn_/
+    // validateComponentBtn_/openInCmdTlmBtn_/startCmdTlmEditBtn_/
+    // addStructureFieldBtn_/deleteStructureFieldBtn_) - each QPushButton's
+    // own sizeHint already reserves exactly the space its current text needs
+    // for the active font/DPI, so it can never clip. The remaining buttons
+    // here (validateOfflineBtn_, insertCmdBtn_, insertTlmBtn_, addFieldBtn_,
+    // refreshStructureBtn_, applyStructureBtn_) are never added to a layout -
+    // they only back the enabled/tooltip state mirrored onto the equivalent
+    // QAction in the Check/Insert/Fields dropdown menus - so their width is
+    // irrelevant.
     validateOfflineBtn_->setMinimumWidth(110);
-    openInCmdTlmBtn_->setMinimumWidth(180);
-    startCmdTlmEditBtn_->setMinimumWidth(150);
     insertCmdBtn_->setMinimumWidth(110);
     insertTlmBtn_->setMinimumWidth(120);
     addFieldBtn_->setMinimumWidth(110);
-    addStructureFieldBtn_->setMinimumWidth(90);
-    deleteStructureFieldBtn_->setMinimumWidth(95);
     refreshStructureBtn_->setMinimumWidth(130);
     applyStructureBtn_->setMinimumWidth(150);
 
@@ -507,7 +517,6 @@ void PluginView::setupUi()
     blockDescriptionEdit_ = new QLineEdit(structureGroup);
     blockDescriptionEdit_->setPlaceholderText("Description");
     applyBlockBtn_ = new QPushButton("Apply Block", structureGroup);
-    applyBlockBtn_->setMinimumWidth(96);
     applyBlockBtn_->setToolTip("Updates the selected COMMAND/TELEMETRY line. "
                               "Comments and child fields are preserved.");
     blockFieldRow->addWidget(new QLabel("Target:", structureGroup));
@@ -1333,7 +1342,7 @@ void PluginView::updateActionHints()
     if (!hasPlugin)
         statusLabel_->setText("Select a plugin to show build, install, and target actions.");
     else if (!hasOpenFile)
-        statusLabel_->setText("Open a plugin file to edit, check, and save it. Advanced actions are in Validate, Insert, and Structure.");
+        statusLabel_->setText("Open a plugin file to edit, check, and save it. Advanced actions are in Check, Insert, and Fields.");
 
     updateGroupedActionState();
     updateWorkflowHint();

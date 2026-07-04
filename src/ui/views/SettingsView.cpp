@@ -59,7 +59,7 @@ void SettingsView::setupUi()
 
     auto* listBtns = new QHBoxLayout;
     addBtn_      = new QPushButton("+ Add", leftPane);
-    quickWslBtn_ = new QPushButton("Quick WSL Setup", leftPane);
+    quickWslBtn_ = new QPushButton("Quick WSL", leftPane);
     deleteBtn_   = new QPushButton("− Delete", leftPane);
     addBtn_->setToolTip("Create a blank connection profile.");
     quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
@@ -69,7 +69,7 @@ void SettingsView::setupUi()
     listBtns->addWidget(deleteBtn_);
 
     profileHintLabel_ = new QLabel(
-        "New here? Choose Quick WSL Setup for automatic WSL defaults, or + Add for a custom SSH/WSL profile.",
+        "New here? Choose Quick WSL for automatic WSL defaults, or + Add for a custom SSH/WSL profile.",
         leftPane);
     profileHintLabel_->setObjectName("SubLabel");
     profileHintLabel_->setWordWrap(true);
@@ -242,9 +242,11 @@ void SettingsView::setupUi()
     splitter->setChildrenCollapsible(false); // profile list and form stay visible
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
-    leftPane->setMinimumWidth(180);
+    // Wide enough for "+ Add" / "Quick WSL" / "− Delete" side by side without
+    // any of them being squeezed below their own text's sizeHint.
+    leftPane->setMinimumWidth(260);
     formGroup->setMinimumWidth(360);
-    splitter->setSizes({240, 600});
+    splitter->setSizes({280, 600});
     root->addWidget(splitter);
 }
 
@@ -615,11 +617,11 @@ void SettingsView::updateActionHints(const QString& state)
     if (profileHintLabel_) {
         profileHintLabel_->setText(hasProfile
             ? "Profile selected. Review it, save changes if needed, then connect."
-            : "New here? Choose Quick WSL Setup for automatic WSL defaults, or + Add for a custom SSH/WSL profile.");
+            : "New here? Choose Quick WSL for automatic WSL defaults, or + Add for a custom SSH/WSL profile.");
     }
 
     if (!connected && !connecting && !hasProfile)
-        statusLabel_->setText("Status: Disconnected — choose Quick WSL Setup or add/select a profile, then connect.");
+        statusLabel_->setText("Status: Disconnected — choose Quick WSL or add/select a profile, then connect.");
 }
 
 } // namespace OpenC3::UI::Views
