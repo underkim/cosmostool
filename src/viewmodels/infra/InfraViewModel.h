@@ -50,13 +50,18 @@ public slots:
 
     // Creates an OpenC3 plugin scaffold directory tree on the remote host.
     // templateType: 0=Generic, 1=Satellite Target, 2=GSE Interface, 3=Tool
+    // ifaceType: 0=TCP/IP Client, 1=TCP/IP Server, 2=UDP, 3=Serial; pass -1 to
+    // derive it from templateType (legacy behavior).
     void scaffoldPlugin(
         const QString& remoteRoot,
         const QString& pluginName,
         const QString& targetName,
         const QString& pluginNamespace,
         const QString& description,
-        int            templateType);
+        int            templateType,
+        int            ifaceType = -1,
+        const QString& ifaceHost = QStringLiteral("localhost"),
+        const QString& ifacePort = QStringLiteral("8080"));
 
     // Appends a new target directory tree to an existing plugin root on the remote.
     void addTargetToPlugin(

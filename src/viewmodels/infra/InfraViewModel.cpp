@@ -282,7 +282,10 @@ void InfraViewModel::scaffoldPlugin(
     const QString& targetName,
     const QString& pluginNamespace,
     const QString& description,
-    int            templateType)
+    int            templateType,
+    int            ifaceType,
+    const QString& ifaceHost,
+    const QString& ifacePort)
 {
     if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
@@ -297,10 +300,13 @@ void InfraViewModel::scaffoldPlugin(
         tname = targetName,
         ns    = pluginNamespace,
         desc  = description,
-        tmpl  = templateType] {
+        tmpl  = templateType,
+        itype = ifaceType,
+        ihost = ifaceHost,
+        iport = ifacePort] {
 
             const QMap<QString, QString> files =
-                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl);
+                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl, itype, ihost, iport);
 
             const QString pluginDir = root + "/cosmos-" + pname;
             int created = 0;

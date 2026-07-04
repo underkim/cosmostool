@@ -19,11 +19,18 @@ class PluginTemplateEngine {
 public:
     /// Returns a map of  { relativePath → fileContent }  relative to the
     /// plugin root directory.  The caller decides where to write the files.
+    ///
+    /// ifaceType: 0=TCP/IP Client, 1=TCP/IP Server, 2=UDP, 3=Serial.
+    /// Pass -1 (default) to derive it from templateType instead, matching
+    /// this function's original (pre-interface-picker) behavior.
     [[nodiscard]] static QMap<QString, QString> buildFiles(
         const QString& pluginName,
         const QString& targetName,
         const QString& description,
-        int            templateType);
+        int            templateType,
+        int            ifaceType = -1,
+        const QString& ifaceHost = QStringLiteral("localhost"),
+        const QString& ifacePort = QStringLiteral("8080"));
 
     /// Returns only the files that live under  targets/<TARGET>/
     /// Used when adding a target to an already-existing plugin.

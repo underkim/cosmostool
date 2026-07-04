@@ -185,6 +185,18 @@ void PluginWizard::buildTargetPage()
     ifForm->addRow("Type:",       ifaceTypeCombo_);
     ifForm->addRow("Host:Port:",  hostRow);
 
+    connect(ifaceTypeCombo_, &QComboBox::currentIndexChanged, this, [this](int idx) {
+        // Serial reuses the same two fields for device path + baud rate
+        // rather than a network host/port pair - clarify via placeholders.
+        if (idx == 3) {
+            ifaceHostEdit_->setPlaceholderText("/dev/ttyUSB0");
+            ifacePortEdit_->setPlaceholderText("baud");
+        } else {
+            ifaceHostEdit_->setPlaceholderText("localhost");
+            ifacePortEdit_->setPlaceholderText("port");
+        }
+    });
+
     // ── Template ──────────────────────────────────────────────────────────────
     auto* tmplGrp    = new QGroupBox("CMD/TLM Template", page);
     auto* tmplLayout = new QVBoxLayout(tmplGrp);
@@ -299,7 +311,10 @@ void PluginWizard::onFinish()
         targetNameEdit_->text().trimmed().toUpper(),
         namespaceEdit_->text().trimmed(),
         descriptionEdit_->text().trimmed(),
-        templateType());
+        templateType(),
+        ifaceTypeCombo_->currentIndex(),
+        ifaceHostEdit_->text().trimmed(),
+        ifacePortEdit_->text().trimmed());
 }
 
 // ── Live update slots ─────────────────────────────────────────────────────────
@@ -327,7 +342,11 @@ void PluginWizard::refreshPreview()
     if (pname.isEmpty() || tname.isEmpty()) return;
 
     const QMap<QString, QString> files =
-        ViewModels::PluginTemplateEngine::buildFiles(pname, tname, desc, templateType());
+        ViewModels::PluginTemplateEngine::buildFiles(
+            pname, tname, desc, templateType(),
+            ifaceTypeCombo_->currentIndex(),
+            ifaceHostEdit_->text().trimmed(),
+            ifacePortEdit_->text().trimmed());
 
     // Remove and destroy old tab widgets
     while (previewTabs_->count() > 0) {

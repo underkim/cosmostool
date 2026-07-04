@@ -53,6 +53,28 @@ TEST(PluginTemplateEngineTest, CcsdsTemplateDiffersFromGeneric)
     EXPECT_TRUE(generic.value("plugin.txt").contains("tcpip_client_interface"));
 }
 
+TEST(PluginTemplateEngineTest, ExplicitInterfaceTypeOverridesTemplateDerivedDefault)
+{
+    // templateType 0 would normally default to a TCP/IP client interface, but
+    // an explicit ifaceType should take priority (this is what the wizard's
+    // Interface picker relies on - see PluginWizard.cpp).
+    const auto udp = PluginTemplateEngine::buildFiles(
+        "p", "sat", "d", /*templateType=*/0, /*ifaceType=*/2,
+        "192.168.1.50", "9000");
+
+    const QString plugin = udp.value("plugin.txt");
+    EXPECT_TRUE(plugin.contains("udp_interface.rb 192.168.1.50 9000 9000 nil 10 nil"));
+}
+
+TEST(PluginTemplateEngineTest, SerialInterfaceUsesHostFieldAsDevicePath)
+{
+    const auto serial = PluginTemplateEngine::buildFiles(
+        "p", "sat", "d", 0, /*ifaceType=*/3, "/dev/ttyUSB0", "9600");
+
+    const QString plugin = serial.value("plugin.txt");
+    EXPECT_TRUE(plugin.contains("serial_interface.rb /dev/ttyUSB0 9600 NONE 1 10 nil"));
+}
+
 TEST(PluginTemplateEngineTest, BuildTargetFilesOnlyEmitsTargetTree)
 {
     const auto files = PluginTemplateEngine::buildTargetFiles("fsw", 0);
