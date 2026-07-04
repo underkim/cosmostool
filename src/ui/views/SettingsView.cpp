@@ -58,10 +58,10 @@ void SettingsView::setupUi()
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto* listBtns = new QHBoxLayout;
-    addBtn_      = new QPushButton("+ Add", leftPane);
+    addBtn_      = new QPushButton("Custom", leftPane);
     quickWslBtn_ = new QPushButton("Quick WSL", leftPane);
     deleteBtn_   = new QPushButton("− Delete", leftPane);
-    addBtn_->setToolTip("Create a blank connection profile.");
+    addBtn_->setToolTip("Create a blank connection profile for SSH or advanced setup.");
     quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
     deleteBtn_->setToolTip("Select a connection profile first.");
     listBtns->addWidget(addBtn_);
@@ -69,7 +69,7 @@ void SettingsView::setupUi()
     listBtns->addWidget(deleteBtn_);
 
     profileHintLabel_ = new QLabel(
-        "New here? Choose Quick WSL for automatic WSL defaults, or + Add for a custom SSH/WSL profile.",
+        "New here? Use Quick WSL for local OpenC3, or Custom for SSH/advanced setup.",
         leftPane);
     profileHintLabel_->setObjectName("SubLabel");
     profileHintLabel_->setWordWrap(true);
@@ -318,7 +318,7 @@ void SettingsView::onModeChanged(int modeIndex)
         : "Select WSL mode to detect the OpenC3 path automatically.");
 }
 
-void SettingsView::refreshWslDistros()
+bool SettingsView::refreshWslDistros()
 {
     const QString current = wslDistroCombo_->currentText();
     wslDistroCombo_->clear();
@@ -326,8 +326,8 @@ void SettingsView::refreshWslDistros()
     QProcess proc;
     proc.start("wsl.exe", {"--list", "--quiet"});
     if (!proc.waitForFinished(5000)) {
-        wslDistroCombo_->addItem("Ubuntu");
-        return;
+        wslDistroCombo_->addItem("Ubuntu"); // fallback guess - not a real detection
+        return false;
     }
 
     // wsl.exe --list outputs UTF-16 LE
@@ -350,12 +350,17 @@ void SettingsView::refreshWslDistros()
         wslDistroCombo_->addItem(name);
     }
 
-    if (wslDistroCombo_->count() == 0)
-        wslDistroCombo_->addItem("Ubuntu"); // fallback
+    bool detected = true;
+    if (wslDistroCombo_->count() == 0) {
+        wslDistroCombo_->addItem("Ubuntu"); // fallback guess - not a real detection
+        detected = false;
+    }
 
     // Restore previous selection if still present
     const int idx = wslDistroCombo_->findText(current);
     if (idx >= 0) wslDistroCombo_->setCurrentIndex(idx);
+
+    return detected;
 }
 
 void SettingsView::detectOpenC3Path()
@@ -435,10 +440,30 @@ void SettingsView::onAddProfile()
 
 void SettingsView::onQuickWslProfile()
 {
-    refreshWslDistros();
+    const bool detected = refreshWslDistros();
     QString distro = wslDistroCombo_->currentText().trimmed();
     if (distro.isEmpty())
         distro = QStringLiteral("Ubuntu");
+
+    if (!detected) {
+        QMessageBox box(this);
+        box.setWindowTitle("No WSL Distro Detected");
+        box.setText("Could not detect any installed WSL distribution.");
+        box.setInformativeText(
+            "You can proceed with \"" + distro + "\" as a guess, "
+            "create a custom profile instead, or cancel.");
+        auto* useDefaultBtn = box.addButton("Use " + distro + " Defaults", QMessageBox::AcceptRole);
+        auto* customBtn     = box.addButton("Create Custom Profile", QMessageBox::ActionRole);
+        box.addButton(QMessageBox::Cancel);
+        box.exec();
+
+        if (box.clickedButton() == customBtn) {
+            onAddProfile();
+            return;
+        }
+        if (box.clickedButton() != useDefaultBtn)
+            return; // Cancel (or dialog dismissed) - save nothing
+    }
 
     Models::ConnectionProfile p;
     p.id = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
@@ -617,11 +642,13 @@ void SettingsView::updateActionHints(const QString& state)
     if (profileHintLabel_) {
         profileHintLabel_->setText(hasProfile
             ? "Profile selected. Review it, save changes if needed, then connect."
-            : "New here? Choose Quick WSL for automatic WSL defaults, or + Add for a custom SSH/WSL profile.");
+            : "New here? Use Quick WSL for local OpenC3, or Custom for SSH/advanced setup.");
     }
 
     if (!connected && !connecting && !hasProfile)
-        statusLabel_->setText("Status: Disconnected — choose Quick WSL or add/select a profile, then connect.");
+        statusLabel_->setText("Status: Disconnected — choose Quick WSL or Custom, then connect.");
+    else if (!connected && !connecting && hasProfile)
+        statusLabel_->setText("Status: Disconnected — connect when ready.");
 }
 
 } // namespace OpenC3::UI::Views

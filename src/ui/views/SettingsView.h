@@ -29,7 +29,10 @@ private slots:
     void onDisconnectClicked();
     void onProfileSelected(const QModelIndex& idx);
     void onModeChanged(int modeIndex);
-    void refreshWslDistros();
+    // Returns false if no real WSL distro was detected (i.e. the combo was
+    // populated with a fallback guess) so callers like onQuickWslProfile()
+    // can ask the user before silently assuming that guess is correct.
+    bool refreshWslDistros();
     void detectOpenC3Path();
 
 private:

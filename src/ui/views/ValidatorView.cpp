@@ -72,8 +72,8 @@ void ValidatorView::setupUi()
 
     // ── Toolbar ──────────────────────────────────────────────────────────────
     auto* toolbar = new QHBoxLayout();
-    folderBtn_ = new QPushButton(tr("Validate Folder…"), this);
-    fileBtn_   = new QPushButton(tr("Validate File…"), this);
+    folderBtn_ = new QPushButton(tr("Check Folder…"), this);
+    fileBtn_   = new QPushButton(tr("Check File…"), this);
     toolbar->addWidget(folderBtn_);
     toolbar->addWidget(fileBtn_);
     toolbar->addStretch(1);
