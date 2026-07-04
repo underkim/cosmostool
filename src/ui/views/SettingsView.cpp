@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QFileDialog>
+#include <QIntValidator>
 
 namespace OpenC3::UI::Views {
 
@@ -167,6 +168,7 @@ void SettingsView::setupUi()
     hostEdit_->setPlaceholderText("192.168.1.100 or hostname");
     portEdit_       = new QLineEdit("22", sshPage);
     portEdit_->setFixedWidth(80);
+    portEdit_->setValidator(new QIntValidator(1, 65535, portEdit_));
     usernameEdit_   = new QLineEdit(sshPage);
     usernameEdit_->setPlaceholderText("cosmos");
 

@@ -17,6 +17,8 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTabWidget>
+#include <QShortcut>
+#include <QKeySequence>
 
 namespace OpenC3::UI::Views {
 
@@ -247,6 +249,11 @@ void CmdTlmView::bindViewModel()
 {
     connect(browseBtn_,     &QPushButton::clicked, this, &CmdTlmView::onBrowseClicked);
     connect(saveBtn_,       &QPushButton::clicked, this, &CmdTlmView::onSaveClicked);
+
+    auto* saveShortcut = new QShortcut(QKeySequence::Save, this);
+    connect(saveShortcut, &QShortcut::activated, this, [this] {
+        if (saveBtn_->isEnabled()) onSaveClicked();
+    });
     connect(validateBtn_,   &QPushButton::clicked, this, &CmdTlmView::onValidateClicked);
     connect(openInValidatorBtn_, &QPushButton::clicked, this, &CmdTlmView::onOpenInValidator);
     connect(insertCmdBtn_,  &QPushButton::clicked, this, &CmdTlmView::onInsertCmd);
@@ -305,6 +312,7 @@ void CmdTlmView::bindViewModel()
                 currentFile_ = path;
                 fileLabel_->setText(path);
                 editor_->setPlainText(content);
+                editor_->document()->setModified(false);
                 const bool isTxt = path.endsWith(".txt", Qt::CaseInsensitive);
                 saveBtn_->setEnabled(true);
                 validateBtn_->setEnabled(isTxt);
@@ -328,6 +336,7 @@ void CmdTlmView::bindViewModel()
                         "Could not write the file to the remote host.");
                 } else {
                     statusLabel_->setText("OK: File saved successfully.");
+                    editor_->document()->setModified(false);
                 }
             });
 
@@ -355,10 +364,28 @@ void CmdTlmView::openDirectory(const QString& remotePath)
     vm_.listDirectory(path);
 }
 
+bool CmdTlmView::confirmDiscardUnsavedChanges()
+{
+    if (currentFile_.isEmpty() || !editor_->document()->isModified())
+        return true;
+
+    const auto choice = QMessageBox::question(
+        this, "Unsaved Changes",
+        "Save changes to " + currentFile_ + " before opening a new file?",
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+        QMessageBox::Save);
+
+    if (choice == QMessageBox::Cancel) return false;
+    if (choice == QMessageBox::Save)
+        vm_.saveFile(currentFile_, editor_->toPlainText());
+    return true;
+}
+
 void CmdTlmView::openFile(const QString& remotePath)
 {
     const QString path = remotePath.trimmed();
     if (path.isEmpty()) return;
+    if (!confirmDiscardUnsavedChanges()) return;
 
     const qsizetype slash = path.lastIndexOf('/');
     if (slash > 0) {
@@ -387,6 +414,7 @@ void CmdTlmView::onFileItemDoubleClicked(QListWidgetItem* item)
         pathEdit_->setText(path.endsWith('/') ? path.chopped(1) : path);
         vm_.listDirectory(pathEdit_->text());
     } else {
+        if (!confirmDiscardUnsavedChanges()) return;
         vm_.openFile(path);
     }
 }

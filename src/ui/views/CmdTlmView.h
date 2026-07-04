@@ -69,6 +69,7 @@ private:
     void updateEmptyStateLabels();
     void scrollEditorToLine(int line);
     void insertTextAtCursor(const QString& text);
+    bool confirmDiscardUnsavedChanges();
 
     ViewModels::CmdTlmViewModel& vm_;
 

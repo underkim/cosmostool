@@ -124,7 +124,15 @@ void Application::registerServices()
     registry_.registerInstance<Services::IConnectionService>(connection);
 
     // Wire executor proxy: atomically swap to the live executor on connect,
-    // reset to the null executor on disconnect or error.
+    // reset to the null executor on disconnect, error, or (re)connect attempt.
+    //
+    // Connecting is handled the same as Disconnected/Error - not just for
+    // symmetry, but because ConnectionService::connect() reassigns its
+    // executor_ unique_ptr (destroying whatever executor was previously
+    // connected) *after* firing this Connecting event but *before* firing
+    // Connected. Resetting the proxy here first means that reassignment
+    // never destroys an executor the proxy is still pointing at - the same
+    // hazard the Disconnected/Error branch guards against.
     connection->onStateChanged([this, conn = connection.get()](
         const Services::ConnectionEvent& ev)
     {
@@ -132,7 +140,8 @@ void Application::registerServices()
             executorProxy_.swap(conn->executor());
             Logging::Logger::info("[App] ExecutorProxy swapped to live connection");
         } else if (ev.state == Services::ConnectionState::Disconnected
-                || ev.state == Services::ConnectionState::Error) {
+                || ev.state == Services::ConnectionState::Error
+                || ev.state == Services::ConnectionState::Connecting) {
             executorProxy_.reset();
             Logging::Logger::info("[App] ExecutorProxy reset to NullExecutor");
         }
@@ -142,7 +151,9 @@ void Application::registerServices()
     auto dockerSvc = std::make_shared<Services::DockerService>(executorProxy_);
     registry_.registerInstance<Services::IDockerService>(dockerSvc);
 
-    auto systemSvc = std::make_shared<Services::SystemService>(executorProxy_);
+    auto systemSvc = std::make_shared<Services::SystemService>(
+        executorProxy_,
+        [conn = connection.get()] { return conn->cosmosRootPath(); });
     registry_.registerInstance<Services::ISystemService>(systemSvc);
 
     // Doctor probes the COSMOS root configured on the active connection profile,

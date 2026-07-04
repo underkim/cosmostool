@@ -25,6 +25,7 @@
 #include <QTabWidget>
 #include <QShortcut>
 #include <QKeySequence>
+#include <QSettings>
 
 namespace OpenC3::UI {
 
@@ -74,6 +75,12 @@ MainWindow::MainWindow(
     setupMenuBar();
     setupStatusBar();
     connectSignals();
+
+    QSettings windowSettings;
+    const QVariant geometry = windowSettings.value("MainWindow/geometry");
+    if (geometry.isValid()) restoreGeometry(geometry.toByteArray());
+    const QVariant state = windowSettings.value("MainWindow/state");
+    if (state.isValid()) restoreState(state.toByteArray());
 }
 
 void MainWindow::setupUi()
@@ -315,6 +322,10 @@ void MainWindow::onConnectionStatusChanged()
 
 void MainWindow::closeEvent(QCloseEvent* event)
 {
+    QSettings windowSettings;
+    windowSettings.setValue("MainWindow/geometry", saveGeometry());
+    windowSettings.setValue("MainWindow/state", saveState());
+
     logViewerVm_.stopStream();
     settingsVm_.disconnect();
     event->accept();

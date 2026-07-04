@@ -54,14 +54,29 @@ void LogViewerViewModel::startStream(const QString& command)
 {
     if (streaming_ || !isConnected()) return;
     setStreaming(true);
-    stopFlag_.storeRelease(0);
-    setStatus("Streaming: " + command);
 
+    // A fresh flag per stream, kept alive by the shared_ptr copy captured
+    // below - independent of this ViewModel's lifetime. stopStream() (and
+    // the destructor) flip it through the member copy; the worker thread
+    // only ever touches its own copy, never `this`.
+    stopFlag_ = std::make_shared<std::atomic<bool>>(false);
+    std::shared_ptr<std::atomic<bool>> stopFlag = stopFlag_;
+
+    // Raw pointer to the long-lived service object (owned elsewhere, well
+    // beyond this ViewModel's lifetime), captured by value so the worker
+    // thread never has to read `this->fs_` - unlike a captured reference to
+    // a local variable, this pointer stays valid regardless of `this`.
+    Services::IRemoteFileService* fsPtr = &fs_;
+
+    setStatus("Streaming: " + command);
     const std::string cmd = command.toStdString();
 
-    (void)QtConcurrent::run([this, cmd] {
-        fs_.streamCommand(cmd, [this](const std::string& line) {
-            if (stopFlag_.loadAcquire()) return;
+    (void)QtConcurrent::run([this, cmd, stopFlag, fsPtr] {
+        fsPtr->streamCommand(cmd, [stopFlag, this](const std::string& line) {
+            if (stopFlag->load(std::memory_order_acquire)) return;
+            // Safe even if `this` was destroyed by now: Qt's context-object
+            // overload of invokeMethod only runs the functor if the context
+            // (`this`) is still alive when the event is processed.
             QMetaObject::invokeMethod(this, [this, qline = QString::fromStdString(line)] {
                 emit logLineReceived(qline);
             }, Qt::QueuedConnection);
@@ -76,7 +91,7 @@ void LogViewerViewModel::startStream(const QString& command)
 
 void LogViewerViewModel::stopStream()
 {
-    stopFlag_.storeRelease(1);
+    if (stopFlag_) stopFlag_->store(true, std::memory_order_release);
     setStreaming(false);
     setStatus("Stream stopped.");
 }

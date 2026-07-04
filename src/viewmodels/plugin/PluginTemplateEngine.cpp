@@ -6,12 +6,15 @@ namespace OpenC3::ViewModels {
 
 namespace {
 
-QMap<QString, QString> buildCmdTlmFiles(const QString& tgt, int templateType)
+QMap<QString, QString> buildCmdTlmFiles(
+    const QString& tgt, int templateType, const QString& pluginNamespace)
 {
     QMap<QString, QString> files;
 
     const QString cmdPath = "targets/" + tgt + "/cmd_tlm/" + tgt.toLower() + "_cmds.txt";
     const QString tlmPath = "targets/" + tgt + "/cmd_tlm/" + tgt.toLower() + "_tlm.txt";
+    const QString nsComment =
+        pluginNamespace.isEmpty() ? QString() : "# Namespace: " + pluginNamespace + "\n";
 
     if (templateType == 1) {
         // CCSDS satellite layout
@@ -70,6 +73,11 @@ QMap<QString, QString> buildCmdTlmFiles(const QString& tgt, int templateType)
         ).arg(tgt);
     }
 
+    if (!nsComment.isEmpty()) {
+        files[cmdPath].prepend(nsComment);
+        files[tlmPath].prepend(nsComment);
+    }
+
     return files;
 }
 
@@ -111,15 +119,35 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
     const QString& pluginName,
     const QString& targetName,
     const QString& description,
-    int            templateType)
+    int            templateType,
+    int            ifaceType,
+    const QString& ifaceHost,
+    const QString& ifacePort,
+    const QString& pluginNamespace)
 {
     const QString tgt    = targetName.toUpper();
     const QString gem    = "cosmos-" + pluginName;
     const QString varPfx = pluginName.toLower().replace('-', '_');
 
-    const QString ifaceType = (templateType == 2)
-        ? "tcpip_server_interface.rb 8080 8080 10 nil BURST"
-        : "tcpip_client_interface.rb localhost 8080 8080 10 nil BURST";
+    // -1 means "no explicit interface picked" - derive it from the CMD/TLM
+    // template like this function originally did (GSE => TCP/IP server).
+    const int effectiveIfaceType =
+        (ifaceType >= 0) ? ifaceType : (templateType == 2 ? 1 : 0);
+
+    QString ifaceLine;
+    switch (effectiveIfaceType) {
+    case 1: // TCP/IP Server
+        ifaceLine = QString("tcpip_server_interface.rb %1 %1 10 nil BURST").arg(ifacePort);
+        break;
+    case 2: // UDP
+        ifaceLine = QString("udp_interface.rb %1 %2 %2 nil 10 nil").arg(ifaceHost, ifacePort);
+        break;
+    case 3: // Serial - host field holds the device path (e.g. /dev/ttyUSB0)
+        ifaceLine = QString("serial_interface.rb %1 %2 NONE 1 10 nil").arg(ifaceHost, ifacePort);
+        break;
+    default: // TCP/IP Client
+        ifaceLine = QString("tcpip_client_interface.rb %1 %2 %2 10 nil BURST").arg(ifaceHost, ifacePort);
+    }
 
     QMap<QString, QString> files;
 
@@ -130,7 +158,7 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
         "TARGET %4 <%= %3_target_name %>\n"
         "INTERFACE <%= %3_target_name %>_INT %5\n"
         "  MAP_TARGET <%= %3_target_name %>\n"
-    ).arg(pluginName, description, varPfx, tgt, ifaceType);
+    ).arg(pluginName, description, varPfx, tgt, ifaceLine);
 
     files[gem + ".gemspec"] = QString(
         "# encoding: ascii-8bit\n\n"
@@ -153,18 +181,19 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
         "source 'https://rubygems.org'\n"
         "gemspec\n";
 
-    files.insert(buildTargetFiles(targetName, templateType));
+    files.insert(buildTargetFiles(targetName, templateType, pluginNamespace));
 
     return files;
 }
 
 QMap<QString, QString> PluginTemplateEngine::buildTargetFiles(
     const QString& targetName,
-    int            templateType)
+    int            templateType,
+    const QString& pluginNamespace)
 {
     const QString tgt = targetName.toUpper();
     QMap<QString, QString> files;
-    files.insert(buildCmdTlmFiles(tgt, templateType));
+    files.insert(buildCmdTlmFiles(tgt, templateType, pluginNamespace));
     files.insert(buildScreenAndProcedures(tgt));
     return files;
 }

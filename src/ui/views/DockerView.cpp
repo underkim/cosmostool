@@ -52,8 +52,10 @@ void DockerView::setupUi()
     removeBtn_    = new QPushButton("Remove",  this);
     logsBtn_      = new QPushButton("Logs",    this);
 
-    for (auto* btn : {startBtn_, stopBtn_, restartBtn_, removeBtn_, logsBtn_})
+    for (auto* btn : {startBtn_, stopBtn_, restartBtn_, removeBtn_, logsBtn_}) {
         btn->setEnabled(false);
+        btn->setToolTip("Select a container first.");
+    }
 
     toolbar->addWidget(refreshBtn_);
     toolbar->addSpacing(8);

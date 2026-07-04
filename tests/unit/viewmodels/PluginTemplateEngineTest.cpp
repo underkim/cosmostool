@@ -53,6 +53,41 @@ TEST(PluginTemplateEngineTest, CcsdsTemplateDiffersFromGeneric)
     EXPECT_TRUE(generic.value("plugin.txt").contains("tcpip_client_interface"));
 }
 
+TEST(PluginTemplateEngineTest, ExplicitInterfaceTypeOverridesTemplateDerivedDefault)
+{
+    // templateType 0 would normally default to a TCP/IP client interface, but
+    // an explicit ifaceType should take priority (this is what the wizard's
+    // Interface picker relies on - see PluginWizard.cpp).
+    const auto udp = PluginTemplateEngine::buildFiles(
+        "p", "sat", "d", /*templateType=*/0, /*ifaceType=*/2,
+        "192.168.1.50", "9000");
+
+    const QString plugin = udp.value("plugin.txt");
+    EXPECT_TRUE(plugin.contains("udp_interface.rb 192.168.1.50 9000 9000 nil 10 nil"));
+}
+
+TEST(PluginTemplateEngineTest, SerialInterfaceUsesHostFieldAsDevicePath)
+{
+    const auto serial = PluginTemplateEngine::buildFiles(
+        "p", "sat", "d", 0, /*ifaceType=*/3, "/dev/ttyUSB0", "9600");
+
+    const QString plugin = serial.value("plugin.txt");
+    EXPECT_TRUE(plugin.contains("serial_interface.rb /dev/ttyUSB0 9600 NONE 1 10 nil"));
+}
+
+TEST(PluginTemplateEngineTest, PluginNamespaceIsSurfacedInGeneratedCmdTlmFiles)
+{
+    // pluginNamespace previously had no effect on any generated output - the
+    // wizard/dialog's "Namespace" field was silently discarded. It's now
+    // surfaced as a header comment in the target's cmd/tlm files.
+    const auto withNs = PluginTemplateEngine::buildTargetFiles("fsw", 0, "MySat");
+    EXPECT_TRUE(withNs.value("targets/FSW/cmd_tlm/fsw_cmds.txt").startsWith("# Namespace: MySat\n"));
+    EXPECT_TRUE(withNs.value("targets/FSW/cmd_tlm/fsw_tlm.txt").startsWith("# Namespace: MySat\n"));
+
+    const auto withoutNs = PluginTemplateEngine::buildTargetFiles("fsw", 0);
+    EXPECT_FALSE(withoutNs.value("targets/FSW/cmd_tlm/fsw_cmds.txt").contains("Namespace"));
+}
+
 TEST(PluginTemplateEngineTest, BuildTargetFilesOnlyEmitsTargetTree)
 {
     const auto files = PluginTemplateEngine::buildTargetFiles("fsw", 0);

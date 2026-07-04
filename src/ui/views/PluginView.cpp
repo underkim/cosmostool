@@ -203,20 +203,15 @@ void PluginView::setupUi()
     refreshBtn_->setText(QString::fromUtf8("↻"));
     removeBtn_->setText("Remove");
 
-    scaffoldBtn_->setToolTip(
-        "Create a new plugin locally. No connection required; no existing plugin or file selection required.");
-    addTargetBtn_->setToolTip(
-        "Add a target to the selected local plugin folder. No connection required; plugin selection required; no file selection required.");
+    scaffoldBtn_->setToolTip("Create a new plugin locally.");
+    addTargetBtn_->setToolTip("Add a target to the selected local plugin folder.");
     validateBtn_->setToolTip(
         "Check the selected plugin with openc3cli before building or installing.");
-    buildBtn_->setToolTip(
-        "Build the selected local plugin into a gem. No connection required; plugin selection required; save any open file first.");
+    buildBtn_->setToolTip("Build the selected local plugin into a gem. Save any open file first.");
     installBtn_->setToolTip(
-        "Install a local .gem file into OpenC3. Connection required; choose a gem file when prompted.");
-    refreshBtn_->setToolTip(
-        "Refresh the local/remote plugin list. Connection may be required depending on the configured source; no file selection required.");
-    removeBtn_->setToolTip(
-        "Remove the selected plugin from OpenC3. Connection required; plugin selection required; no file selection required.");
+        "Install a local .gem file into OpenC3 (requires a connection).");
+    refreshBtn_->setToolTip("Refresh the local/remote plugin list.");
+    removeBtn_->setToolTip("Remove the selected plugin from OpenC3 (requires a connection).");
 
     buildBtn_->setObjectName("PrimaryButton");
     refreshBtn_->setObjectName("SecondaryIconButton");
@@ -377,20 +372,15 @@ void PluginView::setupUi()
     startCmdTlmEditBtn_->setToolTip(
         "Open the first CMD/TLM file in this plugin and start the common edit flow.");
     addFieldBtn_->setText("Add Field");
-    addFieldBtn_->setToolTip(
-        "Add a field to the selected local CMD/TLM file. No connection required; CMD/TLM file selection required.");
+    addFieldBtn_->setToolTip("Add a field to the current CMD/TLM file.");
     addStructureFieldBtn_->setText("Add Row");
-    addStructureFieldBtn_->setToolTip(
-        "Add a structure row to the selected local CMD/TLM file. No connection required; CMD/TLM file selection required.");
+    addStructureFieldBtn_->setToolTip("Add a structure row to the current CMD/TLM file.");
     deleteStructureFieldBtn_->setText("Delete Row");
-    deleteStructureFieldBtn_->setToolTip(
-        "Delete the selected structure row from the local CMD/TLM file. No connection required; row/file selection required.");
+    deleteStructureFieldBtn_->setToolTip("Delete the selected structure row.");
     refreshStructureBtn_->setText("Refresh Structure");
-    refreshStructureBtn_->setToolTip(
-        "Re-read the selected local CMD/TLM file into the structure editor. No connection required; file selection required.");
+    refreshStructureBtn_->setToolTip("Re-read the file into the structure editor.");
     applyStructureBtn_->setText("Apply Selected");
-    applyStructureBtn_->setToolTip(
-        "Apply the selected structure change to the local editor buffer. No connection required; row/file selection required.");
+    applyStructureBtn_->setToolTip("Apply the selected structure change to the editor buffer.");
     toggleReferenceBtn_->setText("Reference");
     toggleReferenceBtn_->setMinimumWidth(120);
     toggleReferenceBtn_->setCheckable(true);

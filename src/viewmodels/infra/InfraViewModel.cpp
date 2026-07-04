@@ -89,7 +89,7 @@ void InfraViewModel::setBusy(bool b)
 
 void InfraViewModel::loadEnvFile(const QString& remotePath)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
     setStatus("Loading " + remotePath + " …");
 
@@ -103,7 +103,7 @@ void InfraViewModel::loadEnvFile(const QString& remotePath)
             p   = QString::fromStdString(path),
             txt = QString::fromStdString(content), ok] {
                 setBusy(false);
-                setStatus(ok ? "로드 완료: " + p : "파일 없음: " + p);
+                setStatus(ok ? "Loaded: " + p : "File not found: " + p);
                 if (ok) emit envLoaded(p, txt);
             }, Qt::QueuedConnection);
     }));
@@ -111,9 +111,9 @@ void InfraViewModel::loadEnvFile(const QString& remotePath)
 
 void InfraViewModel::saveEnvFile(const QString& remotePath, const QString& content)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
-    setStatus("저장 중 …");
+    setStatus("Saving …");
 
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
@@ -124,7 +124,7 @@ void InfraViewModel::saveEnvFile(const QString& remotePath, const QString& conte
             const bool ok = fs_.writeFile(path, data);
             QMetaObject::invokeMethod(this, [this, p = QString::fromStdString(path), ok] {
                 setBusy(false);
-                setStatus(ok ? "저장 완료: " + p : "저장 실패: " + p);
+                setStatus(ok ? "Saved: " + p : "Save failed: " + p);
                 emit fileSaved(p, ok);
             }, Qt::QueuedConnection);
     }));
@@ -132,7 +132,7 @@ void InfraViewModel::saveEnvFile(const QString& remotePath, const QString& conte
 
 void InfraViewModel::loadComposeFile(const QString& remotePath)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
     setStatus("Loading " + remotePath + " …");
 
@@ -146,7 +146,7 @@ void InfraViewModel::loadComposeFile(const QString& remotePath)
             p   = QString::fromStdString(path),
             txt = QString::fromStdString(content), ok] {
                 setBusy(false);
-                setStatus(ok ? "로드 완료: " + p : "파일 없음: " + p);
+                setStatus(ok ? "Loaded: " + p : "File not found: " + p);
                 if (ok) emit composeLoaded(p, txt);
             }, Qt::QueuedConnection);
     }));
@@ -154,7 +154,7 @@ void InfraViewModel::loadComposeFile(const QString& remotePath)
 
 void InfraViewModel::saveComposeFile(const QString& remotePath, const QString& content)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
 
     auto* watcher = new QFutureWatcher<void>(this);
@@ -166,7 +166,7 @@ void InfraViewModel::saveComposeFile(const QString& remotePath, const QString& c
             const bool ok = fs_.writeFile(path, data);
             QMetaObject::invokeMethod(this, [this, p = QString::fromStdString(path), ok] {
                 setBusy(false);
-                setStatus(ok ? "저장 완료: " + p : "저장 실패: " + p);
+                setStatus(ok ? "Saved: " + p : "Save failed: " + p);
                 emit fileSaved(p, ok);
             }, Qt::QueuedConnection);
     }));
@@ -176,7 +176,7 @@ void InfraViewModel::saveComposeFile(const QString& remotePath, const QString& c
 
 void InfraViewModel::loadContainers()
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
 
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
@@ -200,9 +200,9 @@ void InfraViewModel::loadContainers()
 void InfraViewModel::extractContainerFile(
     const QString& container, const QString& filePath)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
-    setStatus("컨테이너 파일 추출 중…");
+    setStatus("Extracting container file…");
 
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
@@ -218,7 +218,7 @@ void InfraViewModel::extractContainerFile(
                 fpath = QString::fromStdString(path),
                 txt   = QString::fromStdString(content), ok] {
                     setBusy(false);
-                    setStatus(ok ? "파일 추출 완료" : "파일을 찾을 수 없습니다");
+                    setStatus(ok ? "File extracted" : "File not found");
                     if (ok) emit containerFileExtracted(fpath, txt);
                 }, Qt::QueuedConnection);
     }));
@@ -230,9 +230,9 @@ void InfraViewModel::applyVolumeOverride(
     const QString& hostSavePath,
     const QString& content)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
-    setStatus("볼륨 오버라이드 파일 저장 중…");
+    setStatus("Saving volume override file…");
 
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
@@ -255,10 +255,10 @@ void InfraViewModel::applyVolumeOverride(
                 .arg(QString::fromStdString(ctrPath));
             // Helpful restart hint
             const QString hint = QString(
-                "# 컨테이너: %1\n"
-                "# 아래 항목을 compose.yaml의 해당 서비스 volumes: 섹션에 추가하세요:\n"
+                "# Container: %1\n"
+                "# Add the following entry to that service's volumes: section in compose.yaml:\n"
                 "%2\n\n"
-                "# 적용: docker compose up -d %1")
+                "# Apply: docker compose up -d %1")
                 .arg(QString::fromStdString(ctr))
                 .arg(entry);
 
@@ -266,8 +266,8 @@ void InfraViewModel::applyVolumeOverride(
                 hp   = QString::fromStdString(hostPath),
                 hint] {
                     setBusy(false);
-                    setStatus(ok ? "저장 완료 — compose.yaml에 볼륨 항목을 추가하세요"
-                                 : "파일 저장 실패: " + hp);
+                    setStatus(ok ? "Saved — add the volume entry to compose.yaml"
+                                 : "Save failed: " + hp);
                     if (ok) emit volumeEntryReady(hint);
                     emit overrideApplied(ok, hp);
                 }, Qt::QueuedConnection);
@@ -282,11 +282,14 @@ void InfraViewModel::scaffoldPlugin(
     const QString& targetName,
     const QString& pluginNamespace,
     const QString& description,
-    int            templateType)
+    int            templateType,
+    int            ifaceType,
+    const QString& ifaceHost,
+    const QString& ifacePort)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
-    setStatus("플러그인 스캐폴딩 생성 중…");
+    setStatus("Scaffolding plugin…");
 
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
@@ -297,10 +300,13 @@ void InfraViewModel::scaffoldPlugin(
         tname = targetName,
         ns    = pluginNamespace,
         desc  = description,
-        tmpl  = templateType] {
+        tmpl  = templateType,
+        itype = ifaceType,
+        ihost = ifaceHost,
+        iport = ifacePort] {
 
             const QMap<QString, QString> files =
-                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl);
+                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl, itype, ihost, iport, ns);
 
             const QString pluginDir = root + "/cosmos-" + pname;
             int created = 0;
@@ -324,9 +330,9 @@ void InfraViewModel::scaffoldPlugin(
 
             const bool ok = failed.isEmpty();
             const QString detail = ok
-                ? QString("%1개 파일 생성 완료 (%2)")
+                ? QString("%1 file(s) created (%2)")
                       .arg(created).arg(pluginDir)
-                : QString("실패: ") + failed.join(", ");
+                : QString("Failed: ") + failed.join(", ");
 
             QMetaObject::invokeMethod(this, [this, pluginDir, ok, detail] {
                 setBusy(false);
@@ -344,9 +350,9 @@ void InfraViewModel::addTargetToPlugin(
     const QString& pluginNamespace,
     int            templateType)
 {
-    if (!connected_) { setStatus("연결되지 않음"); return; }
+    if (!connected_) { setStatus("Not connected"); return; }
     setBusy(true);
-    setStatus("타겟 추가 중…");
+    setStatus("Adding target…");
 
     auto* watcher = new QFutureWatcher<void>(this);
     connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
@@ -358,7 +364,7 @@ void InfraViewModel::addTargetToPlugin(
         tmpl  = templateType] {
 
             const QMap<QString, QString> allFiles =
-                PluginTemplateEngine::buildTargetFiles(tname, tmpl);
+                PluginTemplateEngine::buildTargetFiles(tname, tmpl, ns);
 
             int created = 0;
             QStringList failed;
@@ -378,8 +384,8 @@ void InfraViewModel::addTargetToPlugin(
 
             const bool    ok     = failed.isEmpty();
             const QString detail = ok
-                ? QString("타겟 %1: %2개 파일 생성").arg(tname).arg(created)
-                : QString("실패: ") + failed.join(", ");
+                ? QString("Target %1: %2 file(s) created").arg(tname).arg(created)
+                : QString("Failed: ") + failed.join(", ");
 
             QMetaObject::invokeMethod(this, [this, tname, ok, detail] {
                 setBusy(false);
