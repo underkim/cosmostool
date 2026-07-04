@@ -306,7 +306,7 @@ void InfraViewModel::scaffoldPlugin(
         iport = ifacePort] {
 
             const QMap<QString, QString> files =
-                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl, itype, ihost, iport);
+                PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl, itype, ihost, iport, ns);
 
             const QString pluginDir = root + "/cosmos-" + pname;
             int created = 0;
@@ -364,7 +364,7 @@ void InfraViewModel::addTargetToPlugin(
         tmpl  = templateType] {
 
             const QMap<QString, QString> allFiles =
-                PluginTemplateEngine::buildTargetFiles(tname, tmpl);
+                PluginTemplateEngine::buildTargetFiles(tname, tmpl, ns);
 
             int created = 0;
             QStringList failed;

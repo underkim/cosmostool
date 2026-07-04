@@ -346,7 +346,8 @@ void PluginWizard::refreshPreview()
             pname, tname, desc, templateType(),
             ifaceTypeCombo_->currentIndex(),
             ifaceHostEdit_->text().trimmed(),
-            ifacePortEdit_->text().trimmed());
+            ifacePortEdit_->text().trimmed(),
+            namespaceEdit_->text().trimmed());
 
     // Remove and destroy old tab widgets
     while (previewTabs_->count() > 0) {

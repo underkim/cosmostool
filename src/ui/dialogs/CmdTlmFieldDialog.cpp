@@ -54,6 +54,9 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
         "STRING", "BLOCK", "DERIVED"
     });
 
+    // Free text rather than a numeric validator: COSMOS min/max/default
+    // commonly hold hex literals (0x01) or the MIN/MAX keywords, not just
+    // plain decimals, so a strict QDoubleValidator would reject valid input.
     minEdit_ = new QLineEdit("0", this);
     maxEdit_ = new QLineEdit("65535", this);
     defaultEdit_ = new QLineEdit("0", this);
@@ -82,6 +85,31 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
             QMessageBox::warning(this, "Add Field", "Name is required.");
             return;
         }
+
+        const bool parameter = modeCombo_->currentData().toString() == "parameter";
+        const QString type   = typeCombo_->currentText();
+        const bool strBlock  = (type == "STRING" || type == "BLOCK" || type == "DERIVED");
+        if (parameter && !strBlock) {
+            if (minEdit_->text().trimmed().isEmpty()
+                || maxEdit_->text().trimmed().isEmpty()
+                || defaultEdit_->text().trimmed().isEmpty()) {
+                QMessageBox::warning(this, "Add Field",
+                    "Minimum, Maximum, and Default are required for this type.");
+                return;
+            }
+            // Only compare when both parse as plain numbers - COSMOS min/max
+            // may also hold hex literals (0x01) or MIN/MAX keywords, which
+            // this check intentionally does not reject.
+            bool minOk = false, maxOk = false;
+            const double minVal = minEdit_->text().trimmed().toDouble(&minOk);
+            const double maxVal = maxEdit_->text().trimmed().toDouble(&maxOk);
+            if (minOk && maxOk && minVal > maxVal) {
+                QMessageBox::warning(this, "Add Field",
+                    "Minimum must not be greater than Maximum.");
+                return;
+            }
+        }
+
         accept();
     });
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);

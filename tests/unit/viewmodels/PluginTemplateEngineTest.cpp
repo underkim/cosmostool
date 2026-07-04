@@ -75,6 +75,19 @@ TEST(PluginTemplateEngineTest, SerialInterfaceUsesHostFieldAsDevicePath)
     EXPECT_TRUE(plugin.contains("serial_interface.rb /dev/ttyUSB0 9600 NONE 1 10 nil"));
 }
 
+TEST(PluginTemplateEngineTest, PluginNamespaceIsSurfacedInGeneratedCmdTlmFiles)
+{
+    // pluginNamespace previously had no effect on any generated output - the
+    // wizard/dialog's "Namespace" field was silently discarded. It's now
+    // surfaced as a header comment in the target's cmd/tlm files.
+    const auto withNs = PluginTemplateEngine::buildTargetFiles("fsw", 0, "MySat");
+    EXPECT_TRUE(withNs.value("targets/FSW/cmd_tlm/fsw_cmds.txt").startsWith("# Namespace: MySat\n"));
+    EXPECT_TRUE(withNs.value("targets/FSW/cmd_tlm/fsw_tlm.txt").startsWith("# Namespace: MySat\n"));
+
+    const auto withoutNs = PluginTemplateEngine::buildTargetFiles("fsw", 0);
+    EXPECT_FALSE(withoutNs.value("targets/FSW/cmd_tlm/fsw_cmds.txt").contains("Namespace"));
+}
+
 TEST(PluginTemplateEngineTest, BuildTargetFilesOnlyEmitsTargetTree)
 {
     const auto files = PluginTemplateEngine::buildTargetFiles("fsw", 0);

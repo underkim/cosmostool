@@ -6,12 +6,15 @@ namespace OpenC3::ViewModels {
 
 namespace {
 
-QMap<QString, QString> buildCmdTlmFiles(const QString& tgt, int templateType)
+QMap<QString, QString> buildCmdTlmFiles(
+    const QString& tgt, int templateType, const QString& pluginNamespace)
 {
     QMap<QString, QString> files;
 
     const QString cmdPath = "targets/" + tgt + "/cmd_tlm/" + tgt.toLower() + "_cmds.txt";
     const QString tlmPath = "targets/" + tgt + "/cmd_tlm/" + tgt.toLower() + "_tlm.txt";
+    const QString nsComment =
+        pluginNamespace.isEmpty() ? QString() : "# Namespace: " + pluginNamespace + "\n";
 
     if (templateType == 1) {
         // CCSDS satellite layout
@@ -70,6 +73,11 @@ QMap<QString, QString> buildCmdTlmFiles(const QString& tgt, int templateType)
         ).arg(tgt);
     }
 
+    if (!nsComment.isEmpty()) {
+        files[cmdPath].prepend(nsComment);
+        files[tlmPath].prepend(nsComment);
+    }
+
     return files;
 }
 
@@ -114,7 +122,8 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
     int            templateType,
     int            ifaceType,
     const QString& ifaceHost,
-    const QString& ifacePort)
+    const QString& ifacePort,
+    const QString& pluginNamespace)
 {
     const QString tgt    = targetName.toUpper();
     const QString gem    = "cosmos-" + pluginName;
@@ -172,18 +181,19 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
         "source 'https://rubygems.org'\n"
         "gemspec\n";
 
-    files.insert(buildTargetFiles(targetName, templateType));
+    files.insert(buildTargetFiles(targetName, templateType, pluginNamespace));
 
     return files;
 }
 
 QMap<QString, QString> PluginTemplateEngine::buildTargetFiles(
     const QString& targetName,
-    int            templateType)
+    int            templateType,
+    const QString& pluginNamespace)
 {
     const QString tgt = targetName.toUpper();
     QMap<QString, QString> files;
-    files.insert(buildCmdTlmFiles(tgt, templateType));
+    files.insert(buildCmdTlmFiles(tgt, templateType, pluginNamespace));
     files.insert(buildScreenAndProcedures(tgt));
     return files;
 }

@@ -30,13 +30,15 @@ public:
         int            templateType,
         int            ifaceType = -1,
         const QString& ifaceHost = QStringLiteral("localhost"),
-        const QString& ifacePort = QStringLiteral("8080"));
+        const QString& ifacePort = QStringLiteral("8080"),
+        const QString& pluginNamespace = QString());
 
     /// Returns only the files that live under  targets/<TARGET>/
     /// Used when adding a target to an already-existing plugin.
     [[nodiscard]] static QMap<QString, QString> buildTargetFiles(
         const QString& targetName,
-        int            templateType);
+        int            templateType,
+        const QString& pluginNamespace = QString());
 };
 
 } // namespace OpenC3::ViewModels
