@@ -4,6 +4,9 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QFutureWatcher>
 
+#include <atomic>
+#include <memory>
+
 namespace OpenC3::ViewModels {
 
 DashboardViewModel::DashboardViewModel(
@@ -74,25 +77,37 @@ void DashboardViewModel::refresh()
     setLoading(true);
     clearError();
 
+    // Cleared to false once all three background fetches below have
+    // completed (successfully or not) - shared_ptr so it stays alive
+    // independent of this ViewModel even if a fetch is still in flight
+    // when the ViewModel is destroyed.
+    auto pending = std::make_shared<std::atomic<int>>(3);
+    auto completeOne = [this, pending] {
+        if (pending->fetch_sub(1, std::memory_order_acq_rel) == 1)
+            setLoading(false);
+    };
+
     // ── System metrics ────────────────────────────────────────────────────────
     auto* metricsWatcher = new QFutureWatcher<void>(this);
     connect(metricsWatcher, &QFutureWatcher<void>::finished,
             metricsWatcher, &QObject::deleteLater);
 
-    auto metricsFuture = QtConcurrent::run([this] {
+    auto metricsFuture = QtConcurrent::run([this, completeOne] {
         try {
             auto metrics = system_.getMetrics();
             double disk = metrics.disks.empty() ? 0.0
                         : metrics.disks[0].usedPercent;
-            QMetaObject::invokeMethod(this, [this,
+            QMetaObject::invokeMethod(this, [this, completeOne,
                 cpu  = metrics.cpuPercent,
                 mem  = metrics.memPercent,
                 d    = disk,
                 host = QString::fromStdString(metrics.hostname)] {
                     onMetricsFetched(cpu, mem, d, host);
+                    completeOne();
                 }, Qt::QueuedConnection);
         } catch (const std::exception& e) {
             Logging::Logger::error("[DashboardVM] metrics error: {}", e.what());
+            QMetaObject::invokeMethod(this, completeOne, Qt::QueuedConnection);
         }
     });
     metricsWatcher->setFuture(metricsFuture);
@@ -102,16 +117,18 @@ void DashboardViewModel::refresh()
     connect(dockerWatcher, &QFutureWatcher<void>::finished,
             dockerWatcher, &QObject::deleteLater);
 
-    auto dockerFuture = QtConcurrent::run([this] {
+    auto dockerFuture = QtConcurrent::run([this, completeOne] {
         try {
             bool daemonOk = docker_.isDockerRunning();
             auto containers = docker_.listContainers(false); // running only
             int  running    = static_cast<int>(containers.size());
-            QMetaObject::invokeMethod(this, [this, running, daemonOk] {
+            QMetaObject::invokeMethod(this, [this, completeOne, running, daemonOk] {
                 onDockerFetched(running, daemonOk);
+                completeOne();
             }, Qt::QueuedConnection);
         } catch (const std::exception& e) {
             Logging::Logger::error("[DashboardVM] docker error: {}", e.what());
+            QMetaObject::invokeMethod(this, completeOne, Qt::QueuedConnection);
         }
     });
     dockerWatcher->setFuture(dockerFuture);
@@ -121,19 +138,19 @@ void DashboardViewModel::refresh()
     connect(versionWatcher, &QFutureWatcher<void>::finished,
             versionWatcher, &QObject::deleteLater);
 
-    auto versionFuture = QtConcurrent::run([this] {
+    auto versionFuture = QtConcurrent::run([this, completeOne] {
         try {
             auto v = system_.getOpenC3Version();
-            QMetaObject::invokeMethod(this, [this, ver = QString::fromStdString(v)] {
+            QMetaObject::invokeMethod(this, [this, completeOne, ver = QString::fromStdString(v)] {
                 onVersionFetched(ver);
+                completeOne();
             }, Qt::QueuedConnection);
         } catch (const std::exception& e) {
             Logging::Logger::error("[DashboardVM] version error: {}", e.what());
+            QMetaObject::invokeMethod(this, completeOne, Qt::QueuedConnection);
         }
     });
     versionWatcher->setFuture(versionFuture);
-
-    setLoading(false);
 }
 
 void DashboardViewModel::setRefreshIntervalMs(int ms)
