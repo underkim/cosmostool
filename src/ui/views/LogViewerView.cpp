@@ -68,6 +68,7 @@ void LogViewerView::setupUi()
     // ── Log area ──────────────────────────────────────────────────────────────
     logView_ = new QTextEdit(this);
     logView_->setReadOnly(true);
+    logView_->document()->setMaximumBlockCount(10000);
     const QFont mono = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     logView_->setFont(mono);
     logView_->setObjectName("LogArea");
@@ -142,7 +143,10 @@ void LogViewerView::onStartStopClicked()
 
 void LogViewerView::appendLine(const QString& line)
 {
-    logView_->append(line);
+    // QTextEdit::append() parses its argument as HTML - a raw log line
+    // containing '<', '>', or '&' (e.g. "<CommandTimeoutError>") would
+    // otherwise be silently mangled/dropped from the displayed text.
+    logView_->append(line.toHtmlEscaped());
     if (autoScrollCheck_->isChecked()) {
         auto* sb = logView_->verticalScrollBar();
         sb->setValue(sb->maximum());
