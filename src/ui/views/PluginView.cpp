@@ -15,6 +15,8 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QMessageBox>
+#include <QSettings>
+#include <QShortcut>
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QSplitter>
@@ -162,6 +164,21 @@ PluginView::PluginView(
 {
     setupUi();
     bindViewModel();
+
+    auto* saveShortcut = new QShortcut(QKeySequence::Save, this);
+    connect(saveShortcut, &QShortcut::activated, this, &PluginView::onSaveComponentClicked);
+
+    // Restore the Terminal/Reference panel toggle state from the last
+    // session (defaults match setupUi()'s initial hidden state above).
+    QSettings settings;
+    if (settings.value("PluginView/showReference", false).toBool()) {
+        guideGroup_->setVisible(true);
+        toggleReferenceBtn_->setChecked(true);
+    }
+    if (settings.value("PluginView/showTerminal", false).toBool()) {
+        terminalPanel_->setVisible(true);
+        toggleTerminalBtn_->setChecked(true);
+    }
 }
 
 void PluginView::setupUi()
@@ -1766,6 +1783,7 @@ void PluginView::onToggleReferenceClicked()
     guideGroup_->setVisible(!guideGroup_->isVisible());
     if (toggleReferenceBtn_)
         toggleReferenceBtn_->setChecked(guideGroup_->isVisible());
+    QSettings().setValue("PluginView/showReference", guideGroup_->isVisible());
 }
 
 void PluginView::onToggleTerminalClicked()
@@ -1776,6 +1794,7 @@ void PluginView::onToggleTerminalClicked()
     terminalPanel_->setVisible(!terminalPanel_->isVisible());
     if (toggleTerminalBtn_)
         toggleTerminalBtn_->setChecked(terminalPanel_->isVisible());
+    QSettings().setValue("PluginView/showTerminal", terminalPanel_->isVisible());
 }
 
 void PluginView::onDiagnosticItemClicked(QListWidgetItem* item)

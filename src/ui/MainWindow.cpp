@@ -248,6 +248,20 @@ void MainWindow::setupViews()
     environmentTabs->addTab(new Views::DockerView(dockerVm_, this), tr("Docker"));    // 1
     environmentTabs->addTab(new Views::InfraView(infraVm_, this),   tr("Infra"));     // 2
     constexpr int kEnvDoctorTab = 0;
+    constexpr int kEnvDockerTab = 1;
+
+    // Remember the last-viewed sub-tab across sessions, and refresh the
+    // container list automatically whenever the Docker sub-tab becomes
+    // active (rather than requiring a manual Refresh click every time).
+    connect(environmentTabs, &QTabWidget::currentChanged, this,
+            [this, kEnvDockerTab](int index) {
+                QSettings().setValue("Environment/lastTab", index);
+                if (index == kEnvDockerTab)
+                    dockerVm_.refresh();
+            });
+    QSettings environmentSettings;
+    environmentTabs->setCurrentIndex(
+        environmentSettings.value("Environment/lastTab", kEnvDoctorTab).toInt());
 
     // ── Navigation helpers ──────────────────────────────────────────────────
     auto goTo = [this](int row) {

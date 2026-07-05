@@ -118,6 +118,8 @@ void DockerView::bindViewModel()
     connect(tableView_->selectionModel(),
             &QItemSelectionModel::selectionChanged,
             this, &DockerView::onTableSelectionChanged);
+    connect(tableView_, &QTableView::doubleClicked,
+            this, &DockerView::onViewLogsClicked);
 
     connect(&vm_, &ViewModels::DockerViewModel::dockerVersionChanged,
             this, [this] {
