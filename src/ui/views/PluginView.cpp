@@ -354,7 +354,11 @@ void PluginView::setupUi()
     browseEmptyLabel_->setWordWrap(true);
     browseList_ = new QListWidget(browseTab);
     browseList_->setObjectName("PluginBrowseList");
-    browsePathEdit_->setText("/cosmos/targets");
+    browsePathEdit_->setText(cmdTlmVm_.isConnected()
+        ? cmdTlmVm_.defaultCmdTlmPath()
+        : QStringLiteral("/cosmos/targets"));
+    browseGoBtn_->setEnabled(cmdTlmVm_.isConnected());
+    browsePathEdit_->setEnabled(cmdTlmVm_.isConnected());
     browseLayout->addLayout(browsePathRow);
     browseLayout->addWidget(browseEmptyLabel_);
     browseLayout->addWidget(browseList_, 1);
@@ -838,6 +842,15 @@ void PluginView::bindViewModel()
                 if (!cmdTlmVm_.statusMessage().isEmpty())
                     statusLabel_->setText(cmdTlmVm_.statusMessage());
                 updateActionHints();
+            });
+
+    connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::connectionChanged,
+            this, [this] {
+                const bool connected = cmdTlmVm_.isConnected();
+                browseGoBtn_->setEnabled(connected);
+                browsePathEdit_->setEnabled(connected);
+                if (connected)
+                    browsePathEdit_->setText(cmdTlmVm_.defaultCmdTlmPath());
             });
 
     connect(&vm_, &ViewModels::PluginViewModel::validationComplete,
