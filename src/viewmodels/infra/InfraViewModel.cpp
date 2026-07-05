@@ -276,6 +276,40 @@ void InfraViewModel::applyVolumeOverride(
 
 // ── Plugin scaffolding ────────────────────────────────────────────────────────
 
+void InfraViewModel::writePluginFiles(const QString& pluginDir, const QMap<QString, QString>& files)
+{
+    int created = 0;
+    QStringList failed;
+
+    for (auto it = files.cbegin(); it != files.cend(); ++it) {
+        const std::string fullPath = (pluginDir + "/" + it.key()).toStdString();
+
+        // Ensure parent directory exists on the remote host.
+        // executeCommand returns stdout; mkdir -p errors go to stderr so
+        // we rely on writeFile below to surface any actual failure.
+        const std::string dirPath = fullPath.substr(0, fullPath.rfind('/'));
+        [[maybe_unused]] const std::string mkdirOut =
+            fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
+
+        if (fs_.writeFile(fullPath, it.value().toStdString()))
+            ++created;
+        else
+            failed << it.key();
+    }
+
+    const bool ok = failed.isEmpty();
+    const QString detail = ok
+        ? QString("%1 file(s) created (%2)")
+              .arg(created).arg(pluginDir)
+        : QString("Failed: ") + failed.join(", ");
+
+    QMetaObject::invokeMethod(this, [this, pluginDir, ok, detail] {
+        setBusy(false);
+        setStatus(detail);
+        emit scaffoldComplete(pluginDir, ok, detail);
+    }, Qt::QueuedConnection);
+}
+
 void InfraViewModel::scaffoldPlugin(
     const QString& remoteRoot,
     const QString& pluginName,
@@ -304,41 +338,29 @@ void InfraViewModel::scaffoldPlugin(
         itype = ifaceType,
         ihost = ifaceHost,
         iport = ifacePort] {
-
             const QMap<QString, QString> files =
                 PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl, itype, ihost, iport, ns);
+            writePluginFiles(root + "/cosmos-" + pname, files);
+    }));
+}
 
-            const QString pluginDir = root + "/cosmos-" + pname;
-            int created = 0;
-            QStringList failed;
+void InfraViewModel::scaffoldPluginFiles(
+    const QString&                remoteRoot,
+    const QString&                pluginName,
+    const QMap<QString, QString>& files)
+{
+    if (!connected_) { setStatus("Not connected"); return; }
+    setBusy(true);
+    setStatus("Scaffolding plugin…");
 
-            for (auto it = files.cbegin(); it != files.cend(); ++it) {
-                const std::string fullPath = (pluginDir + "/" + it.key()).toStdString();
+    auto* watcher = new QFutureWatcher<void>(this);
+    connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
 
-                // Ensure parent directory exists on the remote host.
-                // executeCommand returns stdout; mkdir -p errors go to stderr so
-                // we rely on writeFile below to surface any actual failure.
-                const std::string dirPath = fullPath.substr(0, fullPath.rfind('/'));
-                [[maybe_unused]] const std::string mkdirOut =
-                    fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
-
-                if (fs_.writeFile(fullPath, it.value().toStdString()))
-                    ++created;
-                else
-                    failed << it.key();
-            }
-
-            const bool ok = failed.isEmpty();
-            const QString detail = ok
-                ? QString("%1 file(s) created (%2)")
-                      .arg(created).arg(pluginDir)
-                : QString("Failed: ") + failed.join(", ");
-
-            QMetaObject::invokeMethod(this, [this, pluginDir, ok, detail] {
-                setBusy(false);
-                setStatus(detail);
-                emit scaffoldComplete(pluginDir, ok, detail);
-            }, Qt::QueuedConnection);
+    watcher->setFuture(QtConcurrent::run([this,
+        root  = remoteRoot,
+        pname = pluginName,
+        files] {
+            writePluginFiles(root + "/cosmos-" + pname, files);
     }));
 }
 

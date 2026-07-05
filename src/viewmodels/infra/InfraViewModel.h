@@ -4,6 +4,7 @@
 #include "services/connection/IConnectionService.h"
 #include "services/filesystem/IRemoteFileService.h"
 
+#include <QMap>
 #include <QString>
 
 namespace OpenC3::ViewModels {
@@ -63,6 +64,15 @@ public slots:
         const QString& ifaceHost = QStringLiteral("localhost"),
         const QString& ifacePort = QStringLiteral("8080"));
 
+    // Same end result as scaffoldPlugin(), but writes exactly the given
+    // relativePath -> content map instead of re-deriving it from the template
+    // engine - used by PluginWizard's Preview step so user edits to the
+    // generated files are actually what gets written to the remote.
+    void scaffoldPluginFiles(
+        const QString&                remoteRoot,
+        const QString&                pluginName,
+        const QMap<QString, QString>& files);
+
     // Appends a new target directory tree to an existing plugin root on the remote.
     void addTargetToPlugin(
         const QString& pluginRoot,   // e.g. /cosmos/plugins/cosmos-my-plugin
@@ -89,6 +99,12 @@ private:
 
     void setStatus(const QString& msg);
     void setBusy(bool b);
+
+    // Shared tail of scaffoldPlugin()/scaffoldPluginFiles(): writes each
+    // relativePath -> content pair under pluginDir on the remote, then emits
+    // scaffoldComplete() on the GUI thread. Runs on whatever thread calls it
+    // (both callers invoke it from inside a QtConcurrent::run lambda).
+    void writePluginFiles(const QString& pluginDir, const QMap<QString, QString>& files);
 
     Services::IConnectionService& connection_;
     Services::IRemoteFileService& fs_;

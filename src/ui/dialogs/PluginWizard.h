@@ -22,7 +22,7 @@ namespace OpenC3::UI::Dialogs {
 /// Step 1 — Target Setup (target name, interface type, CCSDS toggle)
 /// Step 2 — File Preview (editable tabs, one per generated file)
 ///
-/// On Finish → calls InfraViewModel::scaffoldPlugin() using the (possibly
+/// On Finish → calls InfraViewModel::scaffoldPluginFiles() using the (possibly
 /// user-edited) file contents.
 class PluginWizard final : public QDialog {
     Q_OBJECT

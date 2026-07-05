@@ -301,20 +301,17 @@ void PluginWizard::onFinish()
             QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
         return;
 
-    // Collect (possibly edited) file contents from preview tabs
-    // and update the file map, then call scaffoldPlugin.
-    // For now we call scaffoldPlugin with wizard params; edited content
-    // would require a custom upload path (future enhancement).
-    vm_.scaffoldPlugin(
+    // Write exactly what's in the preview tabs, not a fresh re-generation from
+    // the form fields - the Preview step tells the user their edits are what
+    // gets written, so it must actually be what gets written.
+    QMap<QString, QString> files;
+    for (auto it = fileEditors_.cbegin(); it != fileEditors_.cend(); ++it)
+        files[it.key()] = it.value()->toPlainText();
+
+    vm_.scaffoldPluginFiles(
         remoteRootEdit_->text().trimmed(),
         pluginNameEdit_->text().trimmed(),
-        targetNameEdit_->text().trimmed().toUpper(),
-        namespaceEdit_->text().trimmed(),
-        descriptionEdit_->text().trimmed(),
-        templateType(),
-        ifaceTypeCombo_->currentIndex(),
-        ifaceHostEdit_->text().trimmed(),
-        ifacePortEdit_->text().trimmed());
+        files);
 }
 
 // ── Live update slots ─────────────────────────────────────────────────────────
