@@ -2,6 +2,7 @@
 #include "ui/dialogs/AddTargetDialog.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/dialogs/PluginWizard.h"
+#include "ui/views/LogViewerView.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
 #include "ui/widgets/CmdTlmSnippets.h"
 
@@ -140,12 +141,14 @@ PluginView::PluginView(
     ViewModels::InfraViewModel& infraVm,
     ViewModels::CmdTlmViewModel& cmdTlmVm,
     ViewModels::ValidatorViewModel& validatorVm,
+    ViewModels::LogViewerViewModel& logViewerVm,
     QWidget* parent)
     : QWidget(parent)
     , vm_(vm)
     , infraVm_(infraVm)
     , cmdTlmVm_(cmdTlmVm)
     , validatorVm_(validatorVm)
+    , logViewerVm_(logViewerVm)
 {
     setupUi();
     bindViewModel();
@@ -244,12 +247,17 @@ void PluginView::setupUi()
     moreMenuBtn_->setMenu(moreMenu);
     moreMenuBtn_->setVisible(false);
 
+    toggleTerminalBtn_ = new QPushButton("Terminal", this);
+    toggleTerminalBtn_->setCheckable(true);
+    toggleTerminalBtn_->setToolTip("Show or hide the log-streaming terminal panel.");
+
     toolbarBlock->addWidget(scaffoldBtn_);
     toolbarBlock->addWidget(refreshBtn_);
     toolbarBlock->addSpacing(8);
     toolbarBlock->addWidget(selectedPluginActions_);
     toolbarBlock->addWidget(moreMenuBtn_);
     toolbarBlock->addStretch();
+    toolbarBlock->addWidget(toggleTerminalBtn_);
     toolbarBlock->addWidget(progressBar_);
     root->addLayout(toolbarBlock);
 
@@ -648,7 +656,26 @@ void PluginView::setupUi()
     mainSplitter->setStretchFactor(0, 0);
     mainSplitter->setStretchFactor(1, 1);
     mainSplitter->setSizes({360, 980});
-    root->addWidget(mainSplitter, 1);
+
+    // Bottom "Terminal" panel: the existing Logs screen embedded as a child
+    // widget, bound to the same shared logViewerVm_ - reuses its streaming
+    // logic entirely. Hidden by default so the screen isn't more cluttered
+    // than today; toggled via toggleTerminalBtn_.
+    auto* verticalSplitter = new QSplitter(Qt::Vertical, this);
+    verticalSplitter->setObjectName("PluginWorkbenchWithTerminal");
+    terminalPanel_ = new QWidget(verticalSplitter);
+    auto* terminalLayout = new QVBoxLayout(terminalPanel_);
+    terminalLayout->setContentsMargins(0, 0, 0, 0);
+    terminalView_ = new LogViewerView(logViewerVm_, terminalPanel_);
+    terminalLayout->addWidget(terminalView_);
+    verticalSplitter->addWidget(mainSplitter);
+    verticalSplitter->addWidget(terminalPanel_);
+    verticalSplitter->setChildrenCollapsible(false);
+    verticalSplitter->setStretchFactor(0, 1);
+    verticalSplitter->setStretchFactor(1, 0);
+    verticalSplitter->setSizes({640, 220});
+    terminalPanel_->setVisible(false);
+    root->addWidget(verticalSplitter, 1);
 
     // Must run after structureTable_ (created above) exists: updateActionHints()
     // reads its selection state. Calling this earlier segfaults on a null
@@ -695,6 +722,7 @@ void PluginView::bindViewModel()
     connect(blockSelectorCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PluginView::onBlockSelectionChanged);
     connect(toggleReferenceBtn_, &QPushButton::clicked, this, &PluginView::onToggleReferenceClicked);
+    connect(toggleTerminalBtn_, &QPushButton::clicked, this, &PluginView::onToggleTerminalClicked);
     connect(componentEditor_, &QTextEdit::textChanged,
             this, [this] {
                 if (!currentComponentPath_.isEmpty())
@@ -1677,6 +1705,16 @@ void PluginView::onToggleReferenceClicked()
     guideGroup_->setVisible(!guideGroup_->isVisible());
     if (toggleReferenceBtn_)
         toggleReferenceBtn_->setChecked(guideGroup_->isVisible());
+}
+
+void PluginView::onToggleTerminalClicked()
+{
+    if (!terminalPanel_)
+        return;
+
+    terminalPanel_->setVisible(!terminalPanel_->isVisible());
+    if (toggleTerminalBtn_)
+        toggleTerminalBtn_->setChecked(terminalPanel_->isVisible());
 }
 
 void PluginView::applyStructureRowToEditor(int row)

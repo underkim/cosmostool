@@ -155,7 +155,7 @@ void MainWindow::setupNavigation()
 void MainWindow::setupViews()
 {
     auto* dashboardView = new Views::DashboardView(dashboardVm_, this);
-    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, this);
+    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, this);
     auto* cmdTlmView    = new Views::CmdTlmView(cmdTlmVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
 

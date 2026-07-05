@@ -4,6 +4,7 @@
 #include "viewmodels/infra/InfraViewModel.h"
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
 #include "viewmodels/validator/ValidatorViewModel.h"
+#include "viewmodels/logviewer/LogViewerViewModel.h"
 
 #include <QWidget>
 #include <QTableView>
@@ -25,6 +26,8 @@ namespace OpenC3::UI::Widgets { class CmdTlmHighlighter; }
 
 namespace OpenC3::UI::Views {
 
+class LogViewerView;
+
 class PluginView final : public QWidget {
     Q_OBJECT
 public:
@@ -32,6 +35,7 @@ public:
                         ViewModels::InfraViewModel&  infraVm,
                         ViewModels::CmdTlmViewModel& cmdTlmVm,
                         ViewModels::ValidatorViewModel& validatorVm,
+                        ViewModels::LogViewerViewModel& logViewerVm,
                         QWidget*                     parent = nullptr);
 
 private slots:
@@ -62,6 +66,7 @@ private slots:
     void onToggleReferenceClicked();
     void onBrowseGoClicked();
     void onBrowseItemDoubleClicked(QListWidgetItem* item);
+    void onToggleTerminalClicked();
 
 signals:
     void openCmdTlmRequested(const QString& remoteFilePath);
@@ -103,6 +108,7 @@ private:
     ViewModels::InfraViewModel&  infraVm_;
     ViewModels::CmdTlmViewModel& cmdTlmVm_;
     ViewModels::ValidatorViewModel& validatorVm_;
+    ViewModels::LogViewerViewModel& logViewerVm_;
 
     QTableView*  tableView_{nullptr};
     QPushButton* refreshBtn_{nullptr};
@@ -174,6 +180,12 @@ private:
     QAction*     refreshStructureAction_{nullptr};
     QAction*     applyStructureAction_{nullptr};
     Widgets::CmdTlmHighlighter* highlighter_{nullptr};
+    // Bottom "Terminal" panel: the existing Logs screen's widget/ViewModel,
+    // embedded here for convenience - same one-way log-streaming mechanism,
+    // no new interactive/PTY terminal.
+    QPushButton* toggleTerminalBtn_{nullptr};
+    QWidget*     terminalPanel_{nullptr};
+    LogViewerView* terminalView_{nullptr};
     QString     currentPluginRoot_;
     // Set right before cmdTlmVm_.openFile() is called (from either the
     // plugin-scoped list or the Browse tab); the fileOpened handler only
