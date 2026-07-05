@@ -33,6 +33,8 @@
 
 #include <QStandardPaths>
 #include <QDir>
+#include <QSettings>
+#include <QLibraryInfo>
 
 namespace OpenC3::App {
 
@@ -45,8 +47,29 @@ Application::Application(QApplication& qtApp)
     Logging::Logger::info("OpenC3 Developer Toolkit starting");
 }
 
+void Application::loadLanguage()
+{
+    // Plain QSettings (same store as MainWindow's window geometry/state), not
+    // the JSON-backed SettingsService - this is app chrome preference, not a
+    // COSMOS connection setting. "en" (default) needs no QTranslator at all;
+    // switching to "ko" takes effect on the next launch (this app has no
+    // dynamic-retranslation wiring), which SettingsView's language control
+    // tells the user explicitly.
+    const QSettings appSettings;
+    const QString language = appSettings.value("App/language", "en").toString();
+    if (language != "ko")
+        return;
+
+    const QString qmPath = QCoreApplication::applicationDirPath() + "/translations/openc3_ko.qm";
+    if (translator_.load(qmPath))
+        qtApp_.installTranslator(&translator_);
+    else
+        Logging::Logger::warn("Korean translation file not found at {}", qmPath.toStdString());
+}
+
 int Application::run()
 {
+    loadLanguage();
     UI::ThemeManager::applyDarkTheme(qtApp_);
 
     try {

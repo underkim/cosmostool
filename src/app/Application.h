@@ -5,6 +5,7 @@
 #include "ui/MainWindow.h"
 
 #include <QApplication>
+#include <QTranslator>
 #include <memory>
 #include <string>
 
@@ -33,6 +34,7 @@ private:
     void initLogging();
     void registerServices();
     void registerViewModels();
+    void loadLanguage();
 
     [[nodiscard]] std::string resolveSettingsPath() const;
 
@@ -40,6 +42,7 @@ private:
     ServiceRegistry                            registry_;
     Core::Connection::ExecutorProxy            executorProxy_;
     std::unique_ptr<UI::MainWindow>            mainWindow_;
+    QTranslator                                translator_;
 };
 
 } // namespace OpenC3::App

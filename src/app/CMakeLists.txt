@@ -19,6 +19,8 @@ target_link_libraries(OpenC3DevToolkit
         Qt6::Widgets
 )
 
+add_dependencies(OpenC3DevToolkit openc3_translations)
+
 set_target_properties(OpenC3DevToolkit PROPERTIES
     WIN32_EXECUTABLE TRUE   # No console window in release
     MACOSX_BUNDLE   TRUE

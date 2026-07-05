@@ -52,6 +52,21 @@ if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_QT_BIN_DIR}")
 endif()
 
+# ── Translations ──────────────────────────────────────────────────────────────
+# Found directly via find_program() rather than find_package(Qt6 COMPONENTS
+# LinguistTools) - on some Linux distros (Debian/Ubuntu's qt6-l10n-tools) the
+# lupdate/lrelease binaries are packaged without the LinguistTools CMake
+# package config, so relying on it would break there even though the official
+# Qt SDK ships both together.
+if(NOT WIN32)
+    get_target_property(_QT_QMAKE_PATH Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(_QT_BIN_DIR "${_QT_QMAKE_PATH}" DIRECTORY)
+endif()
+find_program(LRELEASE_EXECUTABLE NAMES lrelease lrelease-qt6 lrelease6
+    HINTS "${_QT_BIN_DIR}" /usr/lib/qt6/bin)
+
+add_subdirectory(translations)
+
 # ── Subdirectories ────────────────────────────────────────────────────────────
 add_subdirectory(src)
 

@@ -30,7 +30,7 @@ void DashboardView::setupUi()
     root->setSpacing(16);
 
     // ── Page title ────────────────────────────────────────────────────────────
-    auto* pageTitle = new QLabel("Home", this);
+    auto* pageTitle = new QLabel(tr("Home"), this);
     QFont tf = pageTitle->font();
     tf.setPointSize(18);
     tf.setBold(true);
@@ -55,7 +55,7 @@ void DashboardView::setupUi()
     root->addLayout(recommendedRow);
 
     // ── Quick actions ──────────────────────────────────────────────────────────
-    auto* actionsGroup  = new QGroupBox("Quick Actions", this);
+    auto* actionsGroup  = new QGroupBox(tr("Quick Actions"), this);
     auto* actionsLayout = new QVBoxLayout(actionsGroup);
     actionsLayout->setSpacing(12);
 
@@ -90,7 +90,7 @@ void DashboardView::setupUi()
         descriptionLabel->setWordWrap(true);
 
         stepBadges_[index] = new Widgets::StatusBadge(
-            "Pending", Widgets::BadgeStyle::Neutral, card);
+            tr("Pending"), Widgets::BadgeStyle::Neutral, card);
         stepButtons_[index] = new QPushButton(cardTitle, card);
         connect(stepButtons_[index], &QPushButton::clicked, this, signal);
 
@@ -103,21 +103,21 @@ void DashboardView::setupUi()
         stepLayout->addWidget(card);
     };
 
-    addStepCard(0, "Step 1", "Connect to OpenC3",
-                "Choose a profile and verify the toolkit can reach OpenC3.",
+    addStepCard(0, tr("Step 1"), tr("Connect to OpenC3"),
+                tr("Choose a profile and verify the toolkit can reach OpenC3."),
                 &DashboardView::connectRequested);
-    addStepCard(1, "Step 2", "Run Doctor",
-                "Check Docker, containers, and the local OpenC3 environment.",
+    addStepCard(1, tr("Step 2"), tr("Run Doctor"),
+                tr("Check Docker, containers, and the local OpenC3 environment."),
                 &DashboardView::runDoctorRequested);
-    addStepCard(2, "Step 3", "Open Workspace",
-                "Manage plugins and start editing once the environment is ready.",
+    addStepCard(2, tr("Step 3"), tr("Open Workspace"),
+                tr("Manage plugins and start editing once the environment is ready."),
                 &DashboardView::openWorkspaceRequested);
     stepLayout->addStretch();
     actionsLayout->addLayout(stepLayout);
 
     auto* toolsRow = new QHBoxLayout;
     toolsRow->setSpacing(8);
-    auto* toolsLabel = new QLabel("More tools:", actionsGroup);
+    auto* toolsLabel = new QLabel(tr("More tools:"), actionsGroup);
     toolsLabel->setObjectName("SubLabel");
     toolsRow->addWidget(toolsLabel);
 
@@ -128,16 +128,16 @@ void DashboardView::setupUi()
         toolsRow->addWidget(btn);
     };
 
-    addToolLink("Validator",    &DashboardView::openValidatorRequested);
-    addToolLink("Packet Tools", &DashboardView::openPacketToolsRequested);
-    addToolLink("Logs",         &DashboardView::openLogsRequested);
+    addToolLink(tr("Validator"),    &DashboardView::openValidatorRequested);
+    addToolLink(tr("Packet Tools"), &DashboardView::openPacketToolsRequested);
+    addToolLink(tr("Logs"),         &DashboardView::openLogsRequested);
     toolsRow->addStretch();
     actionsLayout->addLayout(toolsRow);
 
     root->addWidget(actionsGroup);
 
     // ── Status row ────────────────────────────────────────────────────────────
-    auto* statusGroup  = new QGroupBox("System Status", this);
+    auto* statusGroup  = new QGroupBox(tr("System Status"), this);
     auto* statusLayout = new QGridLayout(statusGroup);
     statusLayout->setColumnStretch(1, 1);
     statusLayout->setSpacing(10);
@@ -147,28 +147,28 @@ void DashboardView::setupUi()
         statusLayout->addWidget(badge, row, 1, Qt::AlignLeft);
     };
 
-    connectionBadge_ = new Widgets::StatusBadge("Disconnected",
+    connectionBadge_ = new Widgets::StatusBadge(tr("Disconnected"),
                             Widgets::BadgeStyle::Neutral, this);
-    dockerBadge_     = new Widgets::StatusBadge("Unknown",
+    dockerBadge_     = new Widgets::StatusBadge(tr("Unknown"),
                             Widgets::BadgeStyle::Neutral, this);
     versionLabel_    = new QLabel("--", this);
     containerLabel_  = new QLabel("0", this);
 
-    addStatusRow(0, "Connection:", connectionBadge_);
-    addStatusRow(1, "Docker:",     dockerBadge_);
-    addStatusRow(2, "OpenC3 Version:", versionLabel_);
-    addStatusRow(3, "Running Containers:", containerLabel_);
+    addStatusRow(0, tr("Connection:"), connectionBadge_);
+    addStatusRow(1, tr("Docker:"),     dockerBadge_);
+    addStatusRow(2, tr("OpenC3 Version:"), versionLabel_);
+    addStatusRow(3, tr("Running Containers:"), containerLabel_);
 
     root->addWidget(statusGroup);
 
     // ── Metric cards ──────────────────────────────────────────────────────────
-    auto* metricsGroup  = new QGroupBox("Resource Usage", this);
+    auto* metricsGroup  = new QGroupBox(tr("Resource Usage"), this);
     auto* metricsLayout = new QHBoxLayout(metricsGroup);
     metricsLayout->setSpacing(12);
 
-    cpuCard_  = new Widgets::MetricCard("CPU",    "%", metricsGroup);
-    memCard_  = new Widgets::MetricCard("Memory", "%", metricsGroup);
-    diskCard_ = new Widgets::MetricCard("Disk",   "%", metricsGroup);
+    cpuCard_  = new Widgets::MetricCard(tr("CPU"),    "%", metricsGroup);
+    memCard_  = new Widgets::MetricCard(tr("Memory"), "%", metricsGroup);
+    diskCard_ = new Widgets::MetricCard(tr("Disk"),   "%", metricsGroup);
 
     metricsLayout->addWidget(cpuCard_);
     metricsLayout->addWidget(memCard_);
@@ -249,7 +249,7 @@ void DashboardView::updateHomeGuidance()
             complete ? Widgets::BadgeStyle::Success
                      : current ? Widgets::BadgeStyle::Info
                                : Widgets::BadgeStyle::Neutral,
-            complete ? "Success" : current ? "Next" : "Pending");
+            complete ? tr("Success") : current ? tr("Next") : tr("Pending"));
 
         stepButtons_[i]->setObjectName(current ? "PrimaryButton" : "");
         stepButtons_[i]->style()->unpolish(stepButtons_[i]);
@@ -258,26 +258,26 @@ void DashboardView::updateHomeGuidance()
     }
 
     if (!connected) {
-        guidanceLabel_->setText(
+        guidanceLabel_->setText(tr(
             "Start by connecting to an OpenC3 environment. After connection, "
-            "run Doctor to verify Docker before opening the Workspace.");
-        recommendedActionBtn_->setText("Connect to OpenC3");
+            "run Doctor to verify Docker before opening the Workspace."));
+        recommendedActionBtn_->setText(tr("Connect to OpenC3"));
         return;
     }
 
     if (!dockerRunning) {
-        guidanceLabel_->setText(
+        guidanceLabel_->setText(tr(
             "Connection is ready. Run Doctor next to check Docker, containers, "
-            "and OpenC3 before editing plugins.");
-        recommendedActionBtn_->setText("Run Doctor");
+            "and OpenC3 before editing plugins."));
+        recommendedActionBtn_->setText(tr("Run Doctor"));
         return;
     }
 
-    guidanceLabel_->setText(
+    guidanceLabel_->setText(tr(
         "Environment checks look good. Open the Workspace to manage plugins "
         "and edit CMD/TLM files; Validator, Packet Tools, and Logs are "
-        "available under More tools.");
-    recommendedActionBtn_->setText("Open Workspace");
+        "available under More tools."));
+    recommendedActionBtn_->setText(tr("Open Workspace"));
 }
 
 void DashboardView::onRecommendedActionClicked()

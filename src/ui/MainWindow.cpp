@@ -18,6 +18,7 @@
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QAction>
+#include <QActionGroup>
 #include <QCloseEvent>
 #include <QApplication>
 #include <QFont>
@@ -25,6 +26,7 @@
 #include <QShortcut>
 #include <QKeySequence>
 #include <QSettings>
+#include <QMessageBox>
 
 namespace OpenC3::UI {
 
@@ -66,7 +68,7 @@ MainWindow::MainWindow(
     , logViewerVm_(logViewer)
     , validatorVm_(validator)
 {
-    setWindowTitle("OpenC3 Developer Toolkit");
+    setWindowTitle(tr("OpenC3 Developer Toolkit"));
     setMinimumSize(1280, 800);
     resize(1440, 900);
 
@@ -142,7 +144,7 @@ void MainWindow::setupNavigation()
         f.setPointSize(11);
         item->setFont(f);
         // Surface the page purpose and keyboard shortcut so each item is discoverable on hover.
-        item->setToolTip(QStringLiteral("%1 — %2 (Ctrl+%3)")
+        item->setToolTip(tr("%1 — %2 (Ctrl+%3)")
                              .arg(text)
                              .arg(description)
                              .arg(row + 1));
@@ -162,13 +164,13 @@ void MainWindow::setupNavigation()
                 });
     };
 
-    addItem("Home", "Review status and jump to common workflows");                 // 0  (Ctrl+1)
-    addItem("Workspace", "Manage plugins, and browse, edit, and validate CMD/TLM files"); // 1  (Ctrl+2)
-    addItem("Settings", "Manage connection profiles and preferences");             // 2  (Ctrl+3)
-    addItem("Environment", "Check Docker, containers, and environment configuration"); // 3  (Ctrl+4)
-    addItem("Validator", "Run offline checks on CMD/TLM, screens, and plugin.txt"); // 4  (Ctrl+5)
-    addItem("Packet Tools", "Simulate and inspect packet payloads");              // 5  (Ctrl+6)
-    addItem("Logs", "Inspect toolkit and OpenC3 logs");                            // 6  (Ctrl+7)
+    addItem(tr("Home"), tr("Review status and jump to common workflows"));                 // 0  (Ctrl+1)
+    addItem(tr("Workspace"), tr("Manage plugins, and browse, edit, and validate CMD/TLM files")); // 1  (Ctrl+2)
+    addItem(tr("Settings"), tr("Manage connection profiles and preferences"));             // 2  (Ctrl+3)
+    addItem(tr("Environment"), tr("Check Docker, containers, and environment configuration")); // 3  (Ctrl+4)
+    addItem(tr("Validator"), tr("Run offline checks on CMD/TLM, screens, and plugin.txt")); // 4  (Ctrl+5)
+    addItem(tr("Packet Tools"), tr("Simulate and inspect packet payloads"));              // 5  (Ctrl+6)
+    addItem(tr("Logs"), tr("Inspect toolkit and OpenC3 logs"));                            // 6  (Ctrl+7)
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -179,10 +181,10 @@ void MainWindow::setupNavigation()
     // In-context toggle for Simple/Advanced mode - a menu item alone (setupMenuBar())
     // is too easy to miss for something this central to hiding/revealing nav rows.
     advancedToggleBtn_ = new QPushButton(
-        showAdvancedTools_ ? "Show Less " + QString::fromUtf8("▴") : "Show More " + QString::fromUtf8("▾"),
+        showAdvancedTools_ ? tr("Show Less") + " " + QString::fromUtf8("▴") : tr("Show More") + " " + QString::fromUtf8("▾"),
         this);
     advancedToggleBtn_->setFlat(true);
-    advancedToggleBtn_->setToolTip("Show or hide Environment, Validator, Packet Tools, and Logs.");
+    advancedToggleBtn_->setToolTip(tr("Show or hide Environment, Validator, Packet Tools, and Logs."));
     connect(advancedToggleBtn_, &QPushButton::clicked, this, [this] {
         setShowAdvancedTools(!showAdvancedTools_);
     });
@@ -223,8 +225,8 @@ void MainWindow::setShowAdvancedTools(bool show)
         showAdvancedAction_->setChecked(showAdvancedTools_);
     if (advancedToggleBtn_)
         advancedToggleBtn_->setText(showAdvancedTools_
-            ? "Show Less " + QString::fromUtf8("▴")
-            : "Show More " + QString::fromUtf8("▾"));
+            ? tr("Show Less") + " " + QString::fromUtf8("▴")
+            : tr("Show More") + " " + QString::fromUtf8("▾"));
 
     applyNavVisibility();
 }
@@ -242,9 +244,9 @@ void MainWindow::setupViews()
     // not part of "is my connected environment healthy" like Doctor/Docker/Infra.
     auto* environmentTabs = new QTabWidget(this);
     environmentTabs->setObjectName("EnvironmentTabs");
-    environmentTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");    // 0
-    environmentTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");    // 1
-    environmentTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");     // 2
+    environmentTabs->addTab(new Views::DoctorView(doctorVm_, this), tr("Doctor"));    // 0
+    environmentTabs->addTab(new Views::DockerView(dockerVm_, this), tr("Docker"));    // 1
+    environmentTabs->addTab(new Views::InfraView(infraVm_, this),   tr("Infra"));     // 2
     constexpr int kEnvDoctorTab = 0;
 
     // ── Navigation helpers ──────────────────────────────────────────────────
@@ -305,14 +307,14 @@ void MainWindow::showConnectionDialog()
 
 void MainWindow::setupMenuBar()
 {
-    auto* fileMenu   = menuBar()->addMenu("&File");
-    auto* exitAction = new QAction("E&xit", this);
+    auto* fileMenu   = menuBar()->addMenu(tr("&File"));
+    auto* exitAction = new QAction(tr("E&xit"), this);
     exitAction->setShortcut(QKeySequence::Quit);
     connect(exitAction, &QAction::triggered, qApp, &QApplication::quit);
     fileMenu->addAction(exitAction);
 
-    auto* viewMenu      = menuBar()->addMenu("&View");
-    auto* refreshAction = new QAction("&Refresh", this);
+    auto* viewMenu      = menuBar()->addMenu(tr("&View"));
+    auto* refreshAction = new QAction(tr("&Refresh"), this);
     refreshAction->setShortcut(QKeySequence::Refresh);
     connect(refreshAction, &QAction::triggered, this, [this] {
         const int idx = contentStack_->currentIndex();
@@ -325,7 +327,7 @@ void MainWindow::setupMenuBar()
     viewMenu->addAction(refreshAction);
 
     viewMenu->addSeparator();
-    showAdvancedAction_ = new QAction("Show Advanced Tools", this);
+    showAdvancedAction_ = new QAction(tr("Show Advanced Tools"), this);
     showAdvancedAction_->setCheckable(true);
     showAdvancedAction_->setChecked(showAdvancedTools_);
     connect(showAdvancedAction_, &QAction::toggled, this, [this](bool checked) {
@@ -333,9 +335,46 @@ void MainWindow::setupMenuBar()
     });
     viewMenu->addAction(showAdvancedAction_);
 
-    auto* helpMenu = menuBar()->addMenu("&Help");
+    // Language: takes effect on next launch - this app has no dynamic
+    // retranslation wiring (QEvent::LanguageChange handlers on every view),
+    // so switching live would leave already-constructed widgets showing
+    // stale text. Persisted via the same plain QSettings store as window
+    // geometry/state, not the JSON-backed SettingsService (this is app
+    // chrome, not a COSMOS connection setting).
+    viewMenu->addSeparator();
+    auto* languageMenu = viewMenu->addMenu(tr("&Language"));
+    auto* languageGroup = new QActionGroup(this);
+    languageGroup->setExclusive(true);
 
-    auto* guideAction = new QAction("&User Guide", this);
+    QSettings languageSettings;
+    const QString currentLanguage = languageSettings.value("App/language", "en").toString();
+
+    auto* englishAction = new QAction("English", this);
+    englishAction->setCheckable(true);
+    englishAction->setChecked(currentLanguage != "ko");
+    languageGroup->addAction(englishAction);
+    languageMenu->addAction(englishAction);
+
+    auto* koreanAction = new QAction(QString::fromUtf8("한국어"), this);
+    koreanAction->setCheckable(true);
+    koreanAction->setChecked(currentLanguage == "ko");
+    languageGroup->addAction(koreanAction);
+    languageMenu->addAction(koreanAction);
+
+    auto applyLanguageChoice = [this](const QString& code) {
+        QSettings s;
+        if (s.value("App/language", "en").toString() == code)
+            return;
+        s.setValue("App/language", code);
+        QMessageBox::information(this, tr("Restart Required"),
+            tr("The language change will take effect the next time you start the application."));
+    };
+    connect(englishAction, &QAction::triggered, this, [applyLanguageChoice] { applyLanguageChoice("en"); });
+    connect(koreanAction,  &QAction::triggered, this, [applyLanguageChoice] { applyLanguageChoice("ko"); });
+
+    auto* helpMenu = menuBar()->addMenu(tr("&Help"));
+
+    auto* guideAction = new QAction(tr("&User Guide"), this);
     guideAction->setShortcut(QKeySequence::HelpContents);
     connect(guideAction, &QAction::triggered, this, [this] {
         auto* dlg = new Dialogs::UserGuideDialog(this);
@@ -346,7 +385,7 @@ void MainWindow::setupMenuBar()
 
     helpMenu->addSeparator();
 
-    auto* aboutAction = new QAction("&About", this);
+    auto* aboutAction = new QAction(tr("&About"), this);
     connect(aboutAction, &QAction::triggered, this, [this] {
         Dialogs::AboutDialog dlg(this);
         dlg.exec();
@@ -358,14 +397,14 @@ void MainWindow::setupStatusBar()
 {
     // A flat button (not a label) so the connection status doubles as a
     // Connect entry point that works from any view.
-    connectionButton_ = new QPushButton("  Disconnected  ", this);
+    connectionButton_ = new QPushButton("  " + tr("Disconnected") + "  ", this);
     connectionButton_->setFlat(true);
     connectionButton_->setCursor(Qt::PointingHandCursor);
-    connectionButton_->setToolTip("Click to open the connection dialog");
+    connectionButton_->setToolTip(tr("Click to open the connection dialog"));
     connect(connectionButton_, &QPushButton::clicked,
             this, &MainWindow::showConnectionDialog);
 
-    dockerLabel_ = new QLabel("  Docker: --  ", this);
+    dockerLabel_ = new QLabel("  " + tr("Docker: --") + "  ", this);
 
     statusBar()->addWidget(connectionButton_);
     statusBar()->addWidget(dockerLabel_);
@@ -378,11 +417,11 @@ void MainWindow::connectSignals()
             this, &MainWindow::onConnectionStatusChanged);
     connect(&dashboardVm_, &ViewModels::DashboardViewModel::dockerStatusChanged,
             this, [this] {
-                dockerLabel_->setText("  Docker: " + dashboardVm_.dockerStatus() + "  ");
+                dockerLabel_->setText("  " + tr("Docker:") + " " + dashboardVm_.dockerStatus() + "  ");
             });
 
     onConnectionStatusChanged();
-    dockerLabel_->setText("  Docker: " + dashboardVm_.dockerStatus() + "  ");
+    dockerLabel_->setText("  " + tr("Docker:") + " " + dashboardVm_.dockerStatus() + "  ");
 }
 
 void MainWindow::onNavItemSelected(int index)
