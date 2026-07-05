@@ -80,6 +80,8 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
 
     connect(modeCombo_, &QComboBox::currentIndexChanged,
             this, [this] { updateMode(); });
+    connect(typeCombo_, &QComboBox::currentIndexChanged,
+            this, [this] { updateMode(); });
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         if (nameEdit_->text().trimmed().isEmpty()) {
             QMessageBox::warning(this, "Add Field", "Name is required.");
@@ -88,7 +90,10 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
 
         const bool parameter = modeCombo_->currentData().toString() == "parameter";
         const QString type   = typeCombo_->currentText();
-        const bool strBlock  = (type == "STRING" || type == "BLOCK" || type == "DERIVED");
+        // Matches CmdTlmParser's own strBlock check: only STRING/BLOCK omit the
+        // MIN/MAX positional tokens for APPEND_PARAMETER. DERIVED still expects
+        // them, so it must not be lumped in here (see generatedLine() below).
+        const bool strBlock  = (type == "STRING" || type == "BLOCK");
         if (parameter && !strBlock) {
             if (minEdit_->text().trimmed().isEmpty()
                 || maxEdit_->text().trimmed().isEmpty()
@@ -131,6 +136,18 @@ QString CmdTlmFieldDialog::generatedLine() const
     const QString desc = quotedDescription(descriptionEdit_->text().trimmed());
 
     if (parameter) {
+        // Must match CmdTlmParser's own strBlock check (STRING/BLOCK only):
+        // those types have no MIN/MAX slots in APPEND_PARAMETER, only
+        // <NAME> <BIT_SIZE> <TYPE> <DEFAULT> "description". Emitting MIN/MAX
+        // tokens anyway would shift every field after them and silently
+        // corrupt the description when the line is re-parsed.
+        const bool strBlock = (type == "STRING" || type == "BLOCK");
+        if (strBlock) {
+            return QString("  %1 %2 %3 %4 %5 %6\n")
+                .arg(keyword, name)
+                .arg(bitSizeSpin_->value())
+                .arg(type, defaultEdit_->text().trimmed(), desc);
+        }
         return QString("  %1 %2 %3 %4 %5 %6 %7 %8\n")
             .arg(keyword, name)
             .arg(bitSizeSpin_->value())
@@ -147,8 +164,11 @@ QString CmdTlmFieldDialog::generatedLine() const
 void CmdTlmFieldDialog::updateMode()
 {
     const bool parameter = modeCombo_->currentData().toString() == "parameter";
-    minEdit_->setEnabled(parameter);
-    maxEdit_->setEnabled(parameter);
+    const QString type   = typeCombo_->currentText();
+    const bool strBlock  = (type == "STRING" || type == "BLOCK");
+
+    minEdit_->setEnabled(parameter && !strBlock);
+    maxEdit_->setEnabled(parameter && !strBlock);
     defaultEdit_->setEnabled(parameter);
 }
 
