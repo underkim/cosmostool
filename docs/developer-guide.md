@@ -82,12 +82,15 @@ place and every module below is registered in `Application.cpp` and reachable
 from `MainWindow`'s navigation rail. The table reflects the current state of
 each area rather than the original phase plan.
 
-The navigation rail is kept short — **Home, Workspace, CMD / TLM, Packet Tools,
-Logs, Settings** — with the less-frequently used tools (Docker, Infra, Doctor,
-Validator) grouped under a single **Advanced** entry. No feature is removed by
-this grouping; everything remains reachable. The **Home** page summarises
+The navigation rail is kept short — **Home, Workspace, Packet Tools, Logs,
+Settings** — with the less-frequently used tools (Docker, Infra, Doctor,
+Validator) grouped under a single **Tools** entry. No feature is removed by
+this grouping; everything remains reachable. Workspace combines plugin
+management with CMD/TLM file browsing/editing in one screen (a VS-Code-style
+file tree + editor + collapsible log-streaming terminal), replacing what was
+originally a separate CMD/TLM Editor page. The **Home** page summarises
 Connection / Docker / OpenC3 status and offers one-click quick actions
-(Connect, Run Doctor, Workspace, CMD / TLM, Packet Tools, Logs).
+(Connect, Run Doctor, Workspace, Packet Tools, Logs).
 
 | Module          | Status         | Notes                                                              |
 |-----------------|----------------|--------------------------------------------------------------------|
@@ -96,8 +99,7 @@ Connection / Docker / OpenC3 status and offers one-click quick actions
 | Docker Manager  | Needs hardening| Container list/control works; shell commands built by string concat |
 | Infra Manager   | Implemented    | ENV/Compose editing, volume overrides, plugin scaffolding          |
 | Doctor          | Needs hardening| Health checks run; some OpenC3 paths are hardcoded (e.g. `/cosmos`) |
-| Plugin Manager  | Implemented    | Install/remove/verify + scaffolding wizard                         |
-| CMD/TLM Editor  | Implemented    | Browse/read/write/parse COSMOS `.txt` files                        |
+| Workspace       | Implemented    | Plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse, unified in one screen |
 | Packet Tools    | Partial        | Packet log file analysis                                           |
 | Log Viewer      | Implemented    | Real-time log streaming                                            |
 | Settings        | Implemented    | Profile CRUD, WSL/SSH detection, JSON persistence                  |
