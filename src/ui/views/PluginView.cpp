@@ -32,21 +32,31 @@ namespace {
 // (ui/widgets/CmdTlmSnippets.h).
 using OpenC3::UI::Widgets::CmdTlmSnippets::isCmdTlmFile;
 
+// Matches `dir` as a path component regardless of whether `path` is
+// plugin-root-relative (e.g. "cmd_tlm/foo.txt", no leading separator - what
+// listPluginFiles()'s remote `find | sed` pipeline actually returns) or an
+// absolute path (e.g. ".../cosmos-myplugin/cmd_tlm/foo.txt").
+bool pathHasDir(const QString& path, const QString& dir)
+{
+    return path.contains("/" + dir + "/", Qt::CaseInsensitive)
+        || path.startsWith(dir + "/", Qt::CaseInsensitive);
+}
+
 QString componentKind(const QString& path)
 {
     if (path == "plugin.txt") return "Plugin";
     if (path.endsWith(".gemspec", Qt::CaseInsensitive)) return "Gemspec";
-    if (path.contains("/cmd_tlm/", Qt::CaseInsensitive)) return "CMD/TLM";
-    if (path.contains("/screens/", Qt::CaseInsensitive)) return "Screen";
-    if (path.contains("/procedures/", Qt::CaseInsensitive)) return "Procedure";
+    if (pathHasDir(path, "cmd_tlm")) return "CMD/TLM";
+    if (pathHasDir(path, "screens")) return "Screen";
+    if (pathHasDir(path, "procedures")) return "Procedure";
     return "File";
 }
 
 int componentCategory(const QString& path)
 {
-    if (path.contains("/cmd_tlm/", Qt::CaseInsensitive)) return 0;
-    if (path.contains("/screens/", Qt::CaseInsensitive)) return 1;
-    if (path.contains("/procedures/", Qt::CaseInsensitive)) return 2;
+    if (pathHasDir(path, "cmd_tlm")) return 0;
+    if (pathHasDir(path, "screens")) return 1;
+    if (pathHasDir(path, "procedures")) return 2;
     if (path == "plugin.txt" || path.endsWith(".gemspec", Qt::CaseInsensitive)) return 3;
     return 4;
 }
@@ -593,6 +603,14 @@ void PluginView::setupUi()
     });
     structureTable_->horizontalHeader()->setStretchLastSection(true);
     structureTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    // Block repeats the fully-qualified "TELEMETRY TARGET::PACKET" name on every
+    // row (real target/packet names run much longer than the mock "MYSAT"), so
+    // ResizeToContents on it can consume most of the table's width and squeeze
+    // Description down to nothing. Cap it to a fixed, user-resizable width and
+    // rely on the item's tooltip (set in refreshStructureTable()) for the full
+    // name instead.
+    structureTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+    structureTable_->setColumnWidth(1, 170);
     structureTable_->horizontalHeader()->setSectionResizeMode(10, QHeaderView::Stretch);
     structureTable_->verticalHeader()->setVisible(false);
     structureTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -1576,6 +1594,7 @@ void PluginView::refreshStructureTable()
 
             auto* blockItem = new QTableWidgetItem(blockLabel);
             blockItem->setFlags(blockItem->flags() & ~Qt::ItemIsEditable);
+            blockItem->setToolTip(blockLabel);
 
             structureTable_->setItem(row, 0, lineItem);
             structureTable_->setItem(row, 1, blockItem);
@@ -1648,6 +1667,10 @@ void PluginView::populateBlockForm(int blockIndex)
     blockTargetEdit_->setText(block.targetName);
     blockNameEdit_->setText(block.name);
     blockDescriptionEdit_->setText(block.description);
+    // setText() leaves the cursor at the end, so a description longer than the
+    // field's width scrolls to show the tail instead of the start - reset the
+    // view to the beginning so the field reads naturally on load.
+    blockDescriptionEdit_->setCursorPosition(0);
 
     const QString endian = block.endianness.isEmpty() ? "BIG_ENDIAN" : block.endianness;
     const int endianIdx = blockEndiannessCombo_->findText(endian);

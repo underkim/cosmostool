@@ -79,6 +79,15 @@ void DockerView::setupUi()
     tableView_->verticalHeader()->setVisible(false);
     tableView_->setShowGrid(false);
     tableView_->setSortingEnabled(true);
+    // Real container names/images (e.g. "cosmos-openc3-cosmos-cmd-tlm-api-1",
+    // "openc3inc/openc3-cosmos-cmd-tlm-api:6.10.4") are long - the default
+    // column widths clipped them down to a few characters. Give Name/Image
+    // generous defaults (still user-resizable) and let Status size to its
+    // short status text.
+    tableView_->setColumnWidth(ViewModels::ContainerTableModel::Name, 260);
+    tableView_->setColumnWidth(ViewModels::ContainerTableModel::Image, 260);
+    tableView_->horizontalHeader()->setSectionResizeMode(
+        ViewModels::ContainerTableModel::Status, QHeaderView::ResizeToContents);
 
     auto* logGroup = new QGroupBox("Container Logs", splitter);
     auto* logLayout = new QVBoxLayout(logGroup);

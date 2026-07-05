@@ -38,11 +38,18 @@ inline const QString& parameter()
 }
 
 // True when the path lives under a COSMOS cmd_tlm directory (the files that
-// carry COMMAND/TELEMETRY definitions).
+// carry COMMAND/TELEMETRY definitions). Paths from PluginView's file list are
+// plugin-root-relative (e.g. "cmd_tlm/foo.txt", no leading separator - the
+// remote `find | sed` pipeline that lists them strips the root prefix
+// including its trailing slash), while an opened file's currentComponentPath_
+// is an absolute path (e.g. ".../cosmos-myplugin/cmd_tlm/foo.txt") - both
+// forms must match here.
 inline bool isCmdTlmFile(const QString& path)
 {
     return path.contains(QStringLiteral("/cmd_tlm/"), Qt::CaseInsensitive)
-        || path.contains(QStringLiteral("\\cmd_tlm\\"), Qt::CaseInsensitive);
+        || path.contains(QStringLiteral("\\cmd_tlm\\"), Qt::CaseInsensitive)
+        || path.startsWith(QStringLiteral("cmd_tlm/"), Qt::CaseInsensitive)
+        || path.startsWith(QStringLiteral("cmd_tlm\\"), Qt::CaseInsensitive);
 }
 
 } // namespace OpenC3::UI::Widgets::CmdTlmSnippets

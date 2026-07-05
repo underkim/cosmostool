@@ -55,6 +55,14 @@ QVariant ContainerTableModel::data(const QModelIndex& index, int role) const
         }
     }
 
+    if (role == Qt::ToolTipRole) {
+        switch (index.column()) {
+            case Column::Name:  return QString::fromStdString(c.name);
+            case Column::Image: return QString::fromStdString(c.image);
+            default: return {};
+        }
+    }
+
     if (role == Qt::ForegroundRole && index.column() == Column::Status) {
         switch (c.status) {
             case Models::ContainerStatus::Running:
