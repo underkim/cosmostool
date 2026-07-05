@@ -93,12 +93,20 @@ genuinely separate, often-offline workflow), **Packet Tools**, and **Logs**.
 No feature is removed by hiding these; everything remains reachable, and
 navigating to a hidden page programmatically (e.g. Home's "Run Doctor" quick
 action) transparently reveals Advanced mode rather than landing on an
-invisible-in-rail page. Workspace combines plugin management with CMD/TLM
-file browsing/editing in one screen (a VS-Code-style file tree + editor +
-collapsible log-streaming terminal), replacing what was originally a separate
-CMD/TLM Editor page. The **Home** page summarises Connection / Docker / OpenC3
-status and offers one-click quick actions (Connect, Run Doctor, Workspace,
-Validator, Packet Tools, Logs).
+invisible-in-rail page. Workspace walks plugin management and CMD/TLM editing
+as a 5-step wizard - **1. Plugin → 2. File → 3. Edit → 4. Check → 5. Build &
+Install** - rather than a single flat screen: a step strip above the content
+area lets you jump directly to any step already reachable (no plugin selected
+caps navigation at Plugin, no file open caps it at File; Back is always free),
+selecting a plugin or opening a file auto-advances to the next step, and a
+persistent breadcrumb ("plugin › file") above the strip keeps you oriented
+regardless of which step is active. The collapsible log-streaming terminal and
+the Quick Reference panel remain global, toggleable from any step. This
+replaced an earlier single-page layout (all steps' controls visible
+simultaneously) that user feedback found cluttered and hard to sequence. The
+**Home** page summarises Connection / Docker / OpenC3 status and offers
+one-click quick actions (Connect, Run Doctor, Workspace, Validator, Packet
+Tools, Logs).
 
 Note for anyone with muscle memory for the old layout: the nav rail's Ctrl+N
 shortcuts are positional, so reordering rows to group Environment/Validator/
@@ -112,7 +120,7 @@ used to - check the rail's tooltips (hover any row) for the current mapping.
 | Docker Manager  | Needs hardening| Under the Environment nav entry (Advanced mode). Container list/control works; shell commands built by string concat |
 | Infra Manager   | Implemented    | Under the Environment nav entry (Advanced mode). ENV/Compose editing, volume overrides, plugin scaffolding |
 | Doctor          | Needs hardening| Under the Environment nav entry (Advanced mode). Health checks run; some OpenC3 paths are hardcoded (e.g. `/cosmos`) |
-| Workspace       | Implemented    | Plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse, unified in one screen |
+| Workspace       | Implemented    | 5-step wizard (Plugin -> File -> Edit -> Check -> Build & Install) over plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse |
 | Validator       | Implemented    | Standalone nav entry (Advanced mode) - offline checks for CMD/TLM, screens, plugin.txt |
 | Packet Tools    | Partial        | Advanced mode. Packet log file analysis                            |
 | Log Viewer      | Implemented    | Advanced mode. Real-time log streaming                             |
