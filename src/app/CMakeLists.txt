@@ -19,6 +19,17 @@ target_link_libraries(OpenC3DevToolkit
         Qt6::Widgets
 )
 
+# Embeds the build-generated openc3_ko.qm (see translations/CMakeLists.txt)
+# straight into the executable, so a single copied .exe always carries its
+# own Korean translation - no loose translations/ folder to leave behind
+# when the app is copied elsewhere (e.g. a "portable" deployment).
+get_filename_component(OPENC3_QM_DIR "${OPENC3_QM_FILE}" DIRECTORY)
+set_source_files_properties("${OPENC3_QM_FILE}" PROPERTIES GENERATED TRUE)
+qt_add_resources(OpenC3DevToolkit "openc3_translations_qrc"
+    PREFIX "/translations"
+    BASE "${OPENC3_QM_DIR}"
+    FILES "${OPENC3_QM_FILE}"
+)
 add_dependencies(OpenC3DevToolkit openc3_translations)
 
 set_target_properties(OpenC3DevToolkit PROPERTIES

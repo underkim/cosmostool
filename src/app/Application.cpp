@@ -60,11 +60,15 @@ void Application::loadLanguage()
     if (language != "ko")
         return;
 
-    const QString qmPath = QCoreApplication::applicationDirPath() + "/translations/openc3_ko.qm";
+    // Embedded in the executable itself (see src/app/CMakeLists.txt's
+    // qt_add_resources call) rather than loaded from a loose file next to
+    // the binary - a "portable" copy of just the .exe would otherwise leave
+    // the translation behind and silently fall back to English.
+    const QString qmPath = ":/translations/openc3_ko.qm";
     if (translator_.load(qmPath))
         qtApp_.installTranslator(&translator_);
     else
-        Logging::Logger::warn("Korean translation file not found at {}", qmPath.toStdString());
+        Logging::Logger::warn("Korean translation resource not found at {}", qmPath.toStdString());
 }
 
 int Application::run()

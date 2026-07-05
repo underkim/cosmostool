@@ -32,6 +32,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
+# Multi-config generators (Visual Studio, Xcode) otherwise append a
+# per-config subdirectory (e.g. bin/Debug/OpenC3DevToolkit.exe) on top of
+# CMAKE_RUNTIME_OUTPUT_DIRECTORY, silently breaking anything that assumes a
+# flat bin/ layout - notably translations/CMakeLists.txt, which places
+# openc3_ko.qm directly under bin/translations/ and is looked up at runtime
+# via applicationDirPath()/translations/openc3_ko.qm. Pin every config to
+# the same flat directory so the .qm always lands next to the real exe.
+if(CMAKE_CONFIGURATION_TYPES)
+    foreach(_config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER "${_config}" _config_upper)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${_config_upper} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${_config_upper} "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${_config_upper} "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+    endforeach()
+endif()
+
 # ── Find Qt6 ──────────────────────────────────────────────────────────────────
 # Set Qt6_DIR or CMAKE_PREFIX_PATH before configuring:
 #   cmake -DCMAKE_PREFIX_PATH="C:/Qt/6.x.x/msvc2022_64" ..
