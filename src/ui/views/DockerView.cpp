@@ -158,11 +158,31 @@ void DockerView::updateHint()
 void DockerView::onTableSelectionChanged()
 {
     const bool hasSelection = tableView_->selectionModel()->hasSelection();
-    startBtn_->setEnabled(hasSelection);
-    stopBtn_->setEnabled(hasSelection);
-    restartBtn_->setEnabled(hasSelection);
     removeBtn_->setEnabled(hasSelection);
+    removeBtn_->setToolTip(hasSelection ? "Remove the selected container." : "Select a container first.");
     logsBtn_->setEnabled(hasSelection);
+    logsBtn_->setToolTip(hasSelection ? "View the selected container's recent logs." : "Select a container first.");
+
+    if (!hasSelection) {
+        startBtn_->setEnabled(false);
+        startBtn_->setToolTip("Select a container first.");
+        stopBtn_->setEnabled(false);
+        stopBtn_->setToolTip("Select a container first.");
+        restartBtn_->setEnabled(false);
+        restartBtn_->setToolTip("Select a container first.");
+        return;
+    }
+
+    const auto indexes = tableView_->selectionModel()->selectedRows();
+    const auto* c = vm_.containerModel()->containerAt(indexes[0].row());
+    const bool running = c && c->isRunning();
+
+    startBtn_->setEnabled(!running);
+    startBtn_->setToolTip(running ? "Container is already running." : "Start the selected container.");
+    stopBtn_->setEnabled(running);
+    stopBtn_->setToolTip(running ? "Stop the selected container." : "Container is not running.");
+    restartBtn_->setEnabled(running);
+    restartBtn_->setToolTip(running ? "Restart the selected container." : "Container is not running.");
 }
 
 void DockerView::onStartClicked()
