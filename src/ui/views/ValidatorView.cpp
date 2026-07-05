@@ -27,11 +27,11 @@ namespace {
 QString severityPrefix(Severity severity)
 {
     switch (severity) {
-    case Severity::Error:   return QStringLiteral("Error");
-    case Severity::Warning: return QStringLiteral("Warning");
-    case Severity::Info:    return QStringLiteral("Info");
+    case Severity::Error:   return ValidatorView::tr("Error");
+    case Severity::Warning: return ValidatorView::tr("Warning");
+    case Severity::Info:    return ValidatorView::tr("Info");
     }
-    return QStringLiteral("Status");
+    return ValidatorView::tr("Status");
 }
 
 QString prefixedDiagnosticMessage(Severity severity, const QString& message)

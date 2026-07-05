@@ -26,38 +26,38 @@ void LogViewerView::setupUi()
     root->setSpacing(12);
 
     // ── Title ─────────────────────────────────────────────────────────────────
-    auto* title = new QLabel("Log Viewer", this);
+    auto* title = new QLabel(tr("Log Viewer"), this);
     QFont tf = title->font(); tf.setPointSize(18); tf.setBold(true);
     title->setFont(tf); title->setObjectName("PageTitle");
     root->addWidget(title);
 
     // ── Connection hint ───────────────────────────────────────────────────────
     connectionHint_ = new QLabel(
-        "Connect to a remote environment to stream logs.", this);
+        tr("Connect to a remote environment to stream logs."), this);
     connectionHint_->setObjectName("SubLabel");
     root->addWidget(connectionHint_);
 
     // ── Command bar ───────────────────────────────────────────────────────────
     auto* cmdBar = new QHBoxLayout;
     presetCombo_ = new QComboBox(this);
-    presetCombo_->addItem("COSMOS Log",
+    presetCombo_->addItem(tr("COSMOS Log"),
         "tail -f /cosmos/outputs/logs/server.log");
-    presetCombo_->addItem("System Journal",
+    presetCombo_->addItem(tr("System Journal"),
         "journalctl -f -n 50");
-    presetCombo_->addItem("Docker Compose Logs",
+    presetCombo_->addItem(tr("Docker Compose Logs"),
         "docker compose -f /cosmos/compose.yaml logs -f --tail=50");
-    presetCombo_->addItem("Custom…", "");
+    presetCombo_->addItem(tr("Custom…"), "");
 
     commandEdit_ = new QLineEdit(this);
-    commandEdit_->setPlaceholderText("shell command to stream…");
+    commandEdit_->setPlaceholderText(tr("shell command to stream…"));
 
-    startStopBtn_   = new QPushButton("▶  Start", this);
+    startStopBtn_   = new QPushButton(tr("▶  Start"), this);
     startStopBtn_->setObjectName("PrimaryButton");
-    clearBtn_       = new QPushButton("🗑  Clear", this);
-    autoScrollCheck_ = new QCheckBox("Auto-scroll", this);
+    clearBtn_       = new QPushButton(tr("🗑  Clear"), this);
+    autoScrollCheck_ = new QCheckBox(tr("Auto-scroll"), this);
     autoScrollCheck_->setChecked(true);
 
-    cmdBar->addWidget(new QLabel("Preset:", this));
+    cmdBar->addWidget(new QLabel(tr("Preset:"), this));
     cmdBar->addWidget(presetCombo_);
     cmdBar->addWidget(commandEdit_);
     cmdBar->addWidget(startStopBtn_);
@@ -107,7 +107,7 @@ void LogViewerView::bindViewModel()
     connect(&vm_, &ViewModels::LogViewerViewModel::streamingChanged,
             this, [this] {
                 const bool streaming = vm_.isStreaming();
-                startStopBtn_->setText(streaming ? "■  Stop" : "▶  Start");
+                startStopBtn_->setText(streaming ? tr("■  Stop") : tr("▶  Start"));
                 presetCombo_->setEnabled(!streaming);
                 commandEdit_->setEnabled(!streaming);
             });
@@ -122,7 +122,7 @@ void LogViewerView::bindViewModel()
 
     connect(&vm_, &ViewModels::LogViewerViewModel::streamEnded,
             this, [this] {
-                appendLine("--- stream ended ---");
+                appendLine(tr("--- stream ended ---"));
             });
 
     // Initial state

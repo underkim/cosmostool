@@ -17,7 +17,7 @@ AddTargetDialog::AddTargetDialog(
     , vm_(vm)
     , pluginRoot_(pluginRoot)
 {
-    setWindowTitle("Add Target");
+    setWindowTitle(tr("Add Target"));
     setMinimumSize(480, 360);
 
     auto* root = new QVBoxLayout(this);
@@ -25,36 +25,36 @@ AddTargetDialog::AddTargetDialog(
     root->setSpacing(12);
 
     auto* title = new QLabel(
-        QString("Add a target to the plugin:\n<small>%1</small>").arg(pluginRoot), this);
+        tr("Add a target to the plugin:\n<small>%1</small>").arg(pluginRoot), this);
     title->setTextFormat(Qt::RichText);
     title->setWordWrap(true);
     root->addWidget(title);
 
     // ── Form ──────────────────────────────────────────────────────────────────
-    auto* grp  = new QGroupBox("Target Info", this);
+    auto* grp  = new QGroupBox(tr("Target Info"), this);
     auto* form = new QFormLayout(grp);
     form->setLabelAlignment(Qt::AlignRight);
     form->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     targetNameEdit_ = new QLineEdit("NEWTARGET", grp);
-    targetNameEdit_->setPlaceholderText("UPPERCASE, e.g. SENSOR");
+    targetNameEdit_->setPlaceholderText(tr("UPPERCASE, e.g. SENSOR"));
     namespaceEdit_  = new QLineEdit("NewTarget", grp);
-    namespaceEdit_->setPlaceholderText("CamelCase, e.g. Sensor");
+    namespaceEdit_->setPlaceholderText(tr("CamelCase, e.g. Sensor"));
 
     previewLabel_ = new QLabel("", grp);
     previewLabel_->setObjectName("SubLabel");
 
-    form->addRow("Target name:", targetNameEdit_);
-    form->addRow("Namespace:",   namespaceEdit_);
-    form->addRow("Created path:", previewLabel_);
+    form->addRow(tr("Target name:"), targetNameEdit_);
+    form->addRow(tr("Namespace:"),   namespaceEdit_);
+    form->addRow(tr("Created path:"), previewLabel_);
     root->addWidget(grp);
 
     // ── Template ──────────────────────────────────────────────────────────────
-    auto* tmplGrp    = new QGroupBox("CMD/TLM Template", this);
+    auto* tmplGrp    = new QGroupBox(tr("CMD/TLM Template"), this);
     auto* tmplLayout = new QVBoxLayout(tmplGrp);
     tmplGroup_      = new QButtonGroup(this);
-    tmplGenericBtn_ = new QRadioButton("Generic  (basic structure)", tmplGrp);
-    tmplCcsdsBtn_   = new QRadioButton("CCSDS Satellite  (Primary/Secondary Header)", tmplGrp);
+    tmplGenericBtn_ = new QRadioButton(tr("Generic  (basic structure)"), tmplGrp);
+    tmplCcsdsBtn_   = new QRadioButton(tr("CCSDS Satellite  (Primary/Secondary Header)"), tmplGrp);
     tmplGenericBtn_->setChecked(true);
     tmplGroup_->addButton(tmplGenericBtn_, 0);
     tmplGroup_->addButton(tmplCcsdsBtn_,   1);
@@ -70,8 +70,8 @@ AddTargetDialog::AddTargetDialog(
     root->addStretch();
 
     auto* btnRow  = new QHBoxLayout;
-    createBtn_    = new QPushButton("Add Target", this);
-    auto* cancelBtn = new QPushButton("Cancel", this);
+    createBtn_    = new QPushButton(tr("Add Target"), this);
+    auto* cancelBtn = new QPushButton(tr("Cancel"), this);
     createBtn_->setObjectName("PrimaryButton");
     btnRow->addStretch();
     btnRow->addWidget(cancelBtn);
@@ -88,18 +88,18 @@ AddTargetDialog::AddTargetDialog(
             this, [this] {
                 const bool busy = vm_.isBusy();
                 createBtn_->setEnabled(!busy);
-                createBtn_->setText(busy ? "Adding…" : "Add Target");
+                createBtn_->setText(busy ? tr("Adding…") : tr("Add Target"));
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::targetAdded,
             this, [this](const QString& tname, bool ok, const QString& detail) {
                 statusLabel_->setText(detail);
                 if (ok) {
-                    QMessageBox::information(this, "Target Added",
-                        QString("Target '%1' was added.\n\n%2").arg(tname).arg(detail));
+                    QMessageBox::information(this, tr("Target Added"),
+                        tr("Target '%1' was added.\n\n%2").arg(tname).arg(detail));
                     accept();
                 } else {
-                    QMessageBox::warning(this, "Add Target Failed", detail);
+                    QMessageBox::warning(this, tr("Add Target Failed"), detail);
                 }
             });
 
@@ -124,17 +124,17 @@ void AddTargetDialog::onCreate()
     const QString ns    = namespaceEdit_->text().trimmed();
 
     if (tname.isEmpty()) {
-        QMessageBox::warning(this, "Invalid Input", "Enter a target name.");
+        QMessageBox::warning(this, tr("Invalid Input"), tr("Enter a target name."));
         return;
     }
     if (tname.contains('\'') || tname.contains(' ')) {
-        QMessageBox::warning(this, "Invalid Input",
-            "Target names cannot contain spaces or single quotes.");
+        QMessageBox::warning(this, tr("Invalid Input"),
+            tr("Target names cannot contain spaces or single quotes."));
         return;
     }
 
-    if (QMessageBox::question(this, "Confirm Add Target",
-            QString("Target '%1' will be added at:\n%2/targets/%1\n\nContinue?")
+    if (QMessageBox::question(this, tr("Confirm Add Target"),
+            tr("Target '%1' will be added at:\n%2/targets/%1\n\nContinue?")
                 .arg(tname).arg(pluginRoot_),
             QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
         return;

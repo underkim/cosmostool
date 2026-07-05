@@ -18,7 +18,7 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
     : QDialog(parent)
     , vm_(vm)
 {
-    setWindowTitle("New OpenC3 Plugin Wizard");
+    setWindowTitle(tr("New OpenC3 Plugin Wizard"));
     setMinimumSize(720, 580);
     resize(820, 640);
 
@@ -27,7 +27,7 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
     root->setContentsMargins(0, 0, 0, 16);
 
     // ── Step indicator ────────────────────────────────────────────────────────
-    stepIndicator_ = new QLabel("1 / 3  -  Plugin Basics", this);
+    stepIndicator_ = new QLabel(tr("1 / 3  -  Plugin Basics"), this);
     QFont sf = stepIndicator_->font();
     sf.setPointSize(11); sf.setBold(true);
     stepIndicator_->setFont(sf);
@@ -56,11 +56,11 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
     // ── Navigation buttons ────────────────────────────────────────────────────
     auto* navRow  = new QHBoxLayout;
     navRow->setContentsMargins(20, 8, 20, 0);
-    backBtn_   = new QPushButton("< Back", this);
-    nextBtn_   = new QPushButton("Next >", this);
-    finishBtn_ = new QPushButton("Create", this);
+    backBtn_   = new QPushButton(tr("< Back"), this);
+    nextBtn_   = new QPushButton(tr("Next >"), this);
+    finishBtn_ = new QPushButton(tr("Create"), this);
     finishBtn_->setObjectName("PrimaryButton");
-    auto* cancelBtn = new QPushButton("Cancel", this);
+    auto* cancelBtn = new QPushButton(tr("Cancel"), this);
     navRow->addWidget(backBtn_);
     navRow->addStretch();
     navRow->addWidget(cancelBtn);
@@ -77,18 +77,18 @@ PluginWizard::PluginWizard(ViewModels::InfraViewModel& vm, QWidget* parent)
             this, [this] {
                 const bool busy = vm_.isBusy();
                 finishBtn_->setEnabled(!busy);
-                finishBtn_->setText(busy ? "Creating…" : "Create");
+                finishBtn_->setText(busy ? tr("Creating…") : tr("Create"));
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::scaffoldComplete,
             this, [this](const QString& rootPath, bool ok, const QString& detail) {
                 statusLabel_->setText(detail);
                 if (ok) {
-                    QMessageBox::information(this, "Plugin Created",
-                        "The plugin was created at:\n" + rootPath + "\n\n" + detail);
+                    QMessageBox::information(this, tr("Plugin Created"),
+                        tr("The plugin was created at:\n%1\n\n%2").arg(rootPath, detail));
                     accept();
                 } else {
-                    QMessageBox::warning(this, "Create Failed", detail);
+                    QMessageBox::warning(this, tr("Create Failed"), detail);
                 }
             });
 
@@ -109,25 +109,25 @@ void PluginWizard::buildInfoPage()
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(20, 20, 20, 8);
 
-    auto* grp  = new QGroupBox("Plugin Info", page);
+    auto* grp  = new QGroupBox(tr("Plugin Info"), page);
     auto* form = new QFormLayout(grp);
     form->setRowWrapPolicy(QFormLayout::DontWrapRows);
     form->setLabelAlignment(Qt::AlignRight);
     form->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     pluginNameEdit_ = new QLineEdit("my-satellite", grp);
-    pluginNameEdit_->setPlaceholderText("lowercase-hyphen, e.g. my-satellite");
-    descriptionEdit_ = new QLineEdit("My satellite target plugin", grp);
+    pluginNameEdit_->setPlaceholderText(tr("lowercase-hyphen, e.g. my-satellite"));
+    descriptionEdit_ = new QLineEdit(tr("My satellite target plugin"), grp);
     remoteRootEdit_  = new QLineEdit(vm_.defaultPluginsPath(), grp);
     remoteRootEdit_->setFont(QFont("Consolas", 10));
 
     gemNameLabel_ = new QLabel("<b>cosmos-my-satellite</b>", grp);
     gemNameLabel_->setObjectName("SubLabel");
 
-    form->addRow("Plugin name:", pluginNameEdit_);
-    form->addRow("Description:", descriptionEdit_);
-    form->addRow("Create in:",   remoteRootEdit_);
-    form->addRow("Gem name:",    gemNameLabel_);
+    form->addRow(tr("Plugin name:"), pluginNameEdit_);
+    form->addRow(tr("Description:"), descriptionEdit_);
+    form->addRow(tr("Create in:"),   remoteRootEdit_);
+    form->addRow(tr("Gem name:"),    gemNameLabel_);
 
     connect(pluginNameEdit_, &QLineEdit::textChanged,
             this, &PluginWizard::onPluginNameChanged);
@@ -145,65 +145,65 @@ void PluginWizard::buildTargetPage()
     layout->setSpacing(12);
 
     // ── Target info ───────────────────────────────────────────────────────────
-    auto* tgtGrp  = new QGroupBox("Target Info", page);
+    auto* tgtGrp  = new QGroupBox(tr("Target Info"), page);
     auto* tgtForm = new QFormLayout(tgtGrp);
     tgtForm->setLabelAlignment(Qt::AlignRight);
     tgtForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     targetNameEdit_ = new QLineEdit("MYSAT", tgtGrp);
-    targetNameEdit_->setPlaceholderText("UPPERCASE, e.g. MYSAT");
+    targetNameEdit_->setPlaceholderText(tr("UPPERCASE, e.g. MYSAT"));
     namespaceEdit_  = new QLineEdit("MySat", tgtGrp);
-    namespaceEdit_->setPlaceholderText("CamelCase, e.g. MySat");
+    namespaceEdit_->setPlaceholderText(tr("CamelCase, e.g. MySat"));
 
     targetPreviewLabel_ = new QLabel("", tgtGrp);
     targetPreviewLabel_->setObjectName("SubLabel");
 
-    tgtForm->addRow("Target name:", targetNameEdit_);
-    tgtForm->addRow("Namespace:",   namespaceEdit_);
-    tgtForm->addRow("Path preview:", targetPreviewLabel_);
+    tgtForm->addRow(tr("Target name:"), targetNameEdit_);
+    tgtForm->addRow(tr("Namespace:"),   namespaceEdit_);
+    tgtForm->addRow(tr("Path preview:"), targetPreviewLabel_);
 
     connect(targetNameEdit_, &QLineEdit::textChanged,
             this, &PluginWizard::onTargetNameChanged);
 
     // ── Interface ─────────────────────────────────────────────────────────────
-    auto* ifGrp  = new QGroupBox("Interface", page);
+    auto* ifGrp  = new QGroupBox(tr("Interface"), page);
     auto* ifForm = new QFormLayout(ifGrp);
     ifForm->setLabelAlignment(Qt::AlignRight);
     ifForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     ifaceTypeCombo_ = new QComboBox(ifGrp);
-    ifaceTypeCombo_->addItems({"TCP/IP Client", "TCP/IP Server", "UDP", "Serial"});
+    ifaceTypeCombo_->addItems({tr("TCP/IP Client"), tr("TCP/IP Server"), tr("UDP"), tr("Serial")});
     ifaceHostEdit_ = new QLineEdit("localhost", ifGrp);
     ifacePortEdit_ = new QLineEdit("8080", ifGrp);
     ifacePortEdit_->setFixedWidth(80);
 
     auto* hostRow = new QHBoxLayout;
     hostRow->addWidget(ifaceHostEdit_);
-    hostRow->addWidget(new QLabel("Port:", ifGrp));
+    hostRow->addWidget(new QLabel(tr("Port:"), ifGrp));
     hostRow->addWidget(ifacePortEdit_);
 
-    ifForm->addRow("Type:",       ifaceTypeCombo_);
-    ifForm->addRow("Host:Port:",  hostRow);
+    ifForm->addRow(tr("Type:"),       ifaceTypeCombo_);
+    ifForm->addRow(tr("Host:Port:"),  hostRow);
 
     connect(ifaceTypeCombo_, &QComboBox::currentIndexChanged, this, [this](int idx) {
         // Serial reuses the same two fields for device path + baud rate
         // rather than a network host/port pair - clarify via placeholders.
         if (idx == 3) {
-            ifaceHostEdit_->setPlaceholderText("/dev/ttyUSB0");
-            ifacePortEdit_->setPlaceholderText("baud");
+            ifaceHostEdit_->setPlaceholderText(tr("/dev/ttyUSB0"));
+            ifacePortEdit_->setPlaceholderText(tr("baud"));
         } else {
-            ifaceHostEdit_->setPlaceholderText("localhost");
-            ifacePortEdit_->setPlaceholderText("port");
+            ifaceHostEdit_->setPlaceholderText(tr("localhost"));
+            ifacePortEdit_->setPlaceholderText(tr("port"));
         }
     });
 
     // ── Template ──────────────────────────────────────────────────────────────
-    auto* tmplGrp    = new QGroupBox("CMD/TLM Template", page);
+    auto* tmplGrp    = new QGroupBox(tr("CMD/TLM Template"), page);
     auto* tmplLayout = new QVBoxLayout(tmplGrp);
     tmplGroup_     = new QButtonGroup(this);
-    tmplGenericBtn_ = new QRadioButton("Generic  (basic structure)", tmplGrp);
-    tmplCcsdsBtn_   = new QRadioButton("CCSDS Satellite  (Primary/Secondary Header)", tmplGrp);
-    tmplGseBtn_     = new QRadioButton("GSE Interface  (TCP/IP ground support equipment)", tmplGrp);
+    tmplGenericBtn_ = new QRadioButton(tr("Generic  (basic structure)"), tmplGrp);
+    tmplCcsdsBtn_   = new QRadioButton(tr("CCSDS Satellite  (Primary/Secondary Header)"), tmplGrp);
+    tmplGseBtn_     = new QRadioButton(tr("GSE Interface  (TCP/IP ground support equipment)"), tmplGrp);
     tmplGenericBtn_->setChecked(true);
     tmplGroup_->addButton(tmplGenericBtn_, 0);
     tmplGroup_->addButton(tmplCcsdsBtn_,   1);
@@ -227,9 +227,9 @@ void PluginWizard::buildPreviewPage()
     auto* layout = new QVBoxLayout(page);
     layout->setContentsMargins(20, 12, 20, 8);
 
-    auto* hint = new QLabel(
+    auto* hint = new QLabel(tr(
         "Preview and edit the files that will be created. "
-        "Each tab's content is written directly to the remote.", page);
+        "Each tab's content is written directly to the remote."), page);
     hint->setObjectName("SubLabel");
     hint->setWordWrap(true);
     layout->addWidget(hint);
@@ -251,9 +251,9 @@ void PluginWizard::goToStep(int step)
     updateNavButtons();
 
     const QStringList headers = {
-        "1 / 3  -  Plugin Basics",
-        "2 / 3  -  Target & Interface",
-        "3 / 3  -  Preview & Edit Files"
+        tr("1 / 3  -  Plugin Basics"),
+        tr("2 / 3  -  Target & Interface"),
+        tr("3 / 3  -  Preview & Edit Files")
     };
     if (step < headers.size())
         stepIndicator_->setText(headers[step]);
@@ -280,13 +280,13 @@ void PluginWizard::onNext()
     if (currentStep_ == 0) {
         const QString pname = pluginNameEdit_->text().trimmed();
         if (pname.isEmpty() || pname.contains(' ') || pname.contains('\'')) {
-            QMessageBox::warning(this, "Invalid Input",
-                "Enter the plugin name in lowercase-hyphen form, without spaces or single quotes.");
+            QMessageBox::warning(this, tr("Invalid Input"),
+                tr("Enter the plugin name in lowercase-hyphen form, without spaces or single quotes."));
             return;
         }
     } else if (currentStep_ == 1) {
         if (targetNameEdit_->text().trimmed().isEmpty()) {
-            QMessageBox::warning(this, "Invalid Input", "Enter a target name.");
+            QMessageBox::warning(this, tr("Invalid Input"), tr("Enter a target name."));
             return;
         }
     }
@@ -295,8 +295,8 @@ void PluginWizard::onNext()
 
 void PluginWizard::onFinish()
 {
-    if (QMessageBox::question(this, "Confirm Create",
-            QString("The plugin will be created at:\n\n%1/%2\n\nContinue?")
+    if (QMessageBox::question(this, tr("Confirm Create"),
+            tr("The plugin will be created at:\n\n%1/%2\n\nContinue?")
                 .arg(remoteRootEdit_->text().trimmed()).arg(gemName()),
             QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
         return;
@@ -318,7 +318,7 @@ void PluginWizard::onFinish()
 
 void PluginWizard::onPluginNameChanged()
 {
-    gemNameLabel_->setText("<b>cosmos-" + pluginNameEdit_->text().trimmed() + "</b>");
+    gemNameLabel_->setText(tr("<b>cosmos-%1</b>").arg(pluginNameEdit_->text().trimmed()));
 }
 
 void PluginWizard::onTargetNameChanged()
@@ -326,7 +326,7 @@ void PluginWizard::onTargetNameChanged()
     const QString tgt = targetNameEdit_->text().trimmed().toUpper();
     const QString plug = pluginNameEdit_->text().trimmed();
     targetPreviewLabel_->setText(
-        QString("targets/%1/cmd_tlm/%2_cmds.txt …").arg(tgt).arg(tgt.toLower()));
+        tr("targets/%1/cmd_tlm/%2_cmds.txt …").arg(tgt).arg(tgt.toLower()));
     Q_UNUSED(plug);
 }
 

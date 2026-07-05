@@ -14,7 +14,7 @@ namespace OpenC3::UI::Dialogs {
 UserGuideDialog::UserGuideDialog(QWidget* parent)
     : QDialog(parent)
 {
-    setWindowTitle("User Guide — OpenC3 Developer Toolkit");
+    setWindowTitle(tr("User Guide — OpenC3 Developer Toolkit"));
     resize(820, 680);
     setModal(false); // allow user to keep guide open while working
 
@@ -30,7 +30,7 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
     searchLayout->setSpacing(6);
 
     searchEdit_ = new QLineEdit(searchBar);
-    searchEdit_->setPlaceholderText("Search…");
+    searchEdit_->setPlaceholderText(tr("Search…"));
     searchEdit_->setClearButtonEnabled(true);
     searchEdit_->addAction(
         style()->standardIcon(QStyle::SP_FileDialogContentsView),
@@ -48,7 +48,7 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
     if (f.open(QFile::ReadOnly | QFile::Text))
         browser_->setHtml(QString::fromUtf8(f.readAll()));
     else
-        browser_->setPlainText("Could not load the help file.");
+        browser_->setPlainText(tr("Could not load the help file."));
 
     root->addWidget(browser_);
 
@@ -56,7 +56,7 @@ UserGuideDialog::UserGuideDialog(QWidget* parent)
     auto* footer = new QWidget(this);
     auto* footerLayout = new QHBoxLayout(footer);
     footerLayout->setContentsMargins(8, 6, 8, 6);
-    auto* closeBtn = new QPushButton("Close", footer);
+    auto* closeBtn = new QPushButton(tr("Close"), footer);
     closeBtn->setFixedWidth(80);
     footerLayout->addStretch();
     footerLayout->addWidget(closeBtn);

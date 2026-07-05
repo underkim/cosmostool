@@ -27,7 +27,7 @@ void InfraView::setupUi()
     root->setContentsMargins(20, 20, 20, 20);
     root->setSpacing(12);
 
-    auto* title = new QLabel("Infrastructure Manager", this);
+    auto* title = new QLabel(tr("Infrastructure Manager"), this);
     QFont tf = title->font(); tf.setPointSize(18); tf.setBold(true);
     title->setFont(tf); title->setObjectName("PageTitle");
     root->addWidget(title);
@@ -37,9 +37,9 @@ void InfraView::setupUi()
     root->addWidget(statusLabel_);
 
     tabs_ = new QTabWidget(this);
-    tabs_->addTab(buildEnvTab(),            ".env Editor");
-    tabs_->addTab(buildComposeTab(),        "compose.yaml");
-    tabs_->addTab(buildVolumeOverrideTab(), "Volume Overrides");
+    tabs_->addTab(buildEnvTab(),            tr(".env Editor"));
+    tabs_->addTab(buildComposeTab(),        tr("compose.yaml"));
+    tabs_->addTab(buildVolumeOverrideTab(), tr("Volume Overrides"));
     root->addWidget(tabs_);
 }
 
@@ -54,10 +54,10 @@ QWidget* InfraView::buildEnvTab()
     auto* pathBar = new QHBoxLayout;
     envPathEdit_ = new QLineEdit(vm_.defaultEnvPath(), page);
     envPathEdit_->setPlaceholderText("/cosmos/.env");
-    envLoadBtn_  = new QPushButton("Load", page);
-    envSaveBtn_  = new QPushButton("Save", page);
+    envLoadBtn_  = new QPushButton(tr("Load"), page);
+    envSaveBtn_  = new QPushButton(tr("Save"), page);
     envSaveBtn_->setObjectName("PrimaryButton");
-    pathBar->addWidget(new QLabel("Remote path:", page));
+    pathBar->addWidget(new QLabel(tr("Remote path:"), page));
     pathBar->addWidget(envPathEdit_, 1);
     pathBar->addWidget(envLoadBtn_);
     pathBar->addWidget(envSaveBtn_);
@@ -65,10 +65,10 @@ QWidget* InfraView::buildEnvTab()
 
     // ── Sync buttons ──────────────────────────────────────────────────────────
     auto* syncBar = new QHBoxLayout;
-    envSyncToRawBtn_   = new QPushButton("Table -> Raw", page);
-    envSyncToTableBtn_ = new QPushButton("Raw -> Table", page);
-    envSyncToRawBtn_->setToolTip("Apply table edits to the raw text");
-    envSyncToTableBtn_->setToolTip("Apply raw-text edits to the table");
+    envSyncToRawBtn_   = new QPushButton(tr("Table -> Raw"), page);
+    envSyncToTableBtn_ = new QPushButton(tr("Raw -> Table"), page);
+    envSyncToRawBtn_->setToolTip(tr("Apply table edits to the raw text"));
+    envSyncToTableBtn_->setToolTip(tr("Apply raw-text edits to the table"));
     syncBar->addWidget(envSyncToRawBtn_);
     syncBar->addWidget(envSyncToTableBtn_);
     syncBar->addStretch();
@@ -78,7 +78,7 @@ QWidget* InfraView::buildEnvTab()
     auto* splitter = new QSplitter(Qt::Horizontal, page);
 
     envTable_ = new QTableWidget(0, 3, page);
-    envTable_->setHorizontalHeaderLabels({"Key", "Value", "Comment"});
+    envTable_->setHorizontalHeaderLabels({tr("Key"), tr("Value"), tr("Comment")});
     envTable_->horizontalHeader()->setStretchLastSection(true);
     envTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     envTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
@@ -93,7 +93,7 @@ QWidget* InfraView::buildEnvTab()
     envRawEdit_ = new QPlainTextEdit(page);
     QFont rf; rf.setFamily("Consolas"); rf.setPointSize(10);
     envRawEdit_->setFont(rf);
-    envRawEdit_->setPlaceholderText("# Edit as KEY=VALUE lines");
+    envRawEdit_->setPlaceholderText(tr("# Edit as KEY=VALUE lines"));
 
     splitter->addWidget(envTable_);
     splitter->addWidget(envRawEdit_);
@@ -116,10 +116,10 @@ QWidget* InfraView::buildComposeTab()
     // ── Path bar ──────────────────────────────────────────────────────────────
     auto* pathBar = new QHBoxLayout;
     composePath_    = new QLineEdit(vm_.defaultComposePath(), page);
-    composeLoadBtn_ = new QPushButton("Load", page);
-    composeSaveBtn_ = new QPushButton("Save", page);
+    composeLoadBtn_ = new QPushButton(tr("Load"), page);
+    composeSaveBtn_ = new QPushButton(tr("Save"), page);
     composeSaveBtn_->setObjectName("PrimaryButton");
-    pathBar->addWidget(new QLabel("Remote path:", page));
+    pathBar->addWidget(new QLabel(tr("Remote path:"), page));
     pathBar->addWidget(composePath_, 1);
     pathBar->addWidget(composeLoadBtn_);
     pathBar->addWidget(composeSaveBtn_);
@@ -129,16 +129,16 @@ QWidget* InfraView::buildComposeTab()
     composeEdit_ = new QPlainTextEdit(page);
     QFont f; f.setFamily("Consolas"); f.setPointSize(10);
     composeEdit_->setFont(f);
-    composeEdit_->setPlaceholderText(
+    composeEdit_->setPlaceholderText(tr(
         "# compose.yaml is not loaded\n"
-        "# Enter the remote file path above and press Load");
+        "# Enter the remote file path above and press Load"));
     layout->addWidget(composeEdit_, 1);
 
     // ── Hint ─────────────────────────────────────────────────────────────────
-    auto* hint = new QLabel(
+    auto* hint = new QLabel(tr(
         "<small style='color:#858585'>"
         "Changes take effect after restarting the services "
-        "(<code>docker compose up -d</code>)</small>", page);
+        "(<code>docker compose up -d</code>)</small>"), page);
     hint->setTextFormat(Qt::RichText);
     layout->addWidget(hint);
 
@@ -153,28 +153,28 @@ QWidget* InfraView::buildVolumeOverrideTab()
     layout->setSpacing(8);
 
     // ── Description ──────────────────────────────────────────────────────────
-    auto* desc = new QLabel(
+    auto* desc = new QLabel(tr(
         "<small style='color:#858585'>"
         "Extract a file from a Docker image, edit it, save it on the host, and "
         "generate the matching <code>volumes:</code> entry for compose.yaml. "
         "This overrides container files without rebuilding the image."
-        "</small>", page);
+        "</small>"), page);
     desc->setWordWrap(true);
     desc->setTextFormat(Qt::RichText);
     layout->addWidget(desc);
 
     // ── Step 1: pick a container and extract a file ──────────────────────────
-    auto* step1Group  = new QGroupBox("Step 1 - Extract a container file", page);
+    auto* step1Group  = new QGroupBox(tr("Step 1 - Extract a container file"), page);
     auto* step1Layout = new QVBoxLayout(step1Group);
 
     auto* containerBar = new QHBoxLayout;
     containerCombo_     = new QComboBox(step1Group);
     containerCombo_->setMinimumWidth(220);
-    containerCombo_->setPlaceholderText("Select a container…");
+    containerCombo_->setPlaceholderText(tr("Select a container…"));
     containerRefreshBtn_ = new QPushButton("↻", step1Group);
     containerRefreshBtn_->setFixedWidth(32);
-    containerRefreshBtn_->setToolTip("Refresh the list of running containers");
-    containerBar->addWidget(new QLabel("Container:", step1Group));
+    containerRefreshBtn_->setToolTip(tr("Refresh the list of running containers"));
+    containerBar->addWidget(new QLabel(tr("Container:"), step1Group));
     containerBar->addWidget(containerCombo_, 1);
     containerBar->addWidget(containerRefreshBtn_);
     step1Layout->addLayout(containerBar);
@@ -183,9 +183,9 @@ QWidget* InfraView::buildVolumeOverrideTab()
     containerFilePathEdit_ = new QLineEdit(step1Group);
     containerFilePathEdit_->setPlaceholderText("/cosmos/config/system.txt");
     containerFilePathEdit_->setFont(QFont("Consolas", 10));
-    extractBtn_ = new QPushButton("Extract", step1Group);
-    extractBtn_->setToolTip("Fetches the file via docker exec <container> cat <file>");
-    fileBar->addWidget(new QLabel("File path:", step1Group));
+    extractBtn_ = new QPushButton(tr("Extract"), step1Group);
+    extractBtn_->setToolTip(tr("Fetches the file via docker exec <container> cat <file>"));
+    fileBar->addWidget(new QLabel(tr("File path:"), step1Group));
     fileBar->addWidget(containerFilePathEdit_, 1);
     fileBar->addWidget(extractBtn_);
     step1Layout->addLayout(fileBar);
@@ -193,36 +193,36 @@ QWidget* InfraView::buildVolumeOverrideTab()
     containerFileEdit_ = new QPlainTextEdit(step1Group);
     QFont ef; ef.setFamily("Consolas"); ef.setPointSize(9);
     containerFileEdit_->setFont(ef);
-    containerFileEdit_->setPlaceholderText(
+    containerFileEdit_->setPlaceholderText(tr(
         "Press Extract to show the container file's content here.\n"
-        "Edit it as needed, then save it in Step 2 below.");
+        "Edit it as needed, then save it in Step 2 below."));
     containerFileEdit_->setMinimumHeight(180);
     step1Layout->addWidget(containerFileEdit_, 1);
 
     layout->addWidget(step1Group, 1);
 
     // ── Step 2: save on the host and generate the volume entry ───────────────
-    auto* step2Group  = new QGroupBox("Step 2 - Save and generate the volume entry", page);
+    auto* step2Group  = new QGroupBox(tr("Step 2 - Save and generate the volume entry"), page);
     auto* step2Layout = new QVBoxLayout(step2Group);
 
     auto* hostBar = new QHBoxLayout;
     hostSavePathEdit_ = new QLineEdit(step2Group);
     hostSavePathEdit_->setPlaceholderText("/cosmos/overrides/…");
     hostSavePathEdit_->setFont(QFont("Consolas", 10));
-    hostSavePathEdit_->setToolTip(
+    hostSavePathEdit_->setToolTip(tr(
         "WSL/Linux path where the file will be saved.\n"
-        "This path is used in the compose.yaml volumes entry.");
-    applyOverrideBtn_ = new QPushButton("Save && Generate Entry", step2Group);
+        "This path is used in the compose.yaml volumes entry."));
+    applyOverrideBtn_ = new QPushButton(tr("Save && Generate Entry"), step2Group);
     applyOverrideBtn_->setObjectName("PrimaryButton");
-    applyOverrideBtn_->setToolTip("Extract a file in Step 1 first.");
-    hostBar->addWidget(new QLabel("Host save path:", step2Group));
+    applyOverrideBtn_->setToolTip(tr("Extract a file in Step 1 first."));
+    hostBar->addWidget(new QLabel(tr("Host save path:"), step2Group));
     hostBar->addWidget(hostSavePathEdit_, 1);
     hostBar->addWidget(applyOverrideBtn_);
     step2Layout->addLayout(hostBar);
 
     // ── Generated volume entry ────────────────────────────────────────────────
     auto* volumeHintLabel = new QLabel(
-        "<code>volumes:</code> entry to add to compose.yaml:", step2Group);
+        tr("<code>volumes:</code> entry to add to compose.yaml:"), step2Group);
     volumeHintLabel->setTextFormat(Qt::RichText);
     step2Layout->addWidget(volumeHintLabel);
 
@@ -230,14 +230,14 @@ QWidget* InfraView::buildVolumeOverrideTab()
     volumeEntryEdit_->setFont(QFont("Consolas", 9));
     volumeEntryEdit_->setReadOnly(true);
     volumeEntryEdit_->setMaximumHeight(90);
-    volumeEntryEdit_->setPlaceholderText("The entry appears here after saving…");
+    volumeEntryEdit_->setPlaceholderText(tr("The entry appears here after saving…"));
     step2Layout->addWidget(volumeEntryEdit_);
 
     auto* actionBar = new QHBoxLayout;
-    copyVolumeEntryBtn_  = new QPushButton("Copy to Clipboard", step2Group);
-    insertToComposeBtn_  = new QPushButton("Insert into compose Editor", step2Group);
-    copyVolumeEntryBtn_->setToolTip("Save & Generate Entry above first.");
-    insertToComposeBtn_->setToolTip("Save & Generate Entry above first.");
+    copyVolumeEntryBtn_  = new QPushButton(tr("Copy to Clipboard"), step2Group);
+    insertToComposeBtn_  = new QPushButton(tr("Insert into compose Editor"), step2Group);
+    copyVolumeEntryBtn_->setToolTip(tr("Save & Generate Entry above first."));
+    insertToComposeBtn_->setToolTip(tr("Save & Generate Entry above first."));
     actionBar->addWidget(copyVolumeEntryBtn_);
     actionBar->addWidget(insertToComposeBtn_);
     actionBar->addStretch();
@@ -246,11 +246,11 @@ QWidget* InfraView::buildVolumeOverrideTab()
     layout->addWidget(step2Group);
 
     // ── Hint ─────────────────────────────────────────────────────────────────
-    auto* restartHint = new QLabel(
+    auto* restartHint = new QLabel(tr(
         "<small style='color:#858585'>"
         "After adding the volume entry, restart the container with "
         "<code>docker compose up -d &lt;service-name&gt;</code> to apply the override."
-        "</small>", page);
+        "</small>"), page);
     restartHint->setTextFormat(Qt::RichText);
     restartHint->setWordWrap(true);
     layout->addWidget(restartHint);
@@ -331,8 +331,8 @@ void InfraView::bindViewModel()
     connect(&vm_, &ViewModels::InfraViewModel::fileSaved,
             this, [this](const QString& path, bool ok) {
                 if (!ok)
-                    QMessageBox::warning(this, "Save Failed",
-                        "Could not save the file:\n" + path);
+                    QMessageBox::warning(this, tr("Save Failed"),
+                        tr("Could not save the file:\n%1").arg(path));
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::containersLoaded,
@@ -366,8 +366,8 @@ void InfraView::bindViewModel()
     connect(&vm_, &ViewModels::InfraViewModel::overrideApplied,
             this, [this](bool ok, const QString& hostPath) {
                 if (!ok)
-                    QMessageBox::warning(this, "Save Failed",
-                        "Could not save the host file:\n" + hostPath);
+                    QMessageBox::warning(this, tr("Save Failed"),
+                        tr("Could not save the host file:\n%1").arg(hostPath));
             });
 
     // Initial state
@@ -405,13 +405,13 @@ void InfraView::onExtractFile()
     const QString filePath  = containerFilePathEdit_->text().trimmed();
 
     if (container.isEmpty()) {
-        QMessageBox::information(this, "Select Container",
-            "Select a container, or press the refresh button to load the list.");
+        QMessageBox::information(this, tr("Select Container"),
+            tr("Select a container, or press the refresh button to load the list."));
         return;
     }
     if (filePath.isEmpty()) {
-        QMessageBox::information(this, "File Path",
-            "Enter the path of the file inside the container to extract.");
+        QMessageBox::information(this, tr("File Path"),
+            tr("Enter the path of the file inside the container to extract."));
         return;
     }
 
@@ -428,14 +428,14 @@ void InfraView::onApplyOverride()
     const QString content   = containerFileEdit_->toPlainText();
 
     if (hostPath.isEmpty()) {
-        QMessageBox::information(this, "Save Path",
-            "Enter the host (WSL) path where the file will be saved.\n"
-            "Example: /cosmos/overrides/cosmos/config/system.txt");
+        QMessageBox::information(this, tr("Save Path"),
+            tr("Enter the host (WSL) path where the file will be saved.\n"
+            "Example: /cosmos/overrides/cosmos/config/system.txt"));
         return;
     }
     if (content.isEmpty()) {
-        QMessageBox::information(this, "No Content",
-            "Extract a file from the container first, or enter content to save.");
+        QMessageBox::information(this, tr("No Content"),
+            tr("Extract a file from the container first, or enter content to save."));
         return;
     }
 

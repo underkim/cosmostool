@@ -56,7 +56,7 @@ ConnectionDialog::ConnectionDialog(
     : QDialog(parent)
     , vm_(vm)
 {
-    setWindowTitle("Connect to OpenC3 Environment");
+    setWindowTitle(tr("Connect to OpenC3 Environment"));
     // Minimum (not fixed) so long/translated status text can grow the dialog
     // instead of being clipped.
     setMinimumSize(420, 180);
@@ -66,7 +66,7 @@ ConnectionDialog::ConnectionDialog(
     layout->setContentsMargins(24, 20, 24, 20);
     layout->setSpacing(12);
 
-    layout->addWidget(new QLabel("Select connection profile:", this));
+    layout->addWidget(new QLabel(tr("Select connection profile:"), this));
 
     profileCombo_ = new QComboBox(this);
     profileCombo_->setModel(vm_.profileModel());
@@ -77,15 +77,15 @@ ConnectionDialog::ConnectionDialog(
     statusLabel_->setWordWrap(true);
     layout->addWidget(statusLabel_);
 
-    quickWslBtn_ = new QPushButton("Create WSL profile && Connect", this);
+    quickWslBtn_ = new QPushButton(tr("Create WSL profile && Connect"), this);
     connect(quickWslBtn_, &QPushButton::clicked,
             this, &ConnectionDialog::onCreateWslProfile);
     layout->addWidget(quickWslBtn_);
 
     auto* btnRow  = new QHBoxLayout;
-    connectBtn_   = new QPushButton("Connect", this);
+    connectBtn_   = new QPushButton(tr("Connect"), this);
     connectBtn_->setObjectName("PrimaryButton");
-    auto* skipBtn = new QPushButton("Skip", this);
+    auto* skipBtn = new QPushButton(tr("Skip"), this);
     connect(connectBtn_, &QPushButton::clicked, this, &ConnectionDialog::onConnectClicked);
     connect(skipBtn, &QPushButton::clicked, this, &QDialog::reject);
     btnRow->addStretch();
@@ -125,26 +125,26 @@ ConnectionDialog::ConnectionDialog(
         if (!distros.isEmpty()) {
             quickWslDistro_ = distros.first();
             quickWslBtn_->setText(
-                QStringLiteral("Create WSL profile (%1) && Connect").arg(quickWslDistro_));
+                tr("Create WSL profile (%1) && Connect").arg(quickWslDistro_));
             quickWslBtn_->setToolTip(
-                QStringLiteral("Creates a default WSL profile (%1, /cosmos) and connects to it.\n"
+                tr("Creates a default WSL profile (%1, /cosmos) and connects to it.\n"
                                "You can fine-tune it later under Settings.")
                     .arg(quickWslDistro_));
             statusLabel_->setText(
-                "No saved profiles yet. Click \"Create WSL profile & Connect\" "
-                "to use the detected WSL distro, or Skip to explore first.");
+                tr("No saved profiles yet. Click \"Create WSL profile & Connect\" "
+                "to use the detected WSL distro, or Skip to explore first."));
         } else {
             quickWslBtn_->setEnabled(false);
             statusLabel_->setText(
-                "No saved profiles and no WSL distro detected. Install one with "
-                "wsl --install Ubuntu, or Skip and configure SSH/WSL in Settings.");
+                tr("No saved profiles and no WSL distro detected. Install one with "
+                "wsl --install Ubuntu, or Skip and configure SSH/WSL in Settings."));
         }
         connectBtn_->setEnabled(false);
     } else {
         quickWslBtn_->setVisible(false);
         if (selectedDefaultProfile) {
             statusLabel_->setText(
-                "Default profile selected. Click Connect to continue.");
+                tr("Default profile selected. Click Connect to continue."));
         }
     }
 }
@@ -155,9 +155,9 @@ void ConnectionDialog::onCreateWslProfile()
         const QStringList distros = detectWslDistros();
         if (distros.isEmpty()) {
             quickWslBtn_->setEnabled(false);
-            statusLabel_->setText(
+            statusLabel_->setText(tr(
                 "No WSL distro detected. Install one with wsl --install Ubuntu, "
-                "or Skip and configure SSH/WSL in Settings.");
+                "or Skip and configure SSH/WSL in Settings."));
             return;
         }
         quickWslDistro_ = distros.first();
@@ -177,7 +177,7 @@ void ConnectionDialog::onCreateWslProfile()
 
     quickWslBtn_->setEnabled(false);
     connectBtn_->setEnabled(false);
-    statusLabel_->setText("Connecting...");
+    statusLabel_->setText(tr("Connecting..."));
     vm_.connectToProfile(profileId);
 }
 
@@ -188,7 +188,7 @@ void ConnectionDialog::onConnectClicked()
     const auto* p = vm_.profileModel()->profileAt(idx);
     if (!p) return;
     connectBtn_->setEnabled(false);
-    statusLabel_->setText("Connecting...");
+    statusLabel_->setText(tr("Connecting..."));
     vm_.connectToProfile(QString::fromStdString(p->id));
 }
 

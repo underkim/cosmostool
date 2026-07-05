@@ -36,13 +36,13 @@ void SettingsView::setupUi()
     root->setSpacing(12);
 
     // ── Title ─────────────────────────────────────────────────────────────────
-    auto* title = new QLabel("Settings", this);
+    auto* title = new QLabel(tr("Settings"), this);
     QFont tf = title->font(); tf.setPointSize(18); tf.setBold(true);
     title->setFont(tf); title->setObjectName("PageTitle");
     root->addWidget(title);
 
     // ── Status ────────────────────────────────────────────────────────────────
-    statusLabel_ = new QLabel("Status: Disconnected", this);
+    statusLabel_ = new QLabel(tr("Status: Disconnected"), this);
     statusLabel_->setObjectName("StatusBanner");
     statusLabel_->setWordWrap(true);
     root->addWidget(statusLabel_);
@@ -56,16 +56,16 @@ void SettingsView::setupUi()
     auto* quickCardLayout = new QVBoxLayout(quickCard);
     quickCardLayout->setContentsMargins(14, 12, 14, 12);
     quickCardLayout->setSpacing(6);
-    auto* quickTitle = new QLabel("Quick WSL", quickCard);
+    auto* quickTitle = new QLabel(tr("Quick WSL"), quickCard);
     quickTitle->setObjectName("CardTitle");
     auto* quickDesc = new QLabel(
-        "Best for local testing. Auto-detect WSL and create a /cosmos profile.",
+        tr("Best for local testing. Auto-detect WSL and create a /cosmos profile."),
         quickCard);
     quickDesc->setObjectName("SubLabel");
     quickDesc->setWordWrap(true);
-    quickWslBtn_ = new QPushButton("Create WSL Profile", quickCard);
+    quickWslBtn_ = new QPushButton(tr("Create WSL Profile"), quickCard);
     quickWslBtn_->setObjectName("PrimaryButton");
-    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
+    quickWslBtn_->setToolTip(tr("Auto-detect WSL and create a /cosmos profile."));
     quickCardLayout->addWidget(quickTitle);
     quickCardLayout->addWidget(quickDesc, 1);
     quickCardLayout->addWidget(quickWslBtn_, 0, Qt::AlignLeft);
@@ -75,15 +75,15 @@ void SettingsView::setupUi()
     auto* customCardLayout = new QVBoxLayout(customCard);
     customCardLayout->setContentsMargins(14, 12, 14, 12);
     customCardLayout->setSpacing(6);
-    auto* customTitle = new QLabel("Custom Profile", customCard);
+    auto* customTitle = new QLabel(tr("Custom Profile"), customCard);
     customTitle->setObjectName("CardTitle");
     auto* customDesc = new QLabel(
-        "Use SSH, advanced WSL settings, custom paths, or saved credentials.",
+        tr("Use SSH, advanced WSL settings, custom paths, or saved credentials."),
         customCard);
     customDesc->setObjectName("SubLabel");
     customDesc->setWordWrap(true);
-    addBtn_ = new QPushButton("Create Custom Profile", customCard);
-    addBtn_->setToolTip("Create a blank connection profile for SSH or advanced setup.");
+    addBtn_ = new QPushButton(tr("Create Custom Profile"), customCard);
+    addBtn_->setToolTip(tr("Create a blank connection profile for SSH or advanced setup."));
     customCardLayout->addWidget(customTitle);
     customCardLayout->addWidget(customDesc, 1);
     customCardLayout->addWidget(addBtn_, 0, Qt::AlignLeft);
@@ -106,40 +106,40 @@ void SettingsView::setupUi()
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     auto* manageBtns = new QHBoxLayout;
-    deleteBtn_ = new QPushButton("Delete", leftPane);
-    deleteBtn_->setToolTip("Select a connection profile first.");
+    deleteBtn_ = new QPushButton(tr("Delete"), leftPane);
+    deleteBtn_->setToolTip(tr("Select a connection profile first."));
     manageBtns->addWidget(deleteBtn_);
     manageBtns->addStretch();
 
     profileHintLabel_ = new QLabel(
-        "Start with the cards above, then select a saved profile to review, connect, or delete it.",
+        tr("Start with the cards above, then select a saved profile to review, connect, or delete it."),
         leftPane);
     profileHintLabel_->setObjectName("SubLabel");
     profileHintLabel_->setWordWrap(true);
 
     auto* connBtns  = new QHBoxLayout;
-    connectBtn_    = new QPushButton("Connect",    leftPane);
-    disconnectBtn_ = new QPushButton("Disconnect", leftPane);
+    connectBtn_    = new QPushButton(tr("Connect"),    leftPane);
+    disconnectBtn_ = new QPushButton(tr("Disconnect"), leftPane);
     connectBtn_->setObjectName("PrimaryButton");
-    connectBtn_->setToolTip("Select a connection profile first.");
-    disconnectBtn_->setToolTip("Connect to an OpenC3 environment first.");
+    connectBtn_->setToolTip(tr("Select a connection profile first."));
+    disconnectBtn_->setToolTip(tr("Connect to an OpenC3 environment first."));
     connBtns->addWidget(connectBtn_);
     connBtns->addWidget(disconnectBtn_);
 
-    leftLayout->addWidget(new QLabel("Connection Profiles:", leftPane));
+    leftLayout->addWidget(new QLabel(tr("Connection Profiles:"), leftPane));
     leftLayout->addWidget(profileList_);
     leftLayout->addWidget(profileHintLabel_);
     leftLayout->addLayout(manageBtns);
     leftLayout->addLayout(connBtns);
 
     // ── Right pane — profile form ─────────────────────────────────────────────
-    auto* formGroup  = new QGroupBox("Profile Settings", splitter);
+    auto* formGroup  = new QGroupBox(tr("Profile Settings"), splitter);
     auto* formLayout = new QFormLayout(formGroup);
     formLayout->setRowWrapPolicy(QFormLayout::DontWrapRows);
     formLayout->setLabelAlignment(Qt::AlignRight);
     formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
-    profileFormStateLabel_ = new QLabel("New profile — save it before connecting.", formGroup);
+    profileFormStateLabel_ = new QLabel(tr("New profile — save it before connecting."), formGroup);
     profileFormStateLabel_->setObjectName("SubLabel");
     profileFormStateLabel_->setWordWrap(true);
     formLayout->addRow(profileFormStateLabel_);
@@ -147,16 +147,16 @@ void SettingsView::setupUi()
     // Common fields
     nameEdit_  = new QLineEdit(formGroup);
     modeCombo_ = new QComboBox(formGroup);
-    modeCombo_->addItems({"WSL", "SSH"});
+    modeCombo_->addItems({tr("WSL"), tr("SSH")});
     cosmosRootPathEdit_ = new QLineEdit("/cosmos", formGroup);
     cosmosRootPathEdit_->setPlaceholderText("/cosmos or /path/to/openc3.sh");
     cosmosRootPathEdit_->setFont(QFont("Consolas", 10));
-    cosmosRootPathEdit_->setToolTip(
+    cosmosRootPathEdit_->setToolTip(tr(
         "Remote OpenC3 path used by Infra tools.\n"
         "Enter either the OpenC3 directory or the full openc3.sh path.\n"
-        "Examples: /cosmos, /home/user/openc3, /home/user/openc3/openc3.sh");
-    detectOpenC3PathBtn_ = new QPushButton("Detect", formGroup);
-    detectOpenC3PathBtn_->setToolTip("Search the selected WSL distro for openc3.sh");
+        "Examples: /cosmos, /home/user/openc3, /home/user/openc3/openc3.sh"));
+    detectOpenC3PathBtn_ = new QPushButton(tr("Detect"), formGroup);
+    detectOpenC3PathBtn_->setToolTip(tr("Search the selected WSL distro for openc3.sh"));
 
     auto* openC3PathRow = new QWidget(formGroup);
     auto* openC3PathLayout = new QHBoxLayout(openC3PathRow);
@@ -164,9 +164,9 @@ void SettingsView::setupUi()
     openC3PathLayout->addWidget(cosmosRootPathEdit_, 1);
     openC3PathLayout->addWidget(detectOpenC3PathBtn_);
 
-    formLayout->addRow("Name:", nameEdit_);
-    formLayout->addRow("Mode:", modeCombo_);
-    formLayout->addRow("OpenC3 path:", openC3PathRow);
+    formLayout->addRow(tr("Name:"), nameEdit_);
+    formLayout->addRow(tr("Mode:"), modeCombo_);
+    formLayout->addRow(tr("OpenC3 path:"), openC3PathRow);
 
     // ── Mode-specific stack ───────────────────────────────────────────────────
     modeStack_ = new QStackedWidget(formGroup);
@@ -181,19 +181,19 @@ void SettingsView::setupUi()
     wslDistroCombo_ = new QComboBox(wslPage);
     wslRefreshBtn_  = new QPushButton("↻", wslPage);
     wslRefreshBtn_->setFixedWidth(28);
-    wslRefreshBtn_->setToolTip("Refresh WSL distribution list");
+    wslRefreshBtn_->setToolTip(tr("Refresh WSL distribution list"));
 
     auto* wslDistroRow = new QHBoxLayout;
     wslDistroRow->addWidget(wslDistroCombo_);
     wslDistroRow->addWidget(wslRefreshBtn_);
-    wslLayout->addRow("WSL Distro:", wslDistroRow);
+    wslLayout->addRow(tr("WSL Distro:"), wslDistroRow);
 
-    auto* wslHint = new QLabel(
+    auto* wslHint = new QLabel(tr(
         "<small style='color:#858585'>"
         "WSL distributions installed on Windows appear here automatically.<br>"
         "If the list is empty, press the ↻ button, or install one with "
         "<code>wsl --install Ubuntu</code>."
-        "</small>", wslPage);
+        "</small>"), wslPage);
     wslHint->setWordWrap(true);
     wslHint->setTextFormat(Qt::RichText);
     wslLayout->addRow("", wslHint);
@@ -218,12 +218,12 @@ void SettingsView::setupUi()
     // Auth method — order MUST match ConnectionConfig::AuthMethod enum:
     //   Password=0, PublicKey=1
     authMethodCombo_ = new QComboBox(sshPage);
-    authMethodCombo_->addItems({"Password", "Public Key"});
+    authMethodCombo_->addItems({tr("Password"), tr("Public Key")});
 
     // Password field (shown when auth = Password)
     passwordEdit_ = new QLineEdit(sshPage);
     passwordEdit_->setEchoMode(QLineEdit::Password);
-    passwordEdit_->setPlaceholderText("SSH password");
+    passwordEdit_->setPlaceholderText(tr("SSH password"));
 
     // Key path field (shown when auth = Public Key)
     keyPathEdit_ = new QLineEdit(sshPage);
@@ -234,23 +234,23 @@ void SettingsView::setupUi()
     keyRowLayout->setContentsMargins(0, 0, 0, 0);
     auto* browseKey = new QPushButton("…", keyWidget);
     browseKey->setFixedWidth(28);
-    browseKey->setToolTip("Select a private key file");
+    browseKey->setToolTip(tr("Select a private key file"));
     keyRowLayout->addWidget(keyPathEdit_);
     keyRowLayout->addWidget(browseKey);
 
-    sshLayout->addRow("SSH Host:",    hostEdit_);
-    sshLayout->addRow("SSH Port:",    portEdit_);
-    sshLayout->addRow("Username:",    usernameEdit_);
-    sshLayout->addRow("Auth Method:", authMethodCombo_);
-    sshLayout->addRow("Password:",    passwordEdit_);
-    sshLayout->addRow("Key Path:",    keyWidget);
+    sshLayout->addRow(tr("SSH Host:"),    hostEdit_);
+    sshLayout->addRow(tr("SSH Port:"),    portEdit_);
+    sshLayout->addRow(tr("Username:"),    usernameEdit_);
+    sshLayout->addRow(tr("Auth Method:"), authMethodCombo_);
+    sshLayout->addRow(tr("Password:"),    passwordEdit_);
+    sshLayout->addRow(tr("Key Path:"),    keyWidget);
 
     // Browse key button
     connect(browseKey, &QPushButton::clicked, this, [this] {
         const QString path = QFileDialog::getOpenFileName(
-            this, "Select Private Key File",
+            this, tr("Select Private Key File"),
             QDir::homePath() + "/.ssh",
-            "Key files (*.pem *.key id_rsa id_ed25519 *);;All files (*)");
+            tr("Key files (*.pem *.key id_rsa id_ed25519 *);;All files (*)"));
         if (!path.isEmpty())
             keyPathEdit_->setText(QDir::toNativeSeparators(path));
     });
@@ -270,9 +270,9 @@ void SettingsView::setupUi()
     formLayout->addRow(modeStack_);
 
     // Save buttons
-    saveProfileBtn_ = new QPushButton("Save Profile", formGroup);
+    saveProfileBtn_ = new QPushButton(tr("Save Profile"), formGroup);
     saveProfileBtn_->setObjectName("PrimaryButton");
-    saveAndConnectBtn_ = new QPushButton("Save && Connect", formGroup);
+    saveAndConnectBtn_ = new QPushButton(tr("Save && Connect"), formGroup);
 
     auto* saveButtons = new QHBoxLayout;
     saveButtons->addWidget(saveProfileBtn_);
@@ -335,7 +335,7 @@ void SettingsView::bindViewModel()
     connect(&vm_, &ViewModels::SettingsViewModel::connectionStateChanged,
             this, [this](const QString& state) {
                 connectionState_ = state;
-                statusLabel_->setText("Status: " + state);
+                statusLabel_->setText(tr("Status:") + " " + state);
                 updateConnectionButtons(state);
                 updateActionHints(state);
             });
@@ -358,8 +358,8 @@ void SettingsView::onModeChanged(int modeIndex)
     modeStack_->setCurrentIndex(modeIndex); // 0=WSL, 1=SSH
     detectOpenC3PathBtn_->setEnabled(modeIndex == 0);
     detectOpenC3PathBtn_->setToolTip(modeIndex == 0
-        ? "Search the selected WSL distro for openc3.sh"
-        : "Select WSL mode to detect the OpenC3 path automatically.");
+        ? tr("Search the selected WSL distro for openc3.sh")
+        : tr("Select WSL mode to detect the OpenC3 path automatically."));
 }
 
 bool SettingsView::refreshWslDistros()
@@ -370,7 +370,7 @@ bool SettingsView::refreshWslDistros()
     QProcess proc;
     proc.start("wsl.exe", {"--list", "--quiet"});
     if (!proc.waitForFinished(5000)) {
-        wslDistroCombo_->addItem("Ubuntu"); // fallback guess - not a real detection
+        wslDistroCombo_->addItem(tr("Ubuntu")); // fallback guess - not a real detection
         return false;
     }
 
@@ -396,7 +396,7 @@ bool SettingsView::refreshWslDistros()
 
     bool detected = true;
     if (wslDistroCombo_->count() == 0) {
-        wslDistroCombo_->addItem("Ubuntu"); // fallback guess - not a real detection
+        wslDistroCombo_->addItem(tr("Ubuntu")); // fallback guess - not a real detection
         detected = false;
     }
 
@@ -410,20 +410,20 @@ bool SettingsView::refreshWslDistros()
 void SettingsView::detectOpenC3Path()
 {
     if (modeCombo_->currentIndex() != 0) {
-        QMessageBox::information(this, "OpenC3 path detection",
-            "Automatic detection is currently available for WSL profiles.");
+        QMessageBox::information(this, tr("OpenC3 path detection"),
+            tr("Automatic detection is currently available for WSL profiles."));
         return;
     }
 
     const QString distro = wslDistroCombo_->currentText().trimmed();
     if (distro.isEmpty()) {
-        QMessageBox::information(this, "OpenC3 path detection",
-            "Select a WSL distro first.");
+        QMessageBox::information(this, tr("OpenC3 path detection"),
+            tr("Select a WSL distro first."));
         return;
     }
 
     detectOpenC3PathBtn_->setEnabled(false);
-    detectOpenC3PathBtn_->setText("Detecting...");
+    detectOpenC3PathBtn_->setText(tr("Detecting..."));
 
     const QString script = R"(for p in \
   /cosmos/openc3.sh \
@@ -438,13 +438,13 @@ find "$HOME" /opt /srv /cosmos /openc3 -maxdepth 5 -type f -name openc3.sh 2>/de
     proc.start("wsl.exe", {"-d", distro, "--", "sh", "-lc", script});
 
     const bool finished = proc.waitForFinished(15000);
-    detectOpenC3PathBtn_->setText("Detect");
+    detectOpenC3PathBtn_->setText(tr("Detect"));
     detectOpenC3PathBtn_->setEnabled(modeCombo_->currentIndex() == 0);
 
     if (!finished) {
         proc.kill();
-        QMessageBox::warning(this, "OpenC3 path detection",
-            "Timed out while searching for openc3.sh.");
+        QMessageBox::warning(this, tr("OpenC3 path detection"),
+            tr("Timed out while searching for openc3.sh."));
         return;
     }
 
@@ -457,9 +457,9 @@ find "$HOME" /opt /srv /cosmos /openc3 -maxdepth 5 -type f -name openc3.sh 2>/de
         return;
     }
 
-    QMessageBox::information(this, "OpenC3 path detection",
-        "Could not find openc3.sh in the selected WSL distro.\n"
-        "Enter the OpenC3 directory or openc3.sh path manually.");
+    QMessageBox::information(this, tr("OpenC3 path detection"),
+        tr("Could not find openc3.sh in the selected WSL distro.\n"
+        "Enter the OpenC3 directory or openc3.sh path manually."));
 }
 
 void SettingsView::onAddProfile()
@@ -473,7 +473,7 @@ void SettingsView::onAddProfile()
     profileList_->setCurrentIndex(QModelIndex());
 
     Models::ConnectionProfile p;
-    p.name = "New Profile";
+    p.name = tr("New Profile").toStdString();
     populateProfileForm(p);
 
     updateProfileSelectionUi();
@@ -491,13 +491,13 @@ void SettingsView::onQuickWslProfile()
 
     if (!detected) {
         QMessageBox box(this);
-        box.setWindowTitle("No WSL Distro Detected");
-        box.setText("Could not detect any installed WSL distribution.");
+        box.setWindowTitle(tr("No WSL Distro Detected"));
+        box.setText(tr("Could not detect any installed WSL distribution."));
         box.setInformativeText(
-            "You can proceed with \"" + distro + "\" as a guess, "
-            "create a custom profile instead, or cancel.");
-        auto* useDefaultBtn = box.addButton("Use " + distro + " Defaults", QMessageBox::AcceptRole);
-        auto* customBtn     = box.addButton("Create Custom Profile", QMessageBox::ActionRole);
+            tr("You can proceed with \"%1\" as a guess, "
+            "create a custom profile instead, or cancel.").arg(distro));
+        auto* useDefaultBtn = box.addButton(tr("Use %1 Defaults").arg(distro), QMessageBox::AcceptRole);
+        auto* customBtn     = box.addButton(tr("Create Custom Profile"), QMessageBox::ActionRole);
         box.addButton(QMessageBox::Cancel);
         box.exec();
 
@@ -532,7 +532,7 @@ void SettingsView::onQuickWslProfile()
     }
 
     statusLabel_->setText(
-        QStringLiteral("Status: WSL profile created for %1 — review it, then Save & Connect.")
+        tr("Status: WSL profile created for %1 — review it, then Save & Connect.")
             .arg(distro));
     updateProfileSelectionUi();
     updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
@@ -544,8 +544,8 @@ void SettingsView::onDeleteProfile()
     if (!idx.isValid()) return;
 
     const QString id = vm_.profileModel()->data(idx, Qt::UserRole).toString();
-    if (QMessageBox::question(this, "Delete Profile",
-            "Delete this profile?",
+    if (QMessageBox::question(this, tr("Delete Profile"),
+            tr("Delete this profile?"),
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         vm_.deleteProfile(id);
 }
@@ -649,9 +649,9 @@ void SettingsView::updateConnectionButtons(const QString& state)
 
     connectBtn_->setEnabled(!connected && !connecting && hasSelectedProfile);
     if (!hasSelectedProfile)
-        connectBtn_->setToolTip("Select a saved profile before connecting.");
+        connectBtn_->setToolTip(tr("Select a saved profile before connecting."));
     else if (connecting)
-        connectBtn_->setToolTip("A connection attempt is already in progress.");
+        connectBtn_->setToolTip(tr("A connection attempt is already in progress."));
     else
         connectBtn_->setToolTip(QString());
 
@@ -673,26 +673,26 @@ void SettingsView::updateActionHints(const QString& state)
     const bool connected = (state == "Connected");
     const bool connecting = (state == "Connecting");
     const bool hasProfile = profileList_->currentIndex().isValid();
-    const QString connectReason = "Connect to an OpenC3 environment first.";
-    const QString profileReason = "Select a connection profile first.";
+    const QString connectReason = tr("Connect to an OpenC3 environment first.");
+    const QString profileReason = tr("Select a connection profile first.");
 
     connectBtn_->setToolTip(!hasProfile ? profileReason
-        : (connecting ? "Connection is already in progress." : "Connect to the selected OpenC3 environment."));
-    disconnectBtn_->setToolTip(connected ? "Disconnect from the current OpenC3 environment." : connectReason);
-    deleteBtn_->setToolTip(hasProfile ? "Delete the selected connection profile." : profileReason);
-    quickWslBtn_->setToolTip("Auto-detect WSL and create a /cosmos profile.");
-    saveProfileBtn_->setToolTip("Save the current connection profile settings.");
+        : (connecting ? tr("Connection is already in progress.") : tr("Connect to the selected OpenC3 environment.")));
+    disconnectBtn_->setToolTip(connected ? tr("Disconnect from the current OpenC3 environment.") : connectReason);
+    deleteBtn_->setToolTip(hasProfile ? tr("Delete the selected connection profile.") : profileReason);
+    quickWslBtn_->setToolTip(tr("Auto-detect WSL and create a /cosmos profile."));
+    saveProfileBtn_->setToolTip(tr("Save the current connection profile settings."));
 
     if (profileHintLabel_) {
         profileHintLabel_->setText(hasProfile
-            ? "Profile selected. Review it, save changes if needed, then connect."
-            : "New here? Use Quick WSL for local OpenC3, or Custom for SSH/advanced setup.");
+            ? tr("Profile selected. Review it, save changes if needed, then connect.")
+            : tr("New here? Use Quick WSL for local OpenC3, or Custom for SSH/advanced setup."));
     }
 
     if (!connected && !connecting && !hasProfile)
-        statusLabel_->setText("Status: Disconnected — choose Quick WSL or Custom, then connect.");
+        statusLabel_->setText(tr("Status: Disconnected — choose Quick WSL or Custom, then connect."));
     else if (!connected && !connecting && hasProfile)
-        statusLabel_->setText("Status: Disconnected — connect when ready.");
+        statusLabel_->setText(tr("Status: Disconnected — connect when ready."));
 }
 
 } // namespace OpenC3::UI::Views

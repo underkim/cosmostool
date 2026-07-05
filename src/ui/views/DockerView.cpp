@@ -27,7 +27,7 @@ void DockerView::setupUi()
 
     // ── Title + meta ──────────────────────────────────────────────────────────
     auto* header = new QHBoxLayout;
-    auto* title  = new QLabel("Docker Manager", this);
+    auto* title  = new QLabel(tr("Docker Manager"), this);
     QFont tf = title->font(); tf.setPointSize(18); tf.setBold(true);
     title->setFont(tf); title->setObjectName("PageTitle");
     versionLabel_ = new QLabel("--", this);
@@ -45,16 +45,16 @@ void DockerView::setupUi()
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
     auto* toolbar = new QHBoxLayout;
-    refreshBtn_   = new QPushButton("Refresh", this);
-    startBtn_     = new QPushButton("Start",   this);
-    stopBtn_      = new QPushButton("Stop",    this);
-    restartBtn_   = new QPushButton("Restart", this);
-    removeBtn_    = new QPushButton("Remove",  this);
-    logsBtn_      = new QPushButton("Logs",    this);
+    refreshBtn_   = new QPushButton(tr("Refresh"), this);
+    startBtn_     = new QPushButton(tr("Start"), this);
+    stopBtn_      = new QPushButton(tr("Stop"), this);
+    restartBtn_   = new QPushButton(tr("Restart"), this);
+    removeBtn_    = new QPushButton(tr("Remove"), this);
+    logsBtn_      = new QPushButton(tr("Logs"), this);
 
     for (auto* btn : {startBtn_, stopBtn_, restartBtn_, removeBtn_, logsBtn_}) {
         btn->setEnabled(false);
-        btn->setToolTip("Select a container first.");
+        btn->setToolTip(tr("Select a container first."));
     }
 
     toolbar->addWidget(refreshBtn_);
@@ -90,7 +90,7 @@ void DockerView::setupUi()
     tableView_->horizontalHeader()->setSectionResizeMode(
         ViewModels::ContainerTableModel::Status, QHeaderView::ResizeToContents);
 
-    auto* logGroup = new QGroupBox("Container Logs", splitter);
+    auto* logGroup = new QGroupBox(tr("Container Logs"), splitter);
     auto* logLayout = new QVBoxLayout(logGroup);
     logWidget_ = new Widgets::LogWidget(logGroup);
     logLayout->addWidget(logWidget_);
@@ -121,7 +121,7 @@ void DockerView::bindViewModel()
 
     connect(&vm_, &ViewModels::DockerViewModel::dockerVersionChanged,
             this, [this] {
-                versionLabel_->setText("Docker " + vm_.dockerVersion());
+                versionLabel_->setText(tr("Docker") + " " + vm_.dockerVersion());
             });
 
     connect(&vm_, &ViewModels::DockerViewModel::logsReady,
@@ -132,8 +132,8 @@ void DockerView::bindViewModel()
     connect(&vm_, &ViewModels::DockerViewModel::containerActionCompleted,
             this, [this](const QString& name, bool ok) {
                 if (!ok) {
-                    QMessageBox::warning(this, "Docker",
-                        "Action failed for: " + name);
+                    QMessageBox::warning(this, tr("Docker"),
+                        tr("Action failed for: %1").arg(name));
                 }
             });
 
@@ -151,14 +151,14 @@ void DockerView::updateHint()
     refreshBtn_->setEnabled(connected);
 
     if (!connected) {
-        hintLabel_->setText(
+        hintLabel_->setText(tr(
             "Not connected. Connect to a remote environment (Home > Connect) "
-            "to manage containers.");
+            "to manage containers."));
         hintLabel_->setVisible(true);
     } else if (vm_.containerModel()->rowCount() == 0) {
-        hintLabel_->setText(
+        hintLabel_->setText(tr(
             "No containers found. Press Refresh, or start OpenC3 with "
-            "docker compose up -d.");
+            "docker compose up -d."));
         hintLabel_->setVisible(true);
     } else {
         hintLabel_->setVisible(false);
@@ -169,17 +169,17 @@ void DockerView::onTableSelectionChanged()
 {
     const bool hasSelection = tableView_->selectionModel()->hasSelection();
     removeBtn_->setEnabled(hasSelection);
-    removeBtn_->setToolTip(hasSelection ? "Remove the selected container." : "Select a container first.");
+    removeBtn_->setToolTip(hasSelection ? tr("Remove the selected container.") : tr("Select a container first."));
     logsBtn_->setEnabled(hasSelection);
-    logsBtn_->setToolTip(hasSelection ? "View the selected container's recent logs." : "Select a container first.");
+    logsBtn_->setToolTip(hasSelection ? tr("View the selected container's recent logs.") : tr("Select a container first."));
 
     if (!hasSelection) {
         startBtn_->setEnabled(false);
-        startBtn_->setToolTip("Select a container first.");
+        startBtn_->setToolTip(tr("Select a container first."));
         stopBtn_->setEnabled(false);
-        stopBtn_->setToolTip("Select a container first.");
+        stopBtn_->setToolTip(tr("Select a container first."));
         restartBtn_->setEnabled(false);
-        restartBtn_->setToolTip("Select a container first.");
+        restartBtn_->setToolTip(tr("Select a container first."));
         return;
     }
 
@@ -188,11 +188,11 @@ void DockerView::onTableSelectionChanged()
     const bool running = c && c->isRunning();
 
     startBtn_->setEnabled(!running);
-    startBtn_->setToolTip(running ? "Container is already running." : "Start the selected container.");
+    startBtn_->setToolTip(running ? tr("Container is already running.") : tr("Start the selected container."));
     stopBtn_->setEnabled(running);
-    stopBtn_->setToolTip(running ? "Stop the selected container." : "Container is not running.");
+    stopBtn_->setToolTip(running ? tr("Stop the selected container.") : tr("Container is not running."));
     restartBtn_->setEnabled(running);
-    restartBtn_->setToolTip(running ? "Restart the selected container." : "Container is not running.");
+    restartBtn_->setToolTip(running ? tr("Restart the selected container.") : tr("Container is not running."));
 }
 
 void DockerView::onStartClicked()
@@ -213,8 +213,8 @@ void DockerView::onRestartClicked()
 void DockerView::onRemoveClicked()
 {
     const QString name = selectedContainerName();
-    if (QMessageBox::question(this, "Confirm Remove",
-            "Remove container: " + name + "?",
+    if (QMessageBox::question(this, tr("Confirm Remove"),
+            tr("Remove container: %1?").arg(name),
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         vm_.removeContainer(name);
 }

@@ -25,7 +25,7 @@ QString quotedDescription(QString value)
 CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     : QDialog(parent)
 {
-    setWindowTitle("Add CMD/TLM Field");
+    setWindowTitle(tr("Add CMD/TLM Field"));
     setModal(true);
     resize(420, 360);
 
@@ -33,10 +33,10 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     auto* form = new QFormLayout;
 
     modeCombo_ = new QComboBox(this);
-    modeCombo_->addItem("Command parameter", "parameter");
-    modeCombo_->addItem("Telemetry item", "item");
+    modeCombo_->addItem(tr("Command parameter"), "parameter");
+    modeCombo_->addItem(tr("Telemetry item"), "item");
 
-    idFieldCheck_ = new QCheckBox("Identifier field", this);
+    idFieldCheck_ = new QCheckBox(tr("Identifier field"), this);
 
     nameEdit_ = new QLineEdit(this);
     nameEdit_->setPlaceholderText("TEMP, CMD_ID, COUNTER");
@@ -61,17 +61,17 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     maxEdit_ = new QLineEdit("65535", this);
     defaultEdit_ = new QLineEdit("0", this);
     descriptionEdit_ = new QLineEdit(this);
-    descriptionEdit_->setPlaceholderText("Short field description");
+    descriptionEdit_->setPlaceholderText(tr("Short field description"));
 
-    form->addRow("Kind", modeCombo_);
+    form->addRow(tr("Kind"), modeCombo_);
     form->addRow("", idFieldCheck_);
-    form->addRow("Name", nameEdit_);
-    form->addRow("Bit size", bitSizeSpin_);
-    form->addRow("Type", typeCombo_);
-    form->addRow("Minimum", minEdit_);
-    form->addRow("Maximum", maxEdit_);
-    form->addRow("Default", defaultEdit_);
-    form->addRow("Description", descriptionEdit_);
+    form->addRow(tr("Name"), nameEdit_);
+    form->addRow(tr("Bit size"), bitSizeSpin_);
+    form->addRow(tr("Type"), typeCombo_);
+    form->addRow(tr("Minimum"), minEdit_);
+    form->addRow(tr("Maximum"), maxEdit_);
+    form->addRow(tr("Default"), defaultEdit_);
+    form->addRow(tr("Description"), descriptionEdit_);
     root->addLayout(form);
 
     auto* buttons = new QDialogButtonBox(
@@ -84,7 +84,7 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
             this, [this] { updateMode(); });
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         if (nameEdit_->text().trimmed().isEmpty()) {
-            QMessageBox::warning(this, "Add Field", "Name is required.");
+            QMessageBox::warning(this, tr("Add Field"), tr("Name is required."));
             return;
         }
 
@@ -98,8 +98,8 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
             if (minEdit_->text().trimmed().isEmpty()
                 || maxEdit_->text().trimmed().isEmpty()
                 || defaultEdit_->text().trimmed().isEmpty()) {
-                QMessageBox::warning(this, "Add Field",
-                    "Minimum, Maximum, and Default are required for this type.");
+                QMessageBox::warning(this, tr("Add Field"),
+                    tr("Minimum, Maximum, and Default are required for this type."));
                 return;
             }
             // Only compare when both parse as plain numbers - COSMOS min/max
@@ -109,8 +109,8 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
             const double minVal = minEdit_->text().trimmed().toDouble(&minOk);
             const double maxVal = maxEdit_->text().trimmed().toDouble(&maxOk);
             if (minOk && maxOk && minVal > maxVal) {
-                QMessageBox::warning(this, "Add Field",
-                    "Minimum must not be greater than Maximum.");
+                QMessageBox::warning(this, tr("Add Field"),
+                    tr("Minimum must not be greater than Maximum."));
                 return;
             }
         }

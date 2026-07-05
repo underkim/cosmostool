@@ -25,22 +25,22 @@ void DoctorView::setupUi()
     root->setSpacing(12);
 
     // ── Title ─────────────────────────────────────────────────────────────────
-    auto* title = new QLabel("System Doctor", this);
+    auto* title = new QLabel(tr("System Doctor"), this);
     QFont tf = title->font(); tf.setPointSize(18); tf.setBold(true);
     title->setFont(tf); title->setObjectName("PageTitle");
     root->addWidget(title);
 
     // ── Connection hint ───────────────────────────────────────────────────────
-    auto* hint = new QLabel(
+    auto* hint = new QLabel(tr(
         "Checks run on the connected environment - connect first "
-        "(Home > Connect) for meaningful results.", this);
+        "(Home > Connect) for meaningful results."), this);
     hint->setObjectName("SubLabel");
     hint->setWordWrap(true);
     root->addWidget(hint);
 
     // ── Action row ────────────────────────────────────────────────────────────
     auto* actionRow = new QHBoxLayout;
-    runBtn_     = new QPushButton("Run Health Checks", this);
+    runBtn_     = new QPushButton(tr("Run Health Checks"), this);
     runBtn_->setFixedHeight(36);
     runBtn_->setObjectName("PrimaryButton");
     progressBar_ = new QProgressBar(this);
@@ -53,7 +53,7 @@ void DoctorView::setupUi()
     root->addLayout(actionRow);
 
     // ── Summary ───────────────────────────────────────────────────────────────
-    summaryLabel_ = new QLabel("Run checks to see results.", this);
+    summaryLabel_ = new QLabel(tr("Run checks to see results."), this);
     summaryLabel_->setObjectName("SubLabel");
     root->addWidget(summaryLabel_);
 
@@ -77,7 +77,7 @@ void DoctorView::setupUi()
     root->addWidget(tableView_);
 
     // ── Suggestion panel ──────────────────────────────────────────────────────
-    auto* suggGroup  = new QGroupBox("Suggestion", this);
+    auto* suggGroup  = new QGroupBox(tr("Suggestion"), this);
     auto* suggLayout = new QVBoxLayout(suggGroup);
     suggestionLabel_ = new QLabel(this);
     suggestionLabel_->setWordWrap(true);
@@ -99,7 +99,7 @@ void DoctorView::bindViewModel()
     connect(&vm_, &ViewModels::DoctorViewModel::checkProgressUpdated,
             this, [this](const QString& name, const QString& status) {
                 summaryLabel_->setText(
-                    QString("Checking: %1  [%2]").arg(name, status));
+                    tr("Checking: %1  [%2]").arg(name, status));
             });
 
     connect(&vm_, &ViewModels::DoctorViewModel::summaryChanged,
@@ -107,7 +107,7 @@ void DoctorView::bindViewModel()
                 progressBar_->setVisible(false);
                 runBtn_->setEnabled(true);
                 summaryLabel_->setText(
-                    QString("%1 passed, %2 warnings, %3 failed")
+                    tr("%1 passed, %2 warnings, %3 failed")
                         .arg(vm_.passCount())
                         .arg(vm_.warningCount())
                         .arg(vm_.failCount()));
