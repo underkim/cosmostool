@@ -333,6 +333,7 @@ void PluginView::setupUi()
 
     wizardStack_ = new QStackedWidget(this);
     QVBoxLayout* wizardPluginPageLayout = nullptr;
+    QVBoxLayout* wizardFilePageLayout = nullptr;
     for (int i = 0; i < stepLabels.size(); ++i) {
         auto* page = new QWidget(wizardStack_);
         auto* pageLayout = new QVBoxLayout(page);
@@ -340,6 +341,8 @@ void PluginView::setupUi()
             // Real content (plugin toolbar + table) is added into this page
             // further down, once those widgets exist - no placeholder here.
             wizardPluginPageLayout = pageLayout;
+        } else if (i == kWizardStepFile) {
+            wizardFilePageLayout = pageLayout;
         } else {
             auto* placeholder = new QLabel(
                 tr("%1 (coming soon)").arg(stepLabels[i]), page);
@@ -461,7 +464,9 @@ void PluginView::setupUi()
     browseLayout->addWidget(browseList_, 1);
     filesTabs_->addTab(browseTab, tr("Browse"));
 
-    leftLayout->addWidget(componentListGroup, 1);
+    // Wizard Phase 2: the Files group (Plugin Files/Browse tabs) lives on
+    // the wizard's File page instead of the old (now-hidden) leftPane.
+    wizardFilePageLayout->addWidget(componentListGroup, 1);
     leftPane->setMinimumWidth(330);
 
     detailTabs_ = new QTabWidget(mainSplitter);
@@ -1246,6 +1251,14 @@ void PluginView::onBuildClicked()
 void PluginView::onTableSelectionChanged()
 {
     const bool hasSel = tableView_->selectionModel()->hasSelection();
+
+    // Wizard convenience: selecting a plugin while on the Plugin step
+    // auto-advances to File - the Next button remains available too, and
+    // this doesn't fire when the user is elsewhere (e.g. re-selecting a
+    // plugin from the Edit step shouldn't yank them back to File).
+    if (hasSel && currentWizardStep_ == kWizardStepPlugin)
+        goToWizardStep(kWizardStepFile);
+
     removeBtn_->setEnabled(hasSel && !vm_.isBusy());
     buildBtn_->setEnabled(hasSel && !vm_.isBusy());
     addTargetBtn_->setEnabled(hasSel && !infraVm_.isBusy());
