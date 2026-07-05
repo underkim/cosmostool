@@ -34,10 +34,11 @@ namespace {
 enum NavIndex {
     NavHome = 0,
     NavWorkspace,
+    NavSettings,
+    NavEnvironment,
+    NavValidator,
     NavPacketTools,
     NavLogs,
-    NavSettings,
-    NavTools,
 };
 } // namespace
 
@@ -137,10 +138,11 @@ void MainWindow::setupNavigation()
 
     addItem("Home", "Review status and jump to common workflows");                 // 0  (Ctrl+1)
     addItem("Workspace", "Manage plugins, and browse, edit, and validate CMD/TLM files"); // 1  (Ctrl+2)
-    addItem("Packet Tools", "Simulate and inspect packet payloads");              // 2  (Ctrl+3)
-    addItem("Logs", "Inspect toolkit and OpenC3 logs");                            // 3  (Ctrl+4)
-    addItem("Settings", "Manage connection profiles and preferences");             // 4  (Ctrl+5)
-    addItem("Tools", "Run Doctor, Validator, Docker, and infrastructure tools");   // 5  (Ctrl+6)
+    addItem("Settings", "Manage connection profiles and preferences");             // 2  (Ctrl+3)
+    addItem("Environment", "Check Docker, containers, and environment configuration"); // 3  (Ctrl+4)
+    addItem("Validator", "Run offline checks on CMD/TLM, screens, and plugin.txt"); // 4  (Ctrl+5)
+    addItem("Packet Tools", "Simulate and inspect packet payloads");              // 5  (Ctrl+6)
+    addItem("Logs", "Inspect toolkit and OpenC3 logs");                            // 6  (Ctrl+7)
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -155,16 +157,17 @@ void MainWindow::setupViews()
     auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
 
-    // Tools groups diagnostics and infrastructure utilities so the main rail stays
-    // short. Put Doctor first so setup checks are the most discoverable tool.
+    // Environment groups diagnostics and infrastructure utilities so the main rail
+    // stays short. Put Doctor first so setup checks are the most discoverable tool.
+    // Validator is intentionally not nested here - it's a standalone offline-analysis
+    // workflow (paste & check, or reached from Workspace's "Check Offline" button),
+    // not part of "is my connected environment healthy" like Doctor/Docker/Infra.
     auto* environmentTabs = new QTabWidget(this);
     environmentTabs->setObjectName("EnvironmentTabs");
     environmentTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");    // 0
-    environmentTabs->addTab(validatorView,                          "Validator"); // 1
-    environmentTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");    // 2
-    environmentTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");     // 3
-    constexpr int kEnvDoctorTab      = 0;
-    constexpr int kToolsValidatorTab = 1;
+    environmentTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");    // 1
+    environmentTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");     // 2
+    constexpr int kEnvDoctorTab = 0;
 
     // ── Navigation helpers ──────────────────────────────────────────────────
     auto goTo = [this](int row) {
@@ -172,10 +175,8 @@ void MainWindow::setupViews()
         contentStack_->setCurrentIndex(row);
     };
 
-    auto toValidator = [this, goTo, validatorView, environmentTabs,
-                        kToolsValidatorTab](const QString& content) {
-        goTo(NavTools);
-        environmentTabs->setCurrentIndex(kToolsValidatorTab);
+    auto toValidator = [this, goTo, validatorView](const QString& content) {
+        goTo(NavValidator);
         validatorView->checkContent(content);
     };
     connect(pluginView, &Views::PluginView::openInValidatorRequested, this, toValidator);
@@ -190,17 +191,14 @@ void MainWindow::setupViews()
                     if (!settingsVm_.isConnected())
                         return;
                 }
-                goTo(NavTools);
+                goTo(NavEnvironment);
                 environmentTabs->setCurrentIndex(kEnvDoctorTab);
                 doctorVm_.runAllChecks();
             });
     connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
             this, [goTo] { goTo(NavWorkspace); });
     connect(dashboardView, &Views::DashboardView::openValidatorRequested,
-            this, [goTo, environmentTabs, kToolsValidatorTab] {
-                goTo(NavTools);
-                environmentTabs->setCurrentIndex(kToolsValidatorTab);
-            });
+            this, [goTo] { goTo(NavValidator); });
     connect(dashboardView, &Views::DashboardView::openPacketToolsRequested,
             this, [goTo] { goTo(NavPacketTools); });
     connect(dashboardView, &Views::DashboardView::openLogsRequested,
@@ -209,10 +207,11 @@ void MainWindow::setupViews()
     // Keep this order aligned with NavIndex and the navRail_ addItem calls in setupNavigation().
     contentStack_->addWidget(dashboardView);                                    // 0 Home
     contentStack_->addWidget(pluginView);                                       // 1 Workspace (plugins + CMD/TLM)
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 2 Packets
-    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 3 Logs
-    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 4 Settings
-    contentStack_->addWidget(environmentTabs);                                  // 5 Tools
+    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 2 Settings
+    contentStack_->addWidget(environmentTabs);                                  // 3 Environment
+    contentStack_->addWidget(validatorView);                                    // 4 Validator
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 5 Packets
+    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 6 Logs
 }
 
 void MainWindow::showConnectionDialog()
