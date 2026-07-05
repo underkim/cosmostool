@@ -82,26 +82,40 @@ place and every module below is registered in `Application.cpp` and reachable
 from `MainWindow`'s navigation rail. The table reflects the current state of
 each area rather than the original phase plan.
 
-The navigation rail is kept short — **Home, Workspace, Packet Tools, Logs,
-Settings** — with the less-frequently used tools (Docker, Infra, Doctor,
-Validator) grouped under a single **Tools** entry. No feature is removed by
-this grouping; everything remains reachable. Workspace combines plugin
-management with CMD/TLM file browsing/editing in one screen (a VS-Code-style
-file tree + editor + collapsible log-streaming terminal), replacing what was
-originally a separate CMD/TLM Editor page. The **Home** page summarises
-Connection / Docker / OpenC3 status and offers one-click quick actions
-(Connect, Run Doctor, Workspace, Packet Tools, Logs).
+The navigation rail has a **Simple/Advanced mode toggle** (View menu, or the
+"Show More / Show Less" button under the rail), persisted across restarts and
+defaulting to **Simple mode**. In Simple mode only **Home, Workspace,
+Settings** are visible; toggling Advanced mode reveals **Environment**
+(Doctor/Docker/Infra grouped under one entry - all about the health/config of
+the connected environment), **Validator** (standalone offline CMD/TLM/screens/
+plugin.txt checker - promoted out of the old "Tools" grouping since it's a
+genuinely separate, often-offline workflow), **Packet Tools**, and **Logs**.
+No feature is removed by hiding these; everything remains reachable, and
+navigating to a hidden page programmatically (e.g. Home's "Run Doctor" quick
+action) transparently reveals Advanced mode rather than landing on an
+invisible-in-rail page. Workspace combines plugin management with CMD/TLM
+file browsing/editing in one screen (a VS-Code-style file tree + editor +
+collapsible log-streaming terminal), replacing what was originally a separate
+CMD/TLM Editor page. The **Home** page summarises Connection / Docker / OpenC3
+status and offers one-click quick actions (Connect, Run Doctor, Workspace,
+Validator, Packet Tools, Logs).
+
+Note for anyone with muscle memory for the old layout: the nav rail's Ctrl+N
+shortcuts are positional, so reordering rows to group Environment/Validator/
+Packet Tools/Logs together means e.g. Ctrl+4 no longer opens the same page it
+used to - check the rail's tooltips (hover any row) for the current mapping.
 
 | Module          | Status         | Notes                                                              |
 |-----------------|----------------|--------------------------------------------------------------------|
 | Architecture    | Implemented    | Layered app -> ui -> viewmodels -> services -> core/models         |
 | Home (Dashboard)| Implemented    | Status summary, quick actions, Connection / Docker / system metrics |
-| Docker Manager  | Needs hardening| Container list/control works; shell commands built by string concat |
-| Infra Manager   | Implemented    | ENV/Compose editing, volume overrides, plugin scaffolding          |
-| Doctor          | Needs hardening| Health checks run; some OpenC3 paths are hardcoded (e.g. `/cosmos`) |
+| Docker Manager  | Needs hardening| Under the Environment nav entry (Advanced mode). Container list/control works; shell commands built by string concat |
+| Infra Manager   | Implemented    | Under the Environment nav entry (Advanced mode). ENV/Compose editing, volume overrides, plugin scaffolding |
+| Doctor          | Needs hardening| Under the Environment nav entry (Advanced mode). Health checks run; some OpenC3 paths are hardcoded (e.g. `/cosmos`) |
 | Workspace       | Implemented    | Plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse, unified in one screen |
-| Packet Tools    | Partial        | Packet log file analysis                                           |
-| Log Viewer      | Implemented    | Real-time log streaming                                            |
+| Validator       | Implemented    | Standalone nav entry (Advanced mode) - offline checks for CMD/TLM, screens, plugin.txt |
+| Packet Tools    | Partial        | Advanced mode. Packet log file analysis                            |
+| Log Viewer      | Implemented    | Advanced mode. Real-time log streaming                             |
 | Settings        | Implemented    | Profile CRUD, WSL/SSH detection, JSON persistence                  |
 | Release packaging | Implemented  | NSIS installer + `windeployqt` packaging scripts                   |
 

@@ -144,11 +144,18 @@ void MainWindow::setupNavigation()
                              .arg(row + 1));
         navRail_->addItem(item);
 
-        // Ctrl+<n> jumps straight to this section from anywhere in the app.
+        // Ctrl+<n> jumps straight to this section from anywhere in the app - reveal
+        // Advanced mode first if the target row is currently hidden, same as goTo()
+        // does for programmatic navigation, so a shortcut never lands on a page with
+        // no visible nav highlight.
         auto* shortcut = new QShortcut(
             QKeySequence(QStringLiteral("Ctrl+%1").arg(row + 1)), this);
         connect(shortcut, &QShortcut::activated,
-                this, [this, row] { navRail_->setCurrentRow(row); });
+                this, [this, row] {
+                    if (isAdvancedRow(row) && navRail_->item(row) && navRail_->item(row)->isHidden())
+                        setShowAdvancedTools(true);
+                    navRail_->setCurrentRow(row);
+                });
     };
 
     addItem("Home", "Review status and jump to common workflows");                 // 0  (Ctrl+1)

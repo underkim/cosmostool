@@ -56,7 +56,23 @@
 
 <hr>
 
-<h2>2. 연결 설정 (Settings ⚙️)</h2>
+<h2>2. 화면 구성 (Simple / Advanced 모드)</h2>
+<p>왼쪽 내비게이션 목록은 기본적으로 <b>Home, Workspace, Settings</b> 세 항목만 표시됩니다
+(Simple 모드). Docker/Doctor/Infra를 모은 <b>Environment</b>, 독립적인 오프라인 검사
+화면인 <b>Validator</b>, <b>Packet Tools</b>, <b>Logs</b>는 숨겨져 있습니다 - 기능이 삭제된
+것이 아니라 화면을 더 간결하게 유지하기 위한 기본값입니다.</p>
+<ul>
+  <li>내비게이션 목록 아래의 <b>Show More ▾</b> 버튼을 클릭하거나,
+      상단 메뉴 <b>View → Show Advanced Tools</b>를 체크하면 숨겨진 항목이 모두 나타납니다
+      (<b>Show Less ▴</b>로 다시 접을 수 있습니다).</li>
+  <li>이 설정은 다음 실행 시에도 유지됩니다.</li>
+  <li>Home 화면의 빠른 작업(예: "Run Doctor")을 클릭하면, 해당 화면이 숨겨져 있어도
+      자동으로 Advanced 모드로 전환되며 이동합니다.</li>
+</ul>
+
+<hr>
+
+<h2>3. 연결 설정 (Settings ⚙️)</h2>
 
 <h3>Quick WSL (권장)</h3>
 <p>Windows에 설치된 WSL 배포판을 자동으로 감지해 프로파일을 바로 만듭니다.</p>
@@ -100,7 +116,7 @@
 
 <hr>
 
-<h2>3. Dashboard (📊)</h2>
+<h2>4. Dashboard (📊)</h2>
 <p>연결된 환경의 전반적인 상태를 한눈에 확인합니다.</p>
 <ul>
   <li><b>Connection</b> — 현재 연결 상태</li>
@@ -112,14 +128,15 @@
 
 <hr>
 
-<h2>4. Docker Manager (🐳)</h2>
-<p>원격 환경의 Docker 컨테이너를 관리합니다.</p>
+<h2>5. Docker Manager (🐳)</h2>
+<p>Environment 화면(Advanced 모드)의 한 탭입니다. 원격 환경의 Docker 컨테이너를 관리합니다.</p>
 
 <h3>컨테이너 목록</h3>
 <ul>
   <li><b>↻ Refresh</b> — 목록 새로고침</li>
   <li>열: Name, Image, Status, Ports</li>
-  <li>행을 선택하면 하단 버튼이 활성화됩니다.</li>
+  <li>행을 선택하면 하단 버튼이 활성화됩니다 (Start/Stop/Restart는 컨테이너의 실행
+      상태에 따라 실제로 적용 가능한 동작만 활성화됩니다).</li>
 </ul>
 
 <h3>컨테이너 작업</h3>
@@ -134,8 +151,8 @@
 
 <hr>
 
-<h2>5. System Doctor (🩺)</h2>
-<p>OpenC3 환경의 건강 상태를 11개 항목으로 점검합니다.</p>
+<h2>6. System Doctor (🩺)</h2>
+<p>Environment 화면(Advanced 모드)의 한 탭입니다. OpenC3 환경의 건강 상태를 11개 항목으로 점검합니다.</p>
 
 <h3>사용법</h3>
 <ol>
@@ -162,7 +179,7 @@
 
 <hr>
 
-<h2>6. Workspace (🧩)</h2>
+<h2>7. Workspace (🧩)</h2>
 <p>플러그인 관리와 CMD/TLM 파일 편집을 한 화면에서 처리합니다.</p>
 
 <h3>플러그인 관리</h3>
@@ -200,7 +217,21 @@
 
 <hr>
 
-<h2>7. Packet Tools (📦)</h2>
+<h2>8. Validator</h2>
+<p>연결 없이(오프라인) COSMOS 설정 파일을 검사하는 독립된 화면입니다. Workspace의
+"Offline Check" 버튼에서도 같은 검사가 실행되지만, 여기서는 폴더 전체를 검사하거나
+텍스트를 직접 붙여넣어 바로 확인할 수 있습니다.</p>
+<ul>
+  <li><b>Check Folder…</b> — 플러그인 또는 target 폴더 전체를 검사</li>
+  <li><b>Check File…</b> — 파일 하나를 선택해 검사</li>
+  <li><b>Paste &amp; Check</b> — 텍스트를 붙여넣고 유형(CMD/TLM, 화면, plugin.txt 등)을
+      자동 감지하거나 직접 선택해 <b>Check</b></li>
+  <li>결과 목록의 각 항목을 클릭하면 규칙(Rule)과 제안(Suggestion)이 하단에 표시됩니다.</li>
+</ul>
+
+<hr>
+
+<h2>9. Packet Tools (📦)</h2>
 <p>OpenC3가 기록한 패킷 로그 파일을 탐색합니다.</p>
 <ul>
   <li>로그 위치: <code>/cosmos/outputs/logs/tlm/</code></li>
@@ -211,7 +242,7 @@
 
 <hr>
 
-<h2>8. Log Viewer (📋)</h2>
+<h2>10. Log Viewer (📋)</h2>
 <p>원격 서버의 로그를 실시간으로 스트리밍합니다.</p>
 
 <h3>프리셋 명령</h3>
@@ -234,17 +265,21 @@
 
 <hr>
 
-<h2>9. 키보드 단축키</h2>
+<h2>11. 키보드 단축키</h2>
 <table>
   <tr><th>단축키</th><th>동작</th></tr>
   <tr><td><span class="shortcut">F1</span></td><td>이 사용 설명서 열기</td></tr>
   <tr><td><span class="shortcut">F5</span></td><td>현재 탭 새로고침</td></tr>
   <tr><td><span class="shortcut">Ctrl+Q</span></td><td>프로그램 종료</td></tr>
+  <tr><td><span class="shortcut">Ctrl+1</span> ~ <span class="shortcut">Ctrl+7</span></td>
+      <td>내비게이션 목록의 각 항목으로 바로 이동 (숫자는 목록에 표시된 순서를 따르며,
+      Simple/Advanced 모드에 따라 순서가 바뀔 수 있으니 각 항목에 마우스를 올려
+      정확한 단축키를 확인하세요)</td></tr>
 </table>
 
 <hr>
 
-<h2>10. 문제 해결</h2>
+<h2>12. 문제 해결</h2>
 
 <h3>연결 실패</h3>
 <ul>
