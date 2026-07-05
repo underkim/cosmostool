@@ -3,10 +3,9 @@
 #include <QString>
 
 // ── CMD/TLM editing snippets & helpers ───────────────────────────────────────
-// Single source of truth for the COSMOS CMD/TLM boilerplate that the CMD/TLM
-// editor (CmdTlmView) and the Plugin Manager's embedded component editor
-// (PluginView) both insert, plus the shared file-kind check. Previously each
-// view carried its own (slightly inconsistent) copies.
+// Single source of truth for the COSMOS CMD/TLM boilerplate that the Workspace
+// view's (PluginView) embedded component editor inserts, plus the shared
+// file-kind check.
 
 namespace OpenC3::UI::Widgets::CmdTlmSnippets {
 

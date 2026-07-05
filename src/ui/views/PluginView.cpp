@@ -28,8 +28,8 @@ namespace OpenC3::UI::Views {
 
 namespace {
 
-// CMD/TLM insert templates and the cmd_tlm file-kind check are shared with
-// CmdTlmView (ui/widgets/CmdTlmSnippets.h).
+// CMD/TLM insert templates and the cmd_tlm file-kind check
+// (ui/widgets/CmdTlmSnippets.h).
 using OpenC3::UI::Widgets::CmdTlmSnippets::isCmdTlmFile;
 
 QString componentKind(const QString& path)
