@@ -20,10 +20,10 @@ LogWidget::LogWidget(QWidget* parent)
     auto* tbLayout  = new QHBoxLayout(toolBar);
     tbLayout->setContentsMargins(0, 0, 0, 0);
 
-    tailCheckbox_ = new QCheckBox("Auto-scroll", toolBar);
+    tailCheckbox_ = new QCheckBox(tr("Auto-scroll"), toolBar);
     tailCheckbox_->setChecked(true);
 
-    auto* clearBtn = new QPushButton("Clear", toolBar);
+    auto* clearBtn = new QPushButton(tr("Clear"), toolBar);
     clearBtn->setFixedWidth(60);
     connect(clearBtn, &QPushButton::clicked, this, &LogWidget::clear);
 

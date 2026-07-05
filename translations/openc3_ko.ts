@@ -3379,6 +3379,19 @@ OpenC3 디렉터리나 openc3.sh 경로를 직접 입력하세요.</translation>
     </message>
 </context>
 <context>
+    <name>OpenC3::UI::Widgets::LogWidget</name>
+    <message>
+        <location filename="../src/ui/widgets/LogWidget.cpp" line="23"/>
+        <source>Auto-scroll</source>
+        <translation type="unfinished">자동 스크롤</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/widgets/LogWidget.cpp" line="26"/>
+        <source>Clear</source>
+        <translation>지우기</translation>
+    </message>
+</context>
+<context>
     <name>OpenC3::UI::Widgets::StatusBadge</name>
     <message>
         <location filename="../src/ui/widgets/StatusBadge.cpp" line="10"/>
