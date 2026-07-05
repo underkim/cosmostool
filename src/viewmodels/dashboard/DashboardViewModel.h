@@ -43,6 +43,11 @@ public:
     [[nodiscard]] double  diskPercent()      const noexcept;
     [[nodiscard]] int     containerCount()   const noexcept;
 
+    // Raw state for view-layer logic (badge style, guidance branching) that
+    // must not depend on the (now-translated) display text returned above.
+    [[nodiscard]] Services::ConnectionState connectionState() const noexcept;
+    [[nodiscard]] bool                      isDockerRunning() const noexcept;
+
 public slots:
     void refresh();
     void setRefreshIntervalMs(int ms);
@@ -66,8 +71,9 @@ private:
 
     QTimer* timer_{nullptr};
 
-    QString connectionStatus_{"Disconnected"};
-    QString dockerStatus_{"Unknown"};
+    Services::ConnectionState connectionState_{Services::ConnectionState::Disconnected};
+    QString connectionErrorMessage_;
+    bool    dockerRunning_{false};
     QString openC3Version_{"Unknown"};
     double  cpuPercent_{0.0};
     double  memPercent_{0.0};

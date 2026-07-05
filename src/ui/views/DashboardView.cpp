@@ -182,23 +182,21 @@ void DashboardView::setupUi()
 void DashboardView::bindViewModel()
 {
     auto updateConnection = [this] {
-        const QString s = vm_.connectionStatus();
-        const auto style = s.startsWith("Connected")
+        const auto style = vm_.connectionState() == Services::ConnectionState::Connected
             ? Widgets::BadgeStyle::Success
-            : s.startsWith("Error")
+            : vm_.connectionState() == Services::ConnectionState::Error
                 ? Widgets::BadgeStyle::Error
                 : Widgets::BadgeStyle::Neutral;
-        connectionBadge_->setStyle(style, s);
+        connectionBadge_->setStyle(style, vm_.connectionStatus());
 
         updateHomeGuidance();
     };
 
     auto updateDocker = [this] {
-        const QString s = vm_.dockerStatus();
-        const auto style = s.startsWith("Running")
+        const auto style = vm_.isDockerRunning()
             ? Widgets::BadgeStyle::Success
             : Widgets::BadgeStyle::Error;
-        dockerBadge_->setStyle(style, s);
+        dockerBadge_->setStyle(style, vm_.dockerStatus());
         containerLabel_->setText(QString::number(vm_.containerCount()));
         updateHomeGuidance();
     };
@@ -233,10 +231,8 @@ void DashboardView::bindViewModel()
 
 void DashboardView::updateHomeGuidance()
 {
-    const QString connection = vm_.connectionStatus();
-    const QString docker = vm_.dockerStatus();
-    const bool connected = connection.startsWith("Connected");
-    const bool dockerRunning = docker.startsWith("Running");
+    const bool connected = vm_.connectionState() == Services::ConnectionState::Connected;
+    const bool dockerRunning = vm_.isDockerRunning();
 
     const std::size_t nextStep = !connected ? 0U : (!dockerRunning ? 1U : 2U);
 
@@ -282,8 +278,8 @@ void DashboardView::updateHomeGuidance()
 
 void DashboardView::onRecommendedActionClicked()
 {
-    const bool connected = vm_.connectionStatus().startsWith("Connected");
-    const bool dockerRunning = vm_.dockerStatus().startsWith("Running");
+    const bool connected = vm_.connectionState() == Services::ConnectionState::Connected;
+    const bool dockerRunning = vm_.isDockerRunning();
 
     if (!connected) {
         emit connectRequested();

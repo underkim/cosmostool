@@ -49,6 +49,17 @@ QStringList detectWslDistros()
     return distros;
 }
 
+QString connectionStateText(Services::ConnectionState state, const QString& errorMessage)
+{
+    switch (state) {
+        case Services::ConnectionState::Connected:    return ConnectionDialog::tr("Connected");
+        case Services::ConnectionState::Connecting:   return ConnectionDialog::tr("Connecting");
+        case Services::ConnectionState::Disconnected: return ConnectionDialog::tr("Disconnected");
+        case Services::ConnectionState::Error:        return ConnectionDialog::tr("Error: %1").arg(errorMessage);
+    }
+    return {};
+}
+
 } // namespace
 
 ConnectionDialog::ConnectionDialog(
@@ -94,13 +105,13 @@ ConnectionDialog::ConnectionDialog(
     layout->addLayout(btnRow);
 
     connect(&vm_, &ViewModels::SettingsViewModel::connectionStateChanged,
-            this, [this](const QString& state) {
-                statusLabel_->setText(state);
-                const bool connecting = (state == "Connecting");
+            this, [this](Services::ConnectionState state, const QString& errorMessage) {
+                statusLabel_->setText(connectionStateText(state, errorMessage));
+                const bool connecting = (state == Services::ConnectionState::Connecting);
                 const bool hasProfiles = (profileCombo_->count() > 0);
                 connectBtn_->setEnabled(hasProfiles && !connecting);
                 quickWslBtn_->setEnabled(!quickWslDistro_.isEmpty() && !connecting);
-                if (state == "Connected") accept();
+                if (state == Services::ConnectionState::Connected) accept();
             });
 
     vm_.loadProfiles();

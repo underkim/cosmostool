@@ -40,12 +40,12 @@ private:
     void bindViewModel();
     void populateProfileForm(const Models::ConnectionProfile& p);
     Models::ConnectionProfile collectProfileForm() const;
-    void updateConnectionButtons(const QString& state);
+    void updateConnectionButtons(Services::ConnectionState state);
     void updateProfileSelectionUi();
-    void updateActionHints(const QString& state);
+    void updateActionHints(Services::ConnectionState state);
 
     ViewModels::SettingsViewModel& vm_;
-    QString connectionState_{"Disconnected"};
+    Services::ConnectionState connectionState_{Services::ConnectionState::Disconnected};
 
     // Left pane — profile list
     QListView*   profileList_{nullptr};

@@ -7,13 +7,13 @@ namespace {
 QString statusPrefix(BadgeStyle style)
 {
     switch (style) {
-        case BadgeStyle::Success: return QStringLiteral("OK");
-        case BadgeStyle::Warning: return QStringLiteral("Warning");
-        case BadgeStyle::Error:   return QStringLiteral("Error");
-        case BadgeStyle::Info:    return QStringLiteral("Info");
-        case BadgeStyle::Neutral: return QStringLiteral("Disconnected");
+        case BadgeStyle::Success: return StatusBadge::tr("OK");
+        case BadgeStyle::Warning: return StatusBadge::tr("Warning");
+        case BadgeStyle::Error:   return StatusBadge::tr("Error");
+        case BadgeStyle::Info:    return StatusBadge::tr("Info");
+        case BadgeStyle::Neutral: return StatusBadge::tr("Disconnected");
     }
-    return QStringLiteral("Status");
+    return StatusBadge::tr("Status");
 }
 
 QString prefixedStatusText(BadgeStyle style, const QString& text)
@@ -29,7 +29,7 @@ QString prefixedStatusText(BadgeStyle style, const QString& text)
 
 QString accessibleStatusDescription(BadgeStyle style, const QString& text)
 {
-    return QStringLiteral("Status %1").arg(prefixedStatusText(style, text));
+    return StatusBadge::tr("Status %1").arg(prefixedStatusText(style, text));
 }
 
 } // namespace

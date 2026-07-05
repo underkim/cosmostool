@@ -24,33 +24,15 @@ DashboardViewModel::DashboardViewModel(
     connect(timer_, &QTimer::timeout, this, &DashboardViewModel::refresh);
     timer_->start();
 
-    switch (connection_.state()) {
-        case Services::ConnectionState::Connected:
-            connectionStatus_ = "Connected";
-            break;
-        case Services::ConnectionState::Connecting:
-            connectionStatus_ = "Connecting";
-            break;
-        case Services::ConnectionState::Disconnected:
-            connectionStatus_ = "Disconnected";
-            break;
-        case Services::ConnectionState::Error:
-            connectionStatus_ = "Error";
-            break;
-    }
+    connectionState_ = connection_.state();
 
     // Sync connection status — callback fires on the worker thread; marshal to GUI thread.
     connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
-        QString s;
-        switch (ev.state) {
-            case Services::ConnectionState::Connected:    s = "Connected";    break;
-            case Services::ConnectionState::Connecting:   s = "Connecting";   break;
-            case Services::ConnectionState::Disconnected: s = "Disconnected"; break;
-            case Services::ConnectionState::Error:
-                s = "Error: " + QString::fromStdString(ev.errorMessage); break;
-        }
-        QMetaObject::invokeMethod(this, [this, s] {
-            connectionStatus_ = s;
+        const auto state = ev.state;
+        const QString errorMessage = QString::fromStdString(ev.errorMessage);
+        QMetaObject::invokeMethod(this, [this, state, errorMessage] {
+            connectionState_ = state;
+            connectionErrorMessage_ = errorMessage;
             emit connectionStatusChanged();
         }, Qt::QueuedConnection);
     });
@@ -60,13 +42,32 @@ DashboardViewModel::~DashboardViewModel() = default;
 
 // ── Property accessors ────────────────────────────────────────────────────────
 
-QString DashboardViewModel::connectionStatus() const noexcept { return connectionStatus_; }
-QString DashboardViewModel::dockerStatus()     const noexcept { return dockerStatus_;     }
+QString DashboardViewModel::connectionStatus() const noexcept
+{
+    switch (connectionState_) {
+        case Services::ConnectionState::Connected:    return tr("Connected");
+        case Services::ConnectionState::Connecting:   return tr("Connecting");
+        case Services::ConnectionState::Disconnected: return tr("Disconnected");
+        case Services::ConnectionState::Error:        return tr("Error: %1").arg(connectionErrorMessage_);
+    }
+    return {};
+}
+
+QString DashboardViewModel::dockerStatus() const noexcept
+{
+    return dockerRunning_
+        ? tr("Running (%1 containers)").arg(containerCount_)
+        : tr("Not running");
+}
+
 QString DashboardViewModel::openC3Version()    const noexcept { return openC3Version_;    }
 double  DashboardViewModel::cpuPercent()       const noexcept { return cpuPercent_;       }
 double  DashboardViewModel::memPercent()       const noexcept { return memPercent_;       }
 double  DashboardViewModel::diskPercent()      const noexcept { return diskPercent_;      }
 int     DashboardViewModel::containerCount()   const noexcept { return containerCount_;   }
+
+Services::ConnectionState DashboardViewModel::connectionState() const noexcept { return connectionState_; }
+bool                      DashboardViewModel::isDockerRunning() const noexcept { return dockerRunning_;    }
 
 // ── Refresh ───────────────────────────────────────────────────────────────────
 
@@ -173,9 +174,7 @@ void DashboardViewModel::onMetricsFetched(
 void DashboardViewModel::onDockerFetched(int running, bool daemonOk)
 {
     containerCount_ = running;
-    dockerStatus_   = daemonOk
-        ? QString("Running (%1 containers)").arg(running)
-        : "Not running";
+    dockerRunning_  = daemonOk;
     emit dockerStatusChanged();
 }
 

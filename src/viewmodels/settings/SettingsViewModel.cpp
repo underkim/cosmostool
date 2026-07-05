@@ -59,16 +59,10 @@ SettingsViewModel::SettingsViewModel(
 {
     // Callback fires on the worker thread — marshal signal emission to the GUI thread.
     connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
-        QString s;
-        switch (ev.state) {
-            case Services::ConnectionState::Connected:    s = "Connected";    break;
-            case Services::ConnectionState::Connecting:   s = "Connecting";   break;
-            case Services::ConnectionState::Disconnected: s = "Disconnected"; break;
-            case Services::ConnectionState::Error:
-                s = "Error: " + QString::fromStdString(ev.errorMessage); break;
-        }
-        QMetaObject::invokeMethod(this, [this, s] {
-            emit connectionStateChanged(s);
+        const auto state = ev.state;
+        const QString errorMessage = QString::fromStdString(ev.errorMessage);
+        QMetaObject::invokeMethod(this, [this, state, errorMessage] {
+            emit connectionStateChanged(state, errorMessage);
         }, Qt::QueuedConnection);
     });
 }

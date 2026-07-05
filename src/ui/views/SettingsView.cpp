@@ -16,6 +16,21 @@
 
 namespace OpenC3::UI::Views {
 
+namespace {
+
+QString connectionStateText(Services::ConnectionState state, const QString& errorMessage)
+{
+    switch (state) {
+        case Services::ConnectionState::Connected:    return SettingsView::tr("Connected");
+        case Services::ConnectionState::Connecting:   return SettingsView::tr("Connecting");
+        case Services::ConnectionState::Disconnected: return SettingsView::tr("Disconnected");
+        case Services::ConnectionState::Error:        return SettingsView::tr("Error: %1").arg(errorMessage);
+    }
+    return {};
+}
+
+} // namespace
+
 SettingsView::SettingsView(
     ViewModels::SettingsViewModel& vm, QWidget* parent)
     : QWidget(parent)
@@ -333,9 +348,9 @@ void SettingsView::bindViewModel()
             this, [this] { updateProfileSelectionUi(); });
 
     connect(&vm_, &ViewModels::SettingsViewModel::connectionStateChanged,
-            this, [this](const QString& state) {
+            this, [this](Services::ConnectionState state, const QString& errorMessage) {
                 connectionState_ = state;
-                statusLabel_->setText(tr("Status:") + " " + state);
+                statusLabel_->setText(tr("Status:") + " " + connectionStateText(state, errorMessage));
                 updateConnectionButtons(state);
                 updateActionHints(state);
             });
@@ -347,8 +362,8 @@ void SettingsView::bindViewModel()
     // Sync button state with the actual current connection state.
     // SettingsView may be created AFTER a successful connect (e.g. via
     // ConnectionDialog), so the "Connected" signal has already been consumed.
-    updateConnectionButtons(vm_.isConnected() ? "Connected" : "Disconnected");
-    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+    updateConnectionButtons(vm_.isConnected() ? Services::ConnectionState::Connected : Services::ConnectionState::Disconnected);
+    updateActionHints(vm_.isConnected() ? Services::ConnectionState::Connected : Services::ConnectionState::Disconnected);
 }
 
 // ── Slots ─────────────────────────────────────────────────────────────────────
@@ -479,7 +494,7 @@ void SettingsView::onAddProfile()
     updateProfileSelectionUi();
     nameEdit_->setFocus();
     nameEdit_->selectAll();
-    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+    updateActionHints(vm_.isConnected() ? Services::ConnectionState::Connected : Services::ConnectionState::Disconnected);
 }
 
 void SettingsView::onQuickWslProfile()
@@ -535,7 +550,7 @@ void SettingsView::onQuickWslProfile()
         tr("Status: WSL profile created for %1 — review it, then Save & Connect.")
             .arg(distro));
     updateProfileSelectionUi();
-    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+    updateActionHints(vm_.isConnected() ? Services::ConnectionState::Connected : Services::ConnectionState::Disconnected);
 }
 
 void SettingsView::onDeleteProfile()
@@ -569,12 +584,12 @@ void SettingsView::onDisconnectClicked()
 void SettingsView::onProfileSelected(const QModelIndex& idx)
 {
     if (!idx.isValid()) {
-        updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+        updateActionHints(vm_.isConnected() ? Services::ConnectionState::Connected : Services::ConnectionState::Disconnected);
         return;
     }
     const auto* p = vm_.profileModel()->profileAt(idx.row());
     if (p) populateProfileForm(*p);
-    updateActionHints(vm_.isConnected() ? "Connected" : "Disconnected");
+    updateActionHints(vm_.isConnected() ? Services::ConnectionState::Connected : Services::ConnectionState::Disconnected);
 }
 
 // ── Form helpers ──────────────────────────────────────────────────────────────
@@ -637,10 +652,10 @@ Models::ConnectionProfile SettingsView::collectProfileForm() const
     return p;
 }
 
-void SettingsView::updateConnectionButtons(const QString& state)
+void SettingsView::updateConnectionButtons(Services::ConnectionState state)
 {
-    const bool connected  = (state == "Connected");
-    const bool connecting = (state == "Connecting");
+    const bool connected  = (state == Services::ConnectionState::Connected);
+    const bool connecting = (state == Services::ConnectionState::Connecting);
 
     connectBtn_->setVisible(!connected);
     disconnectBtn_->setVisible(connected);
@@ -668,10 +683,10 @@ void SettingsView::updateProfileSelectionUi()
     updateActionHints(connectionState_);
 }
 
-void SettingsView::updateActionHints(const QString& state)
+void SettingsView::updateActionHints(Services::ConnectionState state)
 {
-    const bool connected = (state == "Connected");
-    const bool connecting = (state == "Connecting");
+    const bool connected = (state == Services::ConnectionState::Connected);
+    const bool connecting = (state == Services::ConnectionState::Connecting);
     const bool hasProfile = profileList_->currentIndex().isValid();
     const QString connectReason = tr("Connect to an OpenC3 environment first.");
     const QString profileReason = tr("Select a connection profile first.");

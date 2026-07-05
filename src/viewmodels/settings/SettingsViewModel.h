@@ -49,7 +49,7 @@ public slots:
 
 signals:
     void profilesChanged();
-    void connectionStateChanged(const QString& state);
+    void connectionStateChanged(Services::ConnectionState state, const QString& errorMessage);
 
 private:
     Services::ISettingsService&  settings_;
