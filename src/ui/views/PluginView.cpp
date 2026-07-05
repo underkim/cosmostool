@@ -206,11 +206,15 @@ void PluginView::setupUi()
 
     // Add Target and Remove are secondary/less-frequent actions - kept as
     // real QPushButtons (so existing clicked-signal wiring is untouched) but
-    // never added to a visible layout. Their enabled/tooltip state is
-    // mirrored onto addTargetAction_/removeAction_ below, which are what the
-    // user actually sees and clicks, in the "More" menu.
+    // never added to a visible layout, so they must be hidden explicitly -
+    // parented-but-unlaid-out widgets still render at their default position
+    // otherwise. Their enabled/tooltip state is mirrored onto
+    // addTargetAction_/removeAction_ below, which are what the user actually
+    // sees and clicks, in the "More" menu.
     addTargetBtn_->setToolTip("Add a target to the selected local plugin folder.");
     removeBtn_->setToolTip("Remove the selected plugin from OpenC3.");
+    addTargetBtn_->setVisible(false);
+    removeBtn_->setVisible(false);
 
     buildBtn_->setObjectName("PrimaryButton");
     refreshBtn_->setObjectName("SecondaryIconButton");
@@ -487,15 +491,14 @@ void PluginView::setupUi()
     updateComponentEmptyState();
     // No hardcoded pixel-width floors on the buttons below that are actually
     // shown in the UI (openComponentBtn_/saveComponentBtn_/
-    // validateComponentBtn_/startCmdTlmEditBtn_/
-    // addStructureFieldBtn_/deleteStructureFieldBtn_) - each QPushButton's
-    // own sizeHint already reserves exactly the space its current text needs
-    // for the active font/DPI, so it can never clip. The remaining buttons
-    // here (validateOfflineBtn_, insertCmdBtn_, insertTlmBtn_, addFieldBtn_,
-    // refreshStructureBtn_, applyStructureBtn_) are never added to a layout -
-    // they only back the enabled/tooltip state mirrored onto the equivalent
-    // QAction in the Check/Insert/Fields dropdown menus - so their width is
-    // irrelevant.
+    // validateComponentBtn_/startCmdTlmEditBtn_) - each QPushButton's own
+    // sizeHint already reserves exactly the space its current text needs for
+    // the active font/DPI, so it can never clip. The remaining buttons here
+    // (validateOfflineBtn_, insertCmdBtn_, insertTlmBtn_, addFieldBtn_,
+    // addStructureFieldBtn_, deleteStructureFieldBtn_, refreshStructureBtn_,
+    // applyStructureBtn_) are never added to a layout - they only back the
+    // enabled/tooltip state mirrored onto the equivalent QAction in the
+    // Check/Insert/Fields dropdown menus - so their width is irrelevant.
     validateOfflineBtn_->setMinimumWidth(110);
     insertCmdBtn_->setMinimumWidth(110);
     insertTlmBtn_->setMinimumWidth(120);
@@ -574,13 +577,6 @@ void PluginView::setupUi()
     blockFieldRow->addWidget(blockDescriptionEdit_, 1);
     blockFieldRow->addWidget(applyBlockBtn_);
     structureLayout->addLayout(blockFieldRow);
-
-    auto* fieldActionRow = new QHBoxLayout;
-    fieldActionRow->setSpacing(6);
-    fieldActionRow->addWidget(addStructureFieldBtn_);
-    fieldActionRow->addWidget(deleteStructureFieldBtn_);
-    fieldActionRow->addStretch();
-    structureLayout->addLayout(fieldActionRow);
 
     blockSelectorCombo_->setEnabled(false);
     blockTargetEdit_->setEnabled(false);

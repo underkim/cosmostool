@@ -121,7 +121,11 @@ QWidget* PacketToolsView::buildLogsTab()
     // ── Splitter: log list / content + analysis ───────────────────────────────
     auto* splitter = new QSplitter(Qt::Horizontal, tab);
 
-    auto* leftGroup  = new QGroupBox("Packet Logs (/cosmos/outputs/logs/tlm/)", splitter);
+    // Short title - QGroupBox titles don't wrap or elide, so the full path
+    // clipped mid-word when the panel was narrower than the title text. Full
+    // path is still discoverable via the tooltip.
+    auto* leftGroup  = new QGroupBox("Packet Logs", splitter);
+    leftGroup->setToolTip("/cosmos/outputs/logs/tlm/");
     auto* leftLayout = new QVBoxLayout(leftGroup);
     logList_ = new QListWidget(leftGroup);
     leftLayout->addWidget(logList_);

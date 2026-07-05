@@ -129,6 +129,10 @@ void MainWindow::setupNavigation()
     navRail_->setFixedWidth(200);
     navRail_->setFrameShape(QFrame::NoFrame);
     navRail_->setSpacing(2);
+    // A fixed-width vertical list of short single-line labels never needs to
+    // scroll horizontally - without this, Qt was reserving a useless
+    // horizontal scrollbar strip at the bottom of the rail.
+    navRail_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     auto addItem = [&](const QString& text, const QString& description) {
         const int row = navRail_->count();
