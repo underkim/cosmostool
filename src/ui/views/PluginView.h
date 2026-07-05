@@ -67,6 +67,7 @@ private slots:
     void onBrowseGoClicked();
     void onBrowseItemDoubleClicked(QListWidgetItem* item);
     void onToggleTerminalClicked();
+    void onDiagnosticItemClicked(QListWidgetItem* item);
 
 signals:
     void openCmdTlmRequested(const QString& remoteFilePath);
@@ -144,6 +145,12 @@ private:
     QLabel*      componentPathLabel_{nullptr};
     QTextEdit*   componentEditor_{nullptr};
     QTextEdit*   componentDiagnostics_{nullptr};
+    // Itemized, click-to-jump, severity-colored diagnostics from the last
+    // CMD/TLM parse or offline validation - richer than componentDiagnostics_
+    // (which stays a free-text status line for one-off messages like
+    // "Loaded"/"Saved"), ported from CmdTlmView's diagnosticList_.
+    QListWidget* diagnosticList_{nullptr};
+    QLabel*      diagnosticListEmptyLabel_{nullptr};
     QTableWidget* structureTable_{nullptr};
     QComboBox*   blockSelectorCombo_{nullptr};
     QLabel*      blockKindLabel_{nullptr};

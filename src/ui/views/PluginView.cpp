@@ -612,8 +612,16 @@ void PluginView::setupUi()
     componentDiagnostics_ = new QTextEdit(editorPane);
     componentDiagnostics_->setObjectName("LogArea");
     componentDiagnostics_->setReadOnly(true);
-    componentDiagnostics_->setMaximumHeight(150);
+    componentDiagnostics_->setMaximumHeight(60);
     componentDiagnostics_->setPlaceholderText("Validation results will appear here.");
+
+    diagnosticList_ = new QListWidget(editorPane);
+    diagnosticList_->setObjectName("PluginDiagnosticList");
+    diagnosticList_->setMaximumHeight(150);
+    diagnosticListEmptyLabel_ = new QLabel("No diagnostics yet - check the file to see issues here.", editorPane);
+    diagnosticListEmptyLabel_->setObjectName("SubLabel");
+    diagnosticListEmptyLabel_->setWordWrap(true);
+
     componentEditorTabs_->addTab(componentEditor_, "Source");
     componentEditorTabs_->addTab(structureTab, "Structure");
 
@@ -637,6 +645,8 @@ void PluginView::setupUi()
     editorLayout->addWidget(centerSplitter, 1);
     editorLayout->addWidget(new QLabel("Validation summary", editorPane));
     editorLayout->addWidget(componentDiagnostics_);
+    editorLayout->addWidget(diagnosticListEmptyLabel_);
+    editorLayout->addWidget(diagnosticList_);
     componentLayout->addWidget(editorPane, 1);
     detailTabs_->addTab(componentTab, "File");
     validateOfflineBtn_->setVisible(false);
@@ -723,6 +733,7 @@ void PluginView::bindViewModel()
             this, &PluginView::onBlockSelectionChanged);
     connect(toggleReferenceBtn_, &QPushButton::clicked, this, &PluginView::onToggleReferenceClicked);
     connect(toggleTerminalBtn_, &QPushButton::clicked, this, &PluginView::onToggleTerminalClicked);
+    connect(diagnosticList_, &QListWidget::itemClicked, this, &PluginView::onDiagnosticItemClicked);
     connect(componentEditor_, &QTextEdit::textChanged,
             this, [this] {
                 if (!currentComponentPath_.isEmpty())
@@ -916,6 +927,8 @@ void PluginView::bindViewModel()
                     : "Editing a plugin text file. Review changes carefully before saving.");
                 componentDiagnostics_->setPlainText(
                     cmdTlm ? "Loaded CMD/TLM definition." : "Loaded text file.");
+                diagnosticList_->clear();
+                diagnosticListEmptyLabel_->setVisible(true);
                 refreshStructureTable();
                 detailTabs_->setCurrentIndex(1);
                 setCmdTlmActionsVisible(cmdTlm);
@@ -941,15 +954,25 @@ void PluginView::bindViewModel()
                 if (filePath != currentComponentPath_ || !isCmdTlmFile(filePath))
                     return;
 
-                QStringList lines;
-                lines << QString("Blocks: %1, Errors: %2, Warnings: %3")
-                             .arg(result.blocks.size())
-                             .arg(result.errorCount())
-                             .arg(result.warningCount());
+                componentDiagnostics_->setPlainText(
+                    QString("Blocks: %1, Errors: %2, Warnings: %3")
+                        .arg(result.blocks.size())
+                        .arg(result.errorCount())
+                        .arg(result.warningCount()));
+
+                diagnosticList_->clear();
                 for (const auto& d : result.diagnostics) {
-                    lines << QString("Line %1: %2").arg(d.line).arg(d.message);
+                    const bool isError = (d.severity == ViewModels::CmdTlmDiagnostic::Severity::Error);
+                    const QString text = QString("%1 Line %2: %3")
+                        .arg(isError ? "Error" : "Warning")
+                        .arg(d.line)
+                        .arg(d.message);
+                    auto* li = new QListWidgetItem(text, diagnosticList_);
+                    li->setData(Qt::UserRole, d.line);
+                    li->setForeground(isError ? QColor("#F44747") : QColor("#CCA700"));
                 }
-                componentDiagnostics_->setPlainText(lines.join('\n'));
+                diagnosticListEmptyLabel_->setVisible(diagnosticList_->count() == 0);
+
                 if (detailTabs_)
                     detailTabs_->setCurrentIndex(1);
             });
@@ -961,31 +984,34 @@ void PluginView::bindViewModel()
                 pendingOfflineValidation_ = false;
 
                 const auto& report = validatorVm_.report();
-                QStringList lines;
-                lines << QString("File check: %1").arg(report.summary());
-                lines << QString("Source: %1").arg(currentComponentDisplayPath_.isEmpty()
-                    ? validatorVm_.lastSource()
-                    : currentComponentDisplayPath_);
-                lines << QString();
+                componentDiagnostics_->setPlainText(QString("File check: %1   Source: %2")
+                    .arg(report.summary(), currentComponentDisplayPath_.isEmpty()
+                        ? validatorVm_.lastSource()
+                        : currentComponentDisplayPath_));
 
-                if (report.diagnostics.isEmpty()) {
-                    lines << "No problems found.";
-                } else {
-                    for (const auto& d : report.diagnostics) {
-                        const QString location = d.line > 0
-                            ? QString("line %1").arg(d.line)
-                            : QString("file");
-                        QString row = QString("[%1] %2: %3")
-                            .arg(d.severityLabel(), location, d.message);
-                        if (!d.rule.isEmpty())
-                            row += QString(" (%1)").arg(d.rule);
-                        lines << row;
-                        if (!d.suggestion.isEmpty())
-                            lines << QString("  Fix: %1").arg(d.suggestion);
+                diagnosticList_->clear();
+                for (const auto& d : report.diagnostics) {
+                    const QString location = d.line > 0
+                        ? QString("line %1").arg(d.line)
+                        : QString("file");
+                    QString text = QString("%1 %2: %3")
+                        .arg(d.severityLabel(), location, d.message);
+                    if (!d.rule.isEmpty())
+                        text += QString(" (%1)").arg(d.rule);
+                    if (!d.suggestion.isEmpty())
+                        text += QString("  Fix: %1").arg(d.suggestion);
+
+                    auto* li = new QListWidgetItem(text, diagnosticList_);
+                    li->setData(Qt::UserRole, d.line);
+                    using Severity = ViewModels::Validation::Diagnostic::Severity;
+                    switch (d.severity) {
+                    case Severity::Error:   li->setForeground(QColor("#F44747")); break;
+                    case Severity::Warning: li->setForeground(QColor("#CCA700")); break;
+                    case Severity::Info:    li->setForeground(QColor("#9A9A9A")); break;
                     }
                 }
+                diagnosticListEmptyLabel_->setVisible(diagnosticList_->count() == 0);
 
-                componentDiagnostics_->setPlainText(lines.join('\n'));
                 if (detailTabs_)
                     detailTabs_->setCurrentIndex(1);
             });
@@ -1075,6 +1101,8 @@ void PluginView::onTableSelectionChanged()
     updateComponentEmptyState();
     componentEditor_->clear();
     componentDiagnostics_->clear();
+    diagnosticList_->clear();
+    diagnosticListEmptyLabel_->setVisible(true);
     structureTable_->setRowCount(0);
     currentBlocks_.clear();
     refreshBlockEditor();
@@ -1715,6 +1743,19 @@ void PluginView::onToggleTerminalClicked()
     terminalPanel_->setVisible(!terminalPanel_->isVisible());
     if (toggleTerminalBtn_)
         toggleTerminalBtn_->setChecked(terminalPanel_->isVisible());
+}
+
+void PluginView::onDiagnosticItemClicked(QListWidgetItem* item)
+{
+    if (!item) return;
+    const int line = item->data(Qt::UserRole).toInt();
+    if (line < 1) return;
+    const QTextBlock block = componentEditor_->document()->findBlockByLineNumber(line - 1);
+    if (!block.isValid()) return;
+    QTextCursor cursor(block);
+    componentEditor_->setTextCursor(cursor);
+    componentEditor_->ensureCursorVisible();
+    componentEditor_->setFocus();
 }
 
 void PluginView::applyStructureRowToEditor(int row)
