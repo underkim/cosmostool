@@ -586,6 +586,10 @@ void PluginView::setupUi()
     applyBlockBtn_ = new QPushButton("Apply Block", structureGroup);
     applyBlockBtn_->setToolTip("Updates the selected COMMAND/TELEMETRY line. "
                               "Comments and child fields are preserved.");
+    // Unlike the other buttons on this row, this one has no default width
+    // floor - once the Reference panel or a narrower window squeezes this
+    // row, QPushButton clips its own label ("pply Bloc") instead of eliding.
+    applyBlockBtn_->setMinimumWidth(applyBlockBtn_->sizeHint().width());
     blockFieldRow->addWidget(new QLabel("Target:", structureGroup));
     blockFieldRow->addWidget(blockTargetEdit_);
     blockFieldRow->addWidget(new QLabel("Name:", structureGroup));
@@ -1681,7 +1685,9 @@ void PluginView::populateBlockForm(int blockIndex)
     const bool isCommand = block.kind == ViewModels::CmdTlmBlock::Kind::Command;
     blockKindLabel_->setText(isCommand ? "COMMAND" : "TELEMETRY");
     blockTargetEdit_->setText(block.targetName);
+    blockTargetEdit_->setCursorPosition(0);
     blockNameEdit_->setText(block.name);
+    blockNameEdit_->setCursorPosition(0);
     blockDescriptionEdit_->setText(block.description);
     // setText() leaves the cursor at the end, so a description longer than the
     // field's width scrolls to show the tail instead of the start - reset the
