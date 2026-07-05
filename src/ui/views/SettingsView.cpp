@@ -101,6 +101,7 @@ void SettingsView::setupUi()
     leftLayout->setContentsMargins(0, 0, 0, 0);
 
     profileList_ = new QListView(leftPane);
+    profileList_->setObjectName("ConnectionProfileList");
     profileList_->setModel(vm_.profileModel());
     profileList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
 

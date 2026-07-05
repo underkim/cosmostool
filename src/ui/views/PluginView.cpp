@@ -305,6 +305,7 @@ void PluginView::setupUi()
     auto* pluginListLayout = new QVBoxLayout(pluginListGroup);
     pluginListLayout->setContentsMargins(8, 14, 8, 8);
     tableView_ = new QTableView(pluginListGroup);
+    tableView_->setObjectName("PluginTable");
     tableView_->setModel(vm_.pluginModel());
     tableView_->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView_->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -696,7 +697,14 @@ void PluginView::setupUi()
     verticalSplitter->setChildrenCollapsible(false);
     verticalSplitter->setStretchFactor(0, 1);
     verticalSplitter->setStretchFactor(1, 0);
-    verticalSplitter->setSizes({640, 220});
+    // The editor pane's own toolbar rows + Structure table already need more
+    // height than a 220px terminal split left it - at a typical window height
+    // that squeezed every row in the toolbar down past its own minimum size,
+    // rendering rows so tight they visually overlapped. Give the terminal a
+    // smaller, still-usable default share and a firm floor so it - not the
+    // primary editor content - absorbs the space pressure.
+    terminalPanel_->setMinimumHeight(120);
+    verticalSplitter->setSizes({760, 140});
     terminalPanel_->setVisible(false);
     root->addWidget(verticalSplitter, 1);
 

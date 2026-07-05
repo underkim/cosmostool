@@ -71,6 +71,7 @@ void DockerView::setupUi()
     auto* splitter = new QSplitter(Qt::Vertical, this);
 
     tableView_ = new QTableView(splitter);
+    tableView_->setObjectName("DockerTable");
     tableView_->setModel(vm_.containerModel());
     tableView_->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableView_->setSelectionMode(QAbstractItemView::SingleSelection);
