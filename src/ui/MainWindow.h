@@ -18,6 +18,8 @@
 #include <QPushButton>
 #include <QStatusBar>
 
+class QAction;
+
 namespace OpenC3::UI {
 
 /// Application main window.
@@ -59,6 +61,14 @@ private:
     void connectSignals();
     void showConnectionDialog();
 
+    // Simple/Advanced mode: Environment/Validator/Packet Tools/Logs are hidden from
+    // the nav rail by default so a new/occasional user sees only Home, Workspace, and
+    // Settings. Nothing is removed - just hidden - and any programmatic navigation to
+    // a hidden row (e.g. Home's "Run Doctor" quick action) transparently reveals it.
+    void setShowAdvancedTools(bool show);
+    void applyNavVisibility();
+    [[nodiscard]] bool isAdvancedRow(int row) const noexcept;
+
     ViewModels::DashboardViewModel&    dashboardVm_;
     ViewModels::DockerViewModel&       dockerVm_;
     ViewModels::InfraViewModel&        infraVm_;
@@ -77,6 +87,10 @@ private:
     // Clickable: opens the connection dialog from anywhere in the app.
     QPushButton* connectionButton_{nullptr};
     QLabel*      dockerLabel_{nullptr};
+
+    bool         showAdvancedTools_{false};
+    QAction*     showAdvancedAction_{nullptr};
+    QPushButton* advancedToggleBtn_{nullptr};
 };
 
 } // namespace OpenC3::UI

@@ -70,12 +70,18 @@ MainWindow::MainWindow(
     setMinimumSize(1280, 800);
     resize(1440, 900);
 
+    QSettings windowSettings;
+    showAdvancedTools_ = windowSettings.value("MainWindow/showAdvancedTools", false).toBool();
+
     setupUi();
     setupMenuBar();
     setupStatusBar();
     connectSignals();
 
-    QSettings windowSettings;
+    // Applied last, once navRail_/showAdvancedAction_/advancedToggleBtn_ all exist,
+    // so their state can be synced against showAdvancedTools_ at the same time.
+    applyNavVisibility();
+
     const QVariant geometry = windowSettings.value("MainWindow/geometry");
     if (geometry.isValid()) restoreGeometry(geometry.toByteArray());
     const QVariant state = windowSettings.value("MainWindow/state");
@@ -93,11 +99,20 @@ void MainWindow::setupUi()
 
     setupNavigation();
 
+    // Wrap navRail_ with the Simple/Advanced toggle button so it travels with the
+    // rail rather than floating separately in the layout.
+    auto* navPanel       = new QWidget(this);
+    auto* navPanelLayout = new QVBoxLayout(navPanel);
+    navPanelLayout->setContentsMargins(0, 0, 0, 0);
+    navPanelLayout->setSpacing(0);
+    navPanelLayout->addWidget(navRail_, 1);
+    navPanelLayout->addWidget(advancedToggleBtn_);
+
     contentStack_ = new QStackedWidget(this);
     setupViews();
 
     auto* splitter = new QSplitter(Qt::Horizontal, this);
-    splitter->addWidget(navRail_);
+    splitter->addWidget(navPanel);
     splitter->addWidget(contentStack_);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
@@ -149,6 +164,58 @@ void MainWindow::setupNavigation()
 
     connect(navRail_, &QListWidget::currentRowChanged,
             this, &MainWindow::onNavItemSelected);
+
+    // In-context toggle for Simple/Advanced mode - a menu item alone (setupMenuBar())
+    // is too easy to miss for something this central to hiding/revealing nav rows.
+    advancedToggleBtn_ = new QPushButton(
+        showAdvancedTools_ ? "Show Less " + QString::fromUtf8("▴") : "Show More " + QString::fromUtf8("▾"),
+        this);
+    advancedToggleBtn_->setFlat(true);
+    advancedToggleBtn_->setToolTip("Show or hide Environment, Validator, Packet Tools, and Logs.");
+    connect(advancedToggleBtn_, &QPushButton::clicked, this, [this] {
+        setShowAdvancedTools(!showAdvancedTools_);
+    });
+}
+
+bool MainWindow::isAdvancedRow(int row) const noexcept
+{
+    return row == NavEnvironment || row == NavValidator
+        || row == NavPacketTools || row == NavLogs;
+}
+
+void MainWindow::applyNavVisibility()
+{
+    for (int row = 0; row < navRail_->count(); ++row) {
+        if (isAdvancedRow(row))
+            navRail_->item(row)->setHidden(!showAdvancedTools_);
+    }
+}
+
+void MainWindow::setShowAdvancedTools(bool show)
+{
+    if (show == showAdvancedTools_)
+        return;
+    showAdvancedTools_ = show;
+
+    // Collapsing to Simple mode while sitting on a row about to be hidden would
+    // strand the user on a page with no visible nav highlight and no way back -
+    // Qt's setRowHidden doesn't move the current selection on its own.
+    if (!showAdvancedTools_ && isAdvancedRow(navRail_->currentRow())) {
+        navRail_->setCurrentRow(NavHome);
+        contentStack_->setCurrentIndex(NavHome);
+    }
+
+    QSettings windowSettings;
+    windowSettings.setValue("MainWindow/showAdvancedTools", showAdvancedTools_);
+
+    if (showAdvancedAction_)
+        showAdvancedAction_->setChecked(showAdvancedTools_);
+    if (advancedToggleBtn_)
+        advancedToggleBtn_->setText(showAdvancedTools_
+            ? "Show Less " + QString::fromUtf8("▴")
+            : "Show More " + QString::fromUtf8("▾"));
+
+    applyNavVisibility();
 }
 
 void MainWindow::setupViews()
@@ -171,6 +238,11 @@ void MainWindow::setupViews()
 
     // ── Navigation helpers ──────────────────────────────────────────────────
     auto goTo = [this](int row) {
+        // Programmatic navigation (e.g. Home's quick actions) to a row hidden by
+        // Simple mode transparently reveals it first, rather than landing on a page
+        // with no visible nav highlight.
+        if (isAdvancedRow(row) && navRail_->item(row) && navRail_->item(row)->isHidden())
+            setShowAdvancedTools(true);
         navRail_->setCurrentRow(row);   // also switches the stack via the signal
         contentStack_->setCurrentIndex(row);
     };
@@ -240,6 +312,15 @@ void MainWindow::setupMenuBar()
         }
     });
     viewMenu->addAction(refreshAction);
+
+    viewMenu->addSeparator();
+    showAdvancedAction_ = new QAction("Show Advanced Tools", this);
+    showAdvancedAction_->setCheckable(true);
+    showAdvancedAction_->setChecked(showAdvancedTools_);
+    connect(showAdvancedAction_, &QAction::toggled, this, [this](bool checked) {
+        setShowAdvancedTools(checked);
+    });
+    viewMenu->addAction(showAdvancedAction_);
 
     auto* helpMenu = menuBar()->addMenu("&Help");
 
