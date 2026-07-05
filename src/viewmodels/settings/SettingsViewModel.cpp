@@ -77,6 +77,11 @@ bool SettingsViewModel::isConnected() const noexcept
     return connection_.state() == Services::ConnectionState::Connected;
 }
 
+Services::ConnectionState SettingsViewModel::connectionState() const noexcept
+{
+    return connection_.state();
+}
+
 void SettingsViewModel::loadProfiles()
 {
     profileModel_->setProfiles(settings_.profiles());

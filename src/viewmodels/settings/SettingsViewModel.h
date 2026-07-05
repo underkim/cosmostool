@@ -39,6 +39,13 @@ public:
     [[nodiscard]] ProfileListModel* profileModel() const noexcept;
     [[nodiscard]] bool isConnected() const noexcept;
 
+    // Live query, not the last-received connectionStateChanged event - lets a
+    // view constructed *after* a connection already succeeded elsewhere (e.g.
+    // the startup ConnectionDialog, which runs and can connect before
+    // MainWindow/SettingsView exist) sync itself to the real current state
+    // instead of assuming Disconnected until the next transition.
+    [[nodiscard]] Services::ConnectionState connectionState() const noexcept;
+
 public slots:
     void loadProfiles();
     void saveProfile(const Models::ConnectionProfile& profile);

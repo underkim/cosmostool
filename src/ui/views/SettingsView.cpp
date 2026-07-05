@@ -355,6 +355,16 @@ void SettingsView::bindViewModel()
                 updateActionHints(state);
             });
 
+    // A connection may have already succeeded before this view existed (the
+    // startup ConnectionDialog connects using this same ViewModel before
+    // MainWindow/SettingsView are constructed) - sync to the real current
+    // state now instead of leaving this view assuming Disconnected until
+    // some later transition event happens to fire.
+    connectionState_ = vm_.connectionState();
+    statusLabel_->setText(tr("Status:") + " " + connectionStateText(connectionState_, QString()));
+    updateConnectionButtons(connectionState_);
+    updateActionHints(connectionState_);
+
     // initial stack page
     modeStack_->setCurrentIndex(0);
     detectOpenC3PathBtn_->setEnabled(modeCombo_->currentIndex() == 0);

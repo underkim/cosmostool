@@ -655,12 +655,17 @@ void PluginView::setupUi()
     componentDiagnostics_ = new QTextEdit(editorPane);
     componentDiagnostics_->setObjectName("LogArea");
     componentDiagnostics_->setReadOnly(true);
-    componentDiagnostics_->setMaximumHeight(60);
+    componentDiagnostics_->setMaximumHeight(50);
     componentDiagnostics_->setPlaceholderText(tr("Validation results will appear here."));
 
     diagnosticList_ = new QListWidget(editorPane);
     diagnosticList_->setObjectName("PluginDiagnosticList");
-    diagnosticList_->setMaximumHeight(150);
+    // Trimmed from 150 - on a window short enough to squeeze the Structure
+    // table (e.g. after subtracting real OS window chrome/taskbar height,
+    // which this app's own default-size testing doesn't account for), this
+    // list's own scrollbar already handles overflow, so it doesn't need to
+    // reserve as much fixed space as the table above it.
+    diagnosticList_->setMaximumHeight(110);
     diagnosticListEmptyLabel_ = new QLabel(tr("No diagnostics yet - check the file to see issues here."), editorPane);
     diagnosticListEmptyLabel_->setObjectName("SubLabel");
     diagnosticListEmptyLabel_->setWordWrap(true);
@@ -1702,13 +1707,20 @@ void PluginView::populateBlockForm(int blockIndex)
     blockKindLabel_->setText(isCommand ? "COMMAND" : "TELEMETRY");
     blockTargetEdit_->setText(block.targetName);
     blockTargetEdit_->setCursorPosition(0);
+    blockTargetEdit_->setToolTip(block.targetName);
     blockNameEdit_->setText(block.name);
     blockNameEdit_->setCursorPosition(0);
+    blockNameEdit_->setToolTip(block.name);
     blockDescriptionEdit_->setText(block.description);
     // setText() leaves the cursor at the end, so a description longer than the
     // field's width scrolls to show the tail instead of the start - reset the
     // view to the beginning so the field reads naturally on load.
     blockDescriptionEdit_->setCursorPosition(0);
+    // A narrow window (Reference panel open, or a small screen) can still
+    // clip this field down to a few characters even with the cursor fix
+    // above - the tooltip is the one place the full text always stays
+    // reachable regardless of available width.
+    blockDescriptionEdit_->setToolTip(block.description);
 
     const QString endian = block.endianness.isEmpty() ? "BIG_ENDIAN" : block.endianness;
     const int endianIdx = blockEndiannessCombo_->findText(endian);
