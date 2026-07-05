@@ -128,7 +128,6 @@ void DashboardView::setupUi()
         toolsRow->addWidget(btn);
     };
 
-    addToolLink("CMD / TLM",    &DashboardView::openCmdTlmRequested);
     addToolLink("Validator",    &DashboardView::openValidatorRequested);
     addToolLink("Packet Tools", &DashboardView::openPacketToolsRequested);
     addToolLink("Logs",         &DashboardView::openLogsRequested);
@@ -275,8 +274,9 @@ void DashboardView::updateHomeGuidance()
     }
 
     guidanceLabel_->setText(
-        "Environment checks look good. Open the Workspace to manage plugins; "
-        "CMD / TLM, Packet Tools, and Logs are available under More tools.");
+        "Environment checks look good. Open the Workspace to manage plugins "
+        "and edit CMD/TLM files; Validator, Packet Tools, and Logs are "
+        "available under More tools.");
     recommendedActionBtn_->setText("Open Workspace");
 }
 

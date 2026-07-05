@@ -26,7 +26,6 @@ signals:
     void connectRequested();
     void runDoctorRequested();
     void openWorkspaceRequested();
-    void openCmdTlmRequested();
     void openValidatorRequested();
     void openPacketToolsRequested();
     void openLogsRequested();

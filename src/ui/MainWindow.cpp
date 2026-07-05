@@ -196,8 +196,6 @@ void MainWindow::setupViews()
             });
     connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
             this, [goTo] { goTo(NavWorkspace); });
-    connect(dashboardView, &Views::DashboardView::openCmdTlmRequested,
-            this, [goTo] { goTo(NavWorkspace); });
     connect(dashboardView, &Views::DashboardView::openValidatorRequested,
             this, [goTo, toolsTabs, kToolsValidatorTab] {
                 goTo(NavTools);
