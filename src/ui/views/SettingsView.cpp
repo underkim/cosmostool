@@ -284,8 +284,9 @@ void SettingsView::setupUi()
     splitter->setChildrenCollapsible(false); // profile list and form stay visible
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
-    // Wide enough for "+ Add" / "Quick WSL" / "− Delete" side by side without
-    // any of them being squeezed below their own text's sizeHint.
+    // Wide enough for "Create Custom Profile" / "Create WSL Profile" / delete
+    // actions side by side without any of them being squeezed below their own
+    // text's sizeHint.
     leftPane->setMinimumWidth(260);
     formGroup->setMinimumWidth(360);
     splitter->setSizes({280, 600});
