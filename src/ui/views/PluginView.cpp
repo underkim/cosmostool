@@ -204,10 +204,7 @@ void PluginView::setupUi()
     titleBlock->addWidget(title);
     titleBlock->addWidget(subtitle);
     headerRow->addLayout(titleBlock, 1);
-    root->addLayout(headerRow);
 
-    auto* toolbarBlock = new QHBoxLayout;
-    toolbarBlock->setSpacing(8);
     scaffoldBtn_ = new QPushButton(tr("New Plugin"), this);
     addTargetBtn_ = new QPushButton(tr("Add Target"), this);
     validateBtn_ = new QPushButton(tr("Check"), this);
@@ -257,17 +254,6 @@ void PluginView::setupUi()
     for (auto* button : topButtons)
         button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-    // Wizard Phase 5: Build Gem/Install Gem move to their own Build & Install
-    // page below - selectedPluginActions_ now only holds the old top
-    // toolbar's duplicate Check button (validateBtn_), slated for removal in
-    // Phase 6 alongside the rest of this now-vestigial toolbar.
-    selectedPluginActions_ = new QWidget(this);
-    auto* selectedPluginActionsLayout = new QHBoxLayout(selectedPluginActions_);
-    selectedPluginActionsLayout->setContentsMargins(0, 0, 0, 0);
-    selectedPluginActionsLayout->setSpacing(8);
-    selectedPluginActionsLayout->addWidget(validateBtn_);
-    selectedPluginActions_->setVisible(false);
-
     // Secondary actions (Add Target/Remove) live behind a "More" menu instead
     // of as always-visible buttons - same slots, less toolbar clutter.
     moreMenuBtn_ = new QToolButton(this);
@@ -284,15 +270,13 @@ void PluginView::setupUi()
     toggleTerminalBtn_->setCheckable(true);
     toggleTerminalBtn_->setToolTip(tr("Show or hide the log-streaming terminal panel."));
 
-    // scaffoldBtn_/refreshBtn_/moreMenuBtn_ move into the wizard's Plugin
-    // page below instead of this toolbar - this row now only holds
-    // cross-step chrome (selectedPluginActions_ moves to later wizard pages
-    // in subsequent phases; toggleTerminalBtn_/progressBar_ stay global).
-    toolbarBlock->addWidget(selectedPluginActions_);
-    toolbarBlock->addStretch();
-    toolbarBlock->addWidget(toggleTerminalBtn_);
-    toolbarBlock->addWidget(progressBar_);
-    root->addLayout(toolbarBlock);
+    // Phase 6: the old top toolbar (New Plugin/Refresh/Check/Build/Install/
+    // More) is gone now that every action lives on its own wizard step -
+    // this header row keeps only cross-step chrome (Terminal toggle, busy
+    // spinner) alongside the title.
+    headerRow->addWidget(toggleTerminalBtn_);
+    headerRow->addWidget(progressBar_);
+    root->addLayout(headerRow);
 
     statusLabel_ = new QLabel(this);
     statusLabel_->setObjectName("StatusBanner");
@@ -303,14 +287,6 @@ void PluginView::setupUi()
     pluginSummaryLabel_->setObjectName("SubLabel");
     pluginSummaryLabel_->setWordWrap(true);
     root->addWidget(pluginSummaryLabel_);
-
-    workflowHintLabel_ = new QLabel(
-        tr("Workflow: create or refresh a plugin, select it, edit CMD/TLM, check, save, build, install."),
-        this);
-    workflowHintLabel_->setObjectName("SubLabel");
-    workflowHintLabel_->setWordWrap(true);
-    workflowHintLabel_->setVisible(false); // superseded by the wizard step strip below (Phase 0+)
-    root->addWidget(workflowHintLabel_);
 
     // ── Wizard step strip ──────────────────────────────────────────────────────
     // Plugin -> File -> Edit -> Check -> Build & Install. This whole block
@@ -323,6 +299,14 @@ void PluginView::setupUi()
     auto* wizardContentLayout = new QVBoxLayout(wizardContentWidget);
     wizardContentLayout->setContentsMargins(0, 0, 0, 0);
     wizardContentLayout->setSpacing(10);
+
+    // Phase 6: a persistent breadcrumb, visible regardless of which wizard
+    // step is active, so context (which plugin/file is open) isn't lost when
+    // jumping between steps.
+    breadcrumbLabel_ = new QLabel(tr("No plugin selected"), this);
+    breadcrumbLabel_->setObjectName("SubLabel");
+    breadcrumbLabel_->setWordWrap(true);
+    wizardContentLayout->addWidget(breadcrumbLabel_);
 
     auto* stepStripRow = new QHBoxLayout;
     stepStripRow->setSpacing(6);
@@ -416,16 +400,18 @@ void PluginView::setupUi()
     tableView_->setColumnWidth(ViewModels::PluginTableModel::Author, 58);
     pluginListLayout->addWidget(tableView_, 1);
 
-    // Wizard Phase 1: New Plugin/Refresh/More(Add Target/Remove) + the
+    // Wizard Phase 1/6: New Plugin/Refresh/More(Add Target/Remove) + the
     // Plugin Folders table live on the wizard's Plugin page, not the old
-    // (now-hidden) leftPane - selectedPluginActions_ (Check/Build/Install)
-    // stays in the cross-step toolbar above until later phases claim it.
+    // (now-hidden) leftPane. validateBtn_ (whole-plugin Check, distinct from
+    // the per-file Check on the Check step) joins them here too, instead of
+    // the old top toolbar it used to share with Build/Install.
     auto* pluginPageToolbar = new QHBoxLayout;
     pluginPageToolbar->setSpacing(8);
     pluginPageToolbar->addWidget(scaffoldBtn_);
     pluginPageToolbar->addWidget(refreshBtn_);
     pluginPageToolbar->addWidget(moreMenuBtn_);
     pluginPageToolbar->addStretch();
+    pluginPageToolbar->addWidget(validateBtn_);
     wizardPluginPageLayout->addLayout(pluginPageToolbar);
     wizardPluginPageLayout->addWidget(pluginListGroup, 1);
 
@@ -868,9 +854,23 @@ void PluginView::setupUi()
     goToWizardStep(kWizardStepPlugin);
 }
 
+int PluginView::maxReachableWizardStep() const
+{
+    if (selectedPluginName().isEmpty())
+        return kWizardStepPlugin;
+    if (currentComponentPath_.isEmpty())
+        return kWizardStepFile;
+    return kWizardStepBuild;
+}
+
 void PluginView::goToWizardStep(int step)
 {
     if (step < 0 || step >= wizardStack_->count())
+        return;
+    // Forward navigation (step-click or Next) is gated on prerequisites;
+    // Back is always free since currentWizardStep_ is, by definition,
+    // already reachable.
+    if (step > currentWizardStep_ && step > maxReachableWizardStep())
         return;
 
     currentWizardStep_ = step;
@@ -883,8 +883,26 @@ void PluginView::updateWizardStepStrip()
     if (currentWizardStep_ >= 0 && currentWizardStep_ < wizardStepButtons_.size())
         wizardStepButtons_[currentWizardStep_]->setChecked(true);
 
+    const int maxReachable = maxReachableWizardStep();
     wizardBackBtn_->setEnabled(currentWizardStep_ > kWizardStepPlugin);
-    wizardNextBtn_->setEnabled(currentWizardStep_ < kWizardStepBuild);
+    wizardNextBtn_->setEnabled(currentWizardStep_ < kWizardStepBuild
+        && currentWizardStep_ < maxReachable);
+    for (int i = 0; i < wizardStepButtons_.size(); ++i)
+        wizardStepButtons_[i]->setEnabled(i <= maxReachable);
+
+    updateWizardBreadcrumb();
+}
+
+void PluginView::updateWizardBreadcrumb()
+{
+    const QString plugin = selectedPluginName();
+    if (plugin.isEmpty()) {
+        breadcrumbLabel_->setText(tr("No plugin selected"));
+        return;
+    }
+    breadcrumbLabel_->setText(currentComponentDisplayPath_.isEmpty()
+        ? plugin
+        : plugin + QString::fromUtf8(" › ") + currentComponentDisplayPath_);
 }
 
 void PluginView::bindViewModel()
@@ -1138,6 +1156,7 @@ void PluginView::bindViewModel()
                 // in onTableSelectionChanged()).
                 if (currentWizardStep_ == kWizardStepFile)
                     goToWizardStep(kWizardStepEdit);
+                updateWizardStepStrip();
             });
 
     connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::fileSaved,
@@ -1347,6 +1366,7 @@ void PluginView::onTableSelectionChanged()
         detailEdit_->clear();
         pluginSummaryLabel_->setText(tr("Select a plugin folder to inspect and edit its files."));
         setComponentHint(tr("Select a plugin first."));
+        updateWizardStepStrip();
         return;
     }
 
@@ -1402,6 +1422,7 @@ void PluginView::onTableSelectionChanged()
     currentPluginRoot_ = selectedPluginRoot();
     if (!currentPluginRoot_.isEmpty())
         cmdTlmVm_.listPluginFiles(currentPluginRoot_);
+    updateWizardStepStrip();
 }
 
 void PluginView::onComponentItemDoubleClicked(QListWidgetItem* item)
@@ -1655,41 +1676,6 @@ void PluginView::updateActionHints()
         statusLabel_->setText(tr("Open a file, then edit and save. Advanced actions are in Check, Insert, and Fields."));
 
     updateGroupedActionState();
-    updateWorkflowHint();
-}
-
-
-void PluginView::updateWorkflowHint()
-{
-    if (!workflowHintLabel_ || !tableView_ || !tableView_->selectionModel())
-        return;
-
-    const bool hasPlugin   = tableView_->selectionModel()->hasSelection();
-    const bool hasOpenFile = !currentComponentPath_.isEmpty();
-    const bool cmdTlm      = isCmdTlmFile(currentComponentPath_);
-    const bool saved       = hasOpenFile && !componentDirty_;
-
-    static const QString steps = tr(
-        "1. Select Plugin → 2. Open File → 3. Edit CMD/TLM → 4. Check → 5. Build → 6. Install");
-
-    QString next;
-    if (!hasPlugin) {
-        next = tr("Create or refresh plugins first.");
-    } else if (!hasOpenFile) {
-        next = tr("Open a plugin file to edit.");
-    } else if (cmdTlm && !saved) {
-        next = tr("Edit fields, then Check and Save.");
-    } else if (cmdTlm && saved && !infraVm_.isConnected()) {
-        next = tr("Connect before installing.");
-    } else if (cmdTlm) {
-        next = tr("Build Gem when ready.");
-    } else if (!saved) {
-        next = tr("Review this file, then Save.");
-    } else {
-        next = tr("Saved. Return to plugin actions when ready.");
-    }
-
-    workflowHintLabel_->setText(steps + "   —   " + next);
 }
 
 void PluginView::updateComponentEmptyState()
@@ -2188,8 +2174,8 @@ void PluginView::setCmdTlmActionsVisible(bool visible)
 void PluginView::updateGroupedActionState()
 {
     const bool hasPlugin = tableView_ && tableView_->selectionModel()->hasSelection();
-    if (selectedPluginActions_)
-        selectedPluginActions_->setVisible(hasPlugin);
+    if (validateBtn_)
+        validateBtn_->setVisible(hasPlugin);
     if (moreMenuBtn_)
         moreMenuBtn_->setVisible(hasPlugin);
     if (addTargetAction_)

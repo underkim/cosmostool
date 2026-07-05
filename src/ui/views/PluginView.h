@@ -98,7 +98,6 @@ private:
     void updateComponentEmptyState();
     void updateComponentPathLabel();
     void updateGroupedActionState();
-    void updateWorkflowHint();
     [[nodiscard]] bool confirmDiscardUnsavedChanges();
     [[nodiscard]] bool confirmSaveAfterValidation();
 
@@ -120,14 +119,12 @@ private:
     QPushButton* buildBtn_{nullptr};
     QPushButton* scaffoldBtn_{nullptr};
     QPushButton* addTargetBtn_{nullptr};
-    QWidget*     selectedPluginActions_{nullptr};
     QToolButton* moreMenuBtn_{nullptr};
     QAction*     addTargetAction_{nullptr};
     QAction*     removeAction_{nullptr};
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
     QLabel*      pluginSummaryLabel_{nullptr};
-    QLabel*      workflowHintLabel_{nullptr};
     QTabWidget*  detailTabs_{nullptr};
     QTabWidget*  componentEditorTabs_{nullptr};
     QTextEdit*   detailEdit_{nullptr};
@@ -224,6 +221,13 @@ private:
     QPushButton*           wizardBackBtn_{nullptr};
     QPushButton*           wizardNextBtn_{nullptr};
     int                    currentWizardStep_{kWizardStepPlugin};
+    QLabel*                breadcrumbLabel_{nullptr};
+
+    // Phase 6: forward gating - returns the furthest step reachable given
+    // current selections (no plugin selected -> File is out of reach; no
+    // file open -> Edit/Check/Build are out of reach). Back is always free.
+    int maxReachableWizardStep() const;
+    void updateWizardBreadcrumb();
 };
 
 } // namespace OpenC3::UI::Views
