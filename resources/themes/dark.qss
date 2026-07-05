@@ -110,6 +110,16 @@ QPushButton:disabled {
     border-color: #3c3c3c;
 }
 
+QPushButton#WizardStepButton:checked {
+    background-color: #0e639c;
+    color: #ffffff;
+    border: 1px solid #007acc;
+    /* No font-weight change here (unlike #PrimaryButton) - this button's
+       width is fixed at construction from its unchecked (non-bold) sizeHint,
+       so switching to bold text on check would be wider than the button and
+       clip (e.g. "5. Build & Install" losing its last few characters). */
+}
+
 QPushButton#PrimaryButton {
     background-color: #0e639c;
     color: #ffffff;
@@ -121,6 +131,11 @@ QPushButton#PrimaryButton:hover {
 }
 QPushButton#PrimaryButton:pressed {
     background-color: #094771;
+}
+QPushButton#PrimaryButton:disabled {
+    background-color: #37373d;
+    color: #7a7a7a;
+    border-color: #3c3c3c;
 }
 
 QPushButton#LinkButton {

@@ -307,7 +307,53 @@ void PluginView::setupUi()
         this);
     workflowHintLabel_->setObjectName("SubLabel");
     workflowHintLabel_->setWordWrap(true);
+    workflowHintLabel_->setVisible(false); // superseded by the wizard step strip below (Phase 0+)
     root->addWidget(workflowHintLabel_);
+
+    // ── Wizard step strip (Phase 0 scaffold) ──────────────────────────────────
+    // Plugin -> File -> Edit -> Check -> Build & Install. Only navigation is
+    // wired for now; each page shows placeholder text until its real content
+    // is moved in by a later phase.
+    auto* stepStripRow = new QHBoxLayout;
+    stepStripRow->setSpacing(6);
+    const QStringList stepLabels = {
+        tr("1. Plugin"), tr("2. File"), tr("3. Edit"), tr("4. Check"), tr("5. Build && Install")
+    };
+    for (int i = 0; i < stepLabels.size(); ++i) {
+        auto* stepBtn = new QPushButton(stepLabels[i], this);
+        stepBtn->setObjectName("WizardStepButton");
+        stepBtn->setCheckable(true);
+        stepBtn->setAutoExclusive(true);
+        connect(stepBtn, &QPushButton::clicked, this, [this, i] { goToWizardStep(i); });
+        stepStripRow->addWidget(stepBtn);
+        wizardStepButtons_.push_back(stepBtn);
+    }
+    stepStripRow->addStretch();
+    root->addLayout(stepStripRow);
+
+    wizardStack_ = new QStackedWidget(this);
+    for (int i = 0; i < stepLabels.size(); ++i) {
+        auto* page = new QWidget(wizardStack_);
+        auto* pageLayout = new QVBoxLayout(page);
+        auto* placeholder = new QLabel(
+            tr("%1 (coming soon)").arg(stepLabels[i]), page);
+        placeholder->setAlignment(Qt::AlignCenter);
+        placeholder->setObjectName("SubLabel");
+        pageLayout->addWidget(placeholder);
+        wizardStack_->addWidget(page);
+    }
+    root->addWidget(wizardStack_, 1);
+
+    auto* wizardNavRow = new QHBoxLayout;
+    wizardBackBtn_ = new QPushButton(tr("< Back"), this);
+    wizardNextBtn_ = new QPushButton(tr("Next >"), this);
+    wizardNextBtn_->setObjectName("PrimaryButton");
+    connect(wizardBackBtn_, &QPushButton::clicked, this, [this] { goToWizardStep(currentWizardStep_ - 1); });
+    connect(wizardNextBtn_, &QPushButton::clicked, this, [this] { goToWizardStep(currentWizardStep_ + 1); });
+    wizardNavRow->addStretch();
+    wizardNavRow->addWidget(wizardBackBtn_);
+    wizardNavRow->addWidget(wizardNextBtn_);
+    root->addLayout(wizardNavRow);
 
     auto* mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->setObjectName("PluginWorkbench");
@@ -740,13 +786,41 @@ void PluginView::setupUi()
     terminalPanel_->setMinimumHeight(160);
     verticalSplitter->setSizes({760, 180});
     terminalPanel_->setVisible(false);
-    root->addWidget(verticalSplitter, 1);
+    // Phase 0 of the wizard redesign: the wizard step strip/stack above is
+    // now the visible content area. mainSplitter's real widgets (plugin
+    // list, file list, editor, etc.) still exist and stay fully wired -
+    // later phases move them into the wizard's pages one at a time - but
+    // until then this whole legacy layout stays parented-but-unlaid-out
+    // (same pattern already used for addTargetBtn_/removeBtn_ above), not
+    // added to root, so it doesn't render as a second competing layout.
+    verticalSplitter->setVisible(false);
 
     // Must run after structureTable_ (created above) exists: updateActionHints()
     // reads its selection state. Calling this earlier segfaults on a null
     // structureTable_ during construction - every other widget it touches is
     // created earlier in this function, but this one is not.
     updateActionHints();
+
+    goToWizardStep(kWizardStepPlugin);
+}
+
+void PluginView::goToWizardStep(int step)
+{
+    if (step < 0 || step >= wizardStack_->count())
+        return;
+
+    currentWizardStep_ = step;
+    wizardStack_->setCurrentIndex(step);
+    updateWizardStepStrip();
+}
+
+void PluginView::updateWizardStepStrip()
+{
+    if (currentWizardStep_ >= 0 && currentWizardStep_ < wizardStepButtons_.size())
+        wizardStepButtons_[currentWizardStep_]->setChecked(true);
+
+    wizardBackBtn_->setEnabled(currentWizardStep_ > kWizardStepPlugin);
+    wizardNextBtn_->setEnabled(currentWizardStep_ < kWizardStepBuild);
 }
 
 void PluginView::bindViewModel()

@@ -21,6 +21,7 @@
 #include <QGroupBox>
 #include <QVector>
 #include <QAction>
+#include <QStackedWidget>
 
 namespace OpenC3::UI::Widgets { class CmdTlmHighlighter; }
 
@@ -76,6 +77,8 @@ signals:
 private:
     void setupUi();
     void bindViewModel();
+    void goToWizardStep(int step);
+    void updateWizardStepStrip();
     void populateComponentList(const QStringList& files, const QString& pluginRootPath);
     void setComponentHint(const QString& text);
     void openSelectedComponent(QListWidgetItem* item);
@@ -205,6 +208,22 @@ private:
     bool        pendingOfflineValidation_{false};
     bool        updatingStructureTable_{false};
     QVector<ViewModels::CmdTlmBlock> currentBlocks_;
+
+    // Step-by-step wizard scaffold (Phase 0): Plugin -> File -> Edit -> Check
+    // -> Build & Install. Phase 0 only wires navigation with placeholder
+    // pages; later phases move the real widgets above into wizardStack_'s
+    // pages one at a time.
+    static constexpr int kWizardStepPlugin = 0;
+    static constexpr int kWizardStepFile   = 1;
+    static constexpr int kWizardStepEdit   = 2;
+    static constexpr int kWizardStepCheck  = 3;
+    static constexpr int kWizardStepBuild  = 4;
+
+    QVector<QPushButton*> wizardStepButtons_;
+    QStackedWidget*        wizardStack_{nullptr};
+    QPushButton*           wizardBackBtn_{nullptr};
+    QPushButton*           wizardNextBtn_{nullptr};
+    int                    currentWizardStep_{kWizardStepPlugin};
 };
 
 } // namespace OpenC3::UI::Views
