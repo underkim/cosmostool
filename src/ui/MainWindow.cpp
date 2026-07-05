@@ -157,13 +157,13 @@ void MainWindow::setupViews()
 
     // Tools groups diagnostics and infrastructure utilities so the main rail stays
     // short. Put Doctor first so setup checks are the most discoverable tool.
-    auto* toolsTabs = new QTabWidget(this);
-    toolsTabs->setObjectName("PluginDetailTabs");
-    toolsTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");    // 0
-    toolsTabs->addTab(validatorView,                          "Validator"); // 1
-    toolsTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");    // 2
-    toolsTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");     // 3
-    constexpr int kToolsDoctorTab    = 0;
+    auto* environmentTabs = new QTabWidget(this);
+    environmentTabs->setObjectName("EnvironmentTabs");
+    environmentTabs->addTab(new Views::DoctorView(doctorVm_, this), "Doctor");    // 0
+    environmentTabs->addTab(validatorView,                          "Validator"); // 1
+    environmentTabs->addTab(new Views::DockerView(dockerVm_, this), "Docker");    // 2
+    environmentTabs->addTab(new Views::InfraView(infraVm_, this),   "Infra");     // 3
+    constexpr int kEnvDoctorTab      = 0;
     constexpr int kToolsValidatorTab = 1;
 
     // ── Navigation helpers ──────────────────────────────────────────────────
@@ -172,10 +172,10 @@ void MainWindow::setupViews()
         contentStack_->setCurrentIndex(row);
     };
 
-    auto toValidator = [this, goTo, validatorView, toolsTabs,
+    auto toValidator = [this, goTo, validatorView, environmentTabs,
                         kToolsValidatorTab](const QString& content) {
         goTo(NavTools);
-        toolsTabs->setCurrentIndex(kToolsValidatorTab);
+        environmentTabs->setCurrentIndex(kToolsValidatorTab);
         validatorView->checkContent(content);
     };
     connect(pluginView, &Views::PluginView::openInValidatorRequested, this, toValidator);
@@ -184,22 +184,22 @@ void MainWindow::setupViews()
     connect(dashboardView, &Views::DashboardView::connectRequested,
             this, &MainWindow::showConnectionDialog);
     connect(dashboardView, &Views::DashboardView::runDoctorRequested,
-            this, [this, goTo, toolsTabs, kToolsDoctorTab] {
+            this, [this, goTo, environmentTabs, kEnvDoctorTab] {
                 if (!settingsVm_.isConnected()) {
                     showConnectionDialog();
                     if (!settingsVm_.isConnected())
                         return;
                 }
                 goTo(NavTools);
-                toolsTabs->setCurrentIndex(kToolsDoctorTab);
+                environmentTabs->setCurrentIndex(kEnvDoctorTab);
                 doctorVm_.runAllChecks();
             });
     connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
             this, [goTo] { goTo(NavWorkspace); });
     connect(dashboardView, &Views::DashboardView::openValidatorRequested,
-            this, [goTo, toolsTabs, kToolsValidatorTab] {
+            this, [goTo, environmentTabs, kToolsValidatorTab] {
                 goTo(NavTools);
-                toolsTabs->setCurrentIndex(kToolsValidatorTab);
+                environmentTabs->setCurrentIndex(kToolsValidatorTab);
             });
     connect(dashboardView, &Views::DashboardView::openPacketToolsRequested,
             this, [goTo] { goTo(NavPacketTools); });
@@ -212,7 +212,7 @@ void MainWindow::setupViews()
     contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 2 Packets
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 3 Logs
     contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 4 Settings
-    contentStack_->addWidget(toolsTabs);                                        // 5 Tools
+    contentStack_->addWidget(environmentTabs);                                  // 5 Tools
 }
 
 void MainWindow::showConnectionDialog()
