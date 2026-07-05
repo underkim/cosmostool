@@ -433,7 +433,6 @@ void PluginView::setupUi()
     applyStructureBtn_->setText("Apply");
     applyStructureBtn_->setToolTip("Apply the selected structure change to the editor buffer.");
     toggleReferenceBtn_->setText("Reference");
-    toggleReferenceBtn_->setMinimumWidth(120);
     toggleReferenceBtn_->setCheckable(true);
     toggleReferenceBtn_->setToolTip("Show or hide the CMD/TLM quick reference side panel.");
 
