@@ -257,13 +257,15 @@ void PluginView::setupUi()
     for (auto* button : topButtons)
         button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
+    // Wizard Phase 5: Build Gem/Install Gem move to their own Build & Install
+    // page below - selectedPluginActions_ now only holds the old top
+    // toolbar's duplicate Check button (validateBtn_), slated for removal in
+    // Phase 6 alongside the rest of this now-vestigial toolbar.
     selectedPluginActions_ = new QWidget(this);
     auto* selectedPluginActionsLayout = new QHBoxLayout(selectedPluginActions_);
     selectedPluginActionsLayout->setContentsMargins(0, 0, 0, 0);
     selectedPluginActionsLayout->setSpacing(8);
     selectedPluginActionsLayout->addWidget(validateBtn_);
-    selectedPluginActionsLayout->addWidget(buildBtn_);
-    selectedPluginActionsLayout->addWidget(installBtn_);
     selectedPluginActions_->setVisible(false);
 
     // Secondary actions (Add Target/Remove) live behind a "More" menu instead
@@ -344,6 +346,7 @@ void PluginView::setupUi()
     QVBoxLayout* wizardFilePageLayout = nullptr;
     QVBoxLayout* wizardEditPageLayout = nullptr;
     QVBoxLayout* wizardCheckPageLayout = nullptr;
+    QVBoxLayout* wizardBuildPageLayout = nullptr;
     for (int i = 0; i < stepLabels.size(); ++i) {
         auto* page = new QWidget(wizardStack_);
         auto* pageLayout = new QVBoxLayout(page);
@@ -357,6 +360,8 @@ void PluginView::setupUi()
             wizardEditPageLayout = pageLayout;
         } else if (i == kWizardStepCheck) {
             wizardCheckPageLayout = pageLayout;
+        } else if (i == kWizardStepBuild) {
+            wizardBuildPageLayout = pageLayout;
         } else {
             auto* placeholder = new QLabel(
                 tr("%1 (coming soon)").arg(stepLabels[i]), page);
@@ -793,6 +798,18 @@ void PluginView::setupUi()
     wizardCheckPageLayout->addWidget(componentDiagnostics_);
     wizardCheckPageLayout->addWidget(diagnosticListEmptyLabel_);
     wizardCheckPageLayout->addWidget(diagnosticList_, 1);
+
+    // Wizard Phase 5: Build Gem/Install Gem move from the old top toolbar
+    // (selectedPluginActions_) to their own Build & Install page, alongside
+    // detailTabs_/detailEdit_ - the existing build/install output view,
+    // previously hidden inside the now-vestigial mainSplitter.
+    auto* buildPageToolbar = new QHBoxLayout;
+    buildPageToolbar->setSpacing(8);
+    buildPageToolbar->addWidget(buildBtn_);
+    buildPageToolbar->addWidget(installBtn_);
+    buildPageToolbar->addStretch();
+    wizardBuildPageLayout->addLayout(buildPageToolbar);
+    wizardBuildPageLayout->addWidget(detailTabs_, 1);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
