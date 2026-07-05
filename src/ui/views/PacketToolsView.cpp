@@ -371,8 +371,14 @@ void PacketToolsView::bindViewModel()
     connect(&vm_, &ViewModels::PacketToolsViewModel::logListReady,
             this, [this](const QStringList& files) {
                 logList_->clear();
-                for (const QString& f : files)
-                    logList_->addItem(f);
+                for (const QString& f : files) {
+                    // Real COSMOS log names ("<start>_<end>_<target>_all.bin")
+                    // routinely overflow the panel width - the list only shows
+                    // them via horizontal scroll, so make the full name
+                    // reachable on hover too.
+                    auto* item = new QListWidgetItem(f, logList_);
+                    item->setToolTip(f);
+                }
             });
 
     connect(&vm_, &ViewModels::PacketToolsViewModel::logContentReady,

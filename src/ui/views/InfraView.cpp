@@ -82,6 +82,10 @@ QWidget* InfraView::buildEnvTab()
     envTable_->horizontalHeader()->setStretchLastSection(true);
     envTable_->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     envTable_->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
+    // Interactive columns start at Qt's small default width - env values (paths,
+    // hostnames, etc.) are often longer than that and were clipping to a few
+    // characters. Give Value a reasonable, still user-resizable, default.
+    envTable_->setColumnWidth(1, 220);
     envTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     envTable_->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
     QFont tf = envTable_->font(); tf.setFamily("Consolas"); envTable_->setFont(tf);

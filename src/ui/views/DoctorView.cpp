@@ -66,6 +66,14 @@ void DoctorView::setupUi()
     tableView_->horizontalHeader()->setStretchLastSection(true);
     tableView_->verticalHeader()->setVisible(false);
     tableView_->setShowGrid(false);
+    // Check names ("Docker executable not found in PATH", etc.) are much longer
+    // than the default column width gives them - without this they clipped down
+    // to "Docker ..." for every row, making distinct checks indistinguishable.
+    tableView_->horizontalHeader()->setSectionResizeMode(
+        ViewModels::HealthCheckTableModel::Category, QHeaderView::ResizeToContents);
+    tableView_->horizontalHeader()->setSectionResizeMode(
+        ViewModels::HealthCheckTableModel::Status, QHeaderView::ResizeToContents);
+    tableView_->setColumnWidth(ViewModels::HealthCheckTableModel::Name, 260);
     root->addWidget(tableView_);
 
     // ── Suggestion panel ──────────────────────────────────────────────────────

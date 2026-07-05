@@ -111,7 +111,9 @@ void ValidatorView::setupUi()
     resultsTree_->setHeaderLabels({ tr("Severity"), tr("Line"), tr("Message") });
     resultsTree_->setRootIsDecorated(true);
     resultsTree_->setUniformRowHeights(true);
-    resultsTree_->setColumnWidth(0, 90);
+    // 90px clipped the icon + "Warning"/"Error" text down to a sliver once tree
+    // indentation for child rows was accounted for.
+    resultsTree_->setColumnWidth(0, 130);
     resultsTree_->setColumnWidth(1, 60);
     resultsTree_->header()->setStretchLastSection(true);
     root->addWidget(resultsTree_, 1);
