@@ -310,10 +310,18 @@ void PluginView::setupUi()
     workflowHintLabel_->setVisible(false); // superseded by the wizard step strip below (Phase 0+)
     root->addWidget(workflowHintLabel_);
 
-    // ── Wizard step strip (Phase 0 scaffold) ──────────────────────────────────
-    // Plugin -> File -> Edit -> Check -> Build & Install. Only navigation is
-    // wired for now; each page shows placeholder text until its real content
-    // is moved in by a later phase.
+    // ── Wizard step strip ──────────────────────────────────────────────────────
+    // Plugin -> File -> Edit -> Check -> Build & Install. This whole block
+    // (step strip + page stack + Back/Next) is assembled into
+    // wizardContentWidget, not added to root directly - it needs to sit
+    // alongside terminalPanel_ in a vertical splitter (wired further down,
+    // once terminalPanel_ exists) so the Terminal toggle keeps working
+    // exactly as it did before the wizard redesign.
+    auto* wizardContentWidget = new QWidget(this);
+    auto* wizardContentLayout = new QVBoxLayout(wizardContentWidget);
+    wizardContentLayout->setContentsMargins(0, 0, 0, 0);
+    wizardContentLayout->setSpacing(10);
+
     auto* stepStripRow = new QHBoxLayout;
     stepStripRow->setSpacing(6);
     const QStringList stepLabels = {
@@ -329,11 +337,12 @@ void PluginView::setupUi()
         wizardStepButtons_.push_back(stepBtn);
     }
     stepStripRow->addStretch();
-    root->addLayout(stepStripRow);
+    wizardContentLayout->addLayout(stepStripRow);
 
     wizardStack_ = new QStackedWidget(this);
     QVBoxLayout* wizardPluginPageLayout = nullptr;
     QVBoxLayout* wizardFilePageLayout = nullptr;
+    QVBoxLayout* wizardEditPageLayout = nullptr;
     for (int i = 0; i < stepLabels.size(); ++i) {
         auto* page = new QWidget(wizardStack_);
         auto* pageLayout = new QVBoxLayout(page);
@@ -343,6 +352,8 @@ void PluginView::setupUi()
             wizardPluginPageLayout = pageLayout;
         } else if (i == kWizardStepFile) {
             wizardFilePageLayout = pageLayout;
+        } else if (i == kWizardStepEdit) {
+            wizardEditPageLayout = pageLayout;
         } else {
             auto* placeholder = new QLabel(
                 tr("%1 (coming soon)").arg(stepLabels[i]), page);
@@ -352,7 +363,7 @@ void PluginView::setupUi()
         }
         wizardStack_->addWidget(page);
     }
-    root->addWidget(wizardStack_, 1);
+    wizardContentLayout->addWidget(wizardStack_, 1);
 
     auto* wizardNavRow = new QHBoxLayout;
     wizardBackBtn_ = new QPushButton(tr("< Back"), this);
@@ -363,7 +374,7 @@ void PluginView::setupUi()
     wizardNavRow->addStretch();
     wizardNavRow->addWidget(wizardBackBtn_);
     wizardNavRow->addWidget(wizardNextBtn_);
-    root->addLayout(wizardNavRow);
+    wizardContentLayout->addLayout(wizardNavRow);
 
     auto* mainSplitter = new QSplitter(Qt::Horizontal, this);
     mainSplitter->setObjectName("PluginWorkbench");
@@ -481,12 +492,10 @@ void PluginView::setupUi()
     detailLayout->addWidget(detailEdit_);
     detailTabs_->addTab(detailTab, tr("Overview"));
 
-    auto* componentTab = new QWidget(detailTabs_);
-    auto* componentLayout = new QVBoxLayout(componentTab);
-    componentLayout->setContentsMargins(8, 8, 8, 8);
-    componentLayout->setSpacing(8);
-
-    auto* editorPane = new QWidget(componentTab);
+    // Formerly detailTabs_'s "File" tab content - now lives on the wizard's
+    // Edit page (wizardEditPageLayout, below) instead, so no wrapping
+    // componentTab/componentLayout is needed anymore.
+    auto* editorPane = new QWidget(this);
     auto* editorLayout = new QVBoxLayout(editorPane);
     editorLayout->setContentsMargins(0, 0, 0, 0);
     editorLayout->setSpacing(8);
@@ -765,8 +774,12 @@ void PluginView::setupUi()
     editorLayout->addWidget(componentDiagnostics_);
     editorLayout->addWidget(diagnosticListEmptyLabel_);
     editorLayout->addWidget(diagnosticList_);
-    componentLayout->addWidget(editorPane, 1);
-    detailTabs_->addTab(componentTab, tr("File"));
+    // Wizard Phase 3: the whole editor pane (path/toolbar + Source/Structure
+    // tabs + Reference splitter) lives on the wizard's Edit page instead of
+    // the old (now-hidden) detailTabs_ "File" tab. componentDiagnostics_/
+    // diagnosticList_ ride along here for now - Phase 4 extracts them into
+    // their own Check page.
+    wizardEditPageLayout->addWidget(editorPane, 1);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
@@ -778,17 +791,21 @@ void PluginView::setupUi()
     setCmdTlmActionsVisible(false);
     startCmdTlmEditBtn_->setVisible(false);
 
+    // mainSplitter (leftPane/detailTabs_) is legacy scaffolding left over
+    // from before the wizard redesign - every real widget it used to carry
+    // has been moved into a wizard page by now, so it's just parented-but-
+    // unlaid-out (same pattern already used for addTargetBtn_/removeBtn_
+    // above) rather than added anywhere visible.
     mainSplitter->addWidget(leftPane);
     mainSplitter->addWidget(detailTabs_);
-    mainSplitter->setChildrenCollapsible(false); // table and detail stay visible
-    mainSplitter->setStretchFactor(0, 0);
-    mainSplitter->setStretchFactor(1, 1);
-    mainSplitter->setSizes({360, 980});
+    mainSplitter->setVisible(false);
 
     // Bottom "Terminal" panel: the existing Logs screen embedded as a child
     // widget, bound to the same shared logViewerVm_ - reuses its streaming
     // logic entirely. Hidden by default so the screen isn't more cluttered
-    // than today; toggled via toggleTerminalBtn_.
+    // than today; toggled via toggleTerminalBtn_. Paired with the wizard
+    // content (not mainSplitter) in this vertical splitter so the Terminal
+    // toggle keeps working now that the wizard is the real visible content.
     auto* verticalSplitter = new QSplitter(Qt::Vertical, this);
     verticalSplitter->setObjectName("PluginWorkbenchWithTerminal");
     terminalPanel_ = new QWidget(verticalSplitter);
@@ -796,7 +813,7 @@ void PluginView::setupUi()
     terminalLayout->setContentsMargins(0, 0, 0, 0);
     terminalView_ = new LogViewerView(logViewerVm_, terminalPanel_);
     terminalLayout->addWidget(terminalView_);
-    verticalSplitter->addWidget(mainSplitter);
+    verticalSplitter->addWidget(wizardContentWidget);
     verticalSplitter->addWidget(terminalPanel_);
     verticalSplitter->setChildrenCollapsible(false);
     verticalSplitter->setStretchFactor(0, 1);
@@ -810,14 +827,7 @@ void PluginView::setupUi()
     terminalPanel_->setMinimumHeight(160);
     verticalSplitter->setSizes({760, 180});
     terminalPanel_->setVisible(false);
-    // Phase 0 of the wizard redesign: the wizard step strip/stack above is
-    // now the visible content area. mainSplitter's real widgets (plugin
-    // list, file list, editor, etc.) still exist and stay fully wired -
-    // later phases move them into the wizard's pages one at a time - but
-    // until then this whole legacy layout stays parented-but-unlaid-out
-    // (same pattern already used for addTargetBtn_/removeBtn_ above), not
-    // added to root, so it doesn't render as a second competing layout.
-    verticalSplitter->setVisible(false);
+    root->addWidget(verticalSplitter, 1);
 
     // Must run after structureTable_ (created above) exists: updateActionHints()
     // reads its selection state. Calling this earlier segfaults on a null
@@ -1092,6 +1102,12 @@ void PluginView::bindViewModel()
                 setCmdTlmActionsVisible(cmdTlm);
                 if (componentEditorTabs_)
                     componentEditorTabs_->setCurrentIndex(0);
+
+                // Wizard convenience: opening a file while on the File step
+                // auto-advances to Edit (mirrors the Plugin->File auto-advance
+                // in onTableSelectionChanged()).
+                if (currentWizardStep_ == kWizardStepFile)
+                    goToWizardStep(kWizardStepEdit);
             });
 
     connect(&cmdTlmVm_, &ViewModels::CmdTlmViewModel::fileSaved,
