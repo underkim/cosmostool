@@ -282,11 +282,11 @@ void PluginView::setupUi()
     toggleTerminalBtn_->setCheckable(true);
     toggleTerminalBtn_->setToolTip(tr("Show or hide the log-streaming terminal panel."));
 
-    toolbarBlock->addWidget(scaffoldBtn_);
-    toolbarBlock->addWidget(refreshBtn_);
-    toolbarBlock->addSpacing(8);
+    // scaffoldBtn_/refreshBtn_/moreMenuBtn_ move into the wizard's Plugin
+    // page below instead of this toolbar - this row now only holds
+    // cross-step chrome (selectedPluginActions_ moves to later wizard pages
+    // in subsequent phases; toggleTerminalBtn_/progressBar_ stay global).
     toolbarBlock->addWidget(selectedPluginActions_);
-    toolbarBlock->addWidget(moreMenuBtn_);
     toolbarBlock->addStretch();
     toolbarBlock->addWidget(toggleTerminalBtn_);
     toolbarBlock->addWidget(progressBar_);
@@ -332,14 +332,21 @@ void PluginView::setupUi()
     root->addLayout(stepStripRow);
 
     wizardStack_ = new QStackedWidget(this);
+    QVBoxLayout* wizardPluginPageLayout = nullptr;
     for (int i = 0; i < stepLabels.size(); ++i) {
         auto* page = new QWidget(wizardStack_);
         auto* pageLayout = new QVBoxLayout(page);
-        auto* placeholder = new QLabel(
-            tr("%1 (coming soon)").arg(stepLabels[i]), page);
-        placeholder->setAlignment(Qt::AlignCenter);
-        placeholder->setObjectName("SubLabel");
-        pageLayout->addWidget(placeholder);
+        if (i == kWizardStepPlugin) {
+            // Real content (plugin toolbar + table) is added into this page
+            // further down, once those widgets exist - no placeholder here.
+            wizardPluginPageLayout = pageLayout;
+        } else {
+            auto* placeholder = new QLabel(
+                tr("%1 (coming soon)").arg(stepLabels[i]), page);
+            placeholder->setAlignment(Qt::AlignCenter);
+            placeholder->setObjectName("SubLabel");
+            pageLayout->addWidget(placeholder);
+        }
         wizardStack_->addWidget(page);
     }
     root->addWidget(wizardStack_, 1);
@@ -386,7 +393,19 @@ void PluginView::setupUi()
     tableView_->setColumnWidth(ViewModels::PluginTableModel::Status, 96);
     tableView_->setColumnWidth(ViewModels::PluginTableModel::Author, 58);
     pluginListLayout->addWidget(tableView_, 1);
-    leftLayout->addWidget(pluginListGroup, 1);
+
+    // Wizard Phase 1: New Plugin/Refresh/More(Add Target/Remove) + the
+    // Plugin Folders table live on the wizard's Plugin page, not the old
+    // (now-hidden) leftPane - selectedPluginActions_ (Check/Build/Install)
+    // stays in the cross-step toolbar above until later phases claim it.
+    auto* pluginPageToolbar = new QHBoxLayout;
+    pluginPageToolbar->setSpacing(8);
+    pluginPageToolbar->addWidget(scaffoldBtn_);
+    pluginPageToolbar->addWidget(refreshBtn_);
+    pluginPageToolbar->addWidget(moreMenuBtn_);
+    pluginPageToolbar->addStretch();
+    wizardPluginPageLayout->addLayout(pluginPageToolbar);
+    wizardPluginPageLayout->addWidget(pluginListGroup, 1);
 
     auto* componentListGroup = new QGroupBox(tr("Files"), leftPane);
     auto* componentListGroupLayout = new QVBoxLayout(componentListGroup);
