@@ -343,6 +343,7 @@ void PluginView::setupUi()
     QVBoxLayout* wizardPluginPageLayout = nullptr;
     QVBoxLayout* wizardFilePageLayout = nullptr;
     QVBoxLayout* wizardEditPageLayout = nullptr;
+    QVBoxLayout* wizardCheckPageLayout = nullptr;
     for (int i = 0; i < stepLabels.size(); ++i) {
         auto* page = new QWidget(wizardStack_);
         auto* pageLayout = new QVBoxLayout(page);
@@ -354,6 +355,8 @@ void PluginView::setupUi()
             wizardFilePageLayout = pageLayout;
         } else if (i == kWizardStepEdit) {
             wizardEditPageLayout = pageLayout;
+        } else if (i == kWizardStepCheck) {
+            wizardCheckPageLayout = pageLayout;
         } else {
             auto* placeholder = new QLabel(
                 tr("%1 (coming soon)").arg(stepLabels[i]), page);
@@ -624,10 +627,10 @@ void PluginView::setupUi()
     componentPathRow->addWidget(new QLabel(tr("Selected file:"), editorPane));
     componentPathRow->addWidget(componentPathLabel_, 1);
     componentActionRow->addWidget(saveComponentBtn_);
-    componentActionRow->addWidget(validateComponentBtn_);
-    componentActionRow->addWidget(validateMenuBtn_);
     componentActionRow->addWidget(startCmdTlmEditBtn_);
     componentActionRow->addStretch();
+    // validateComponentBtn_/validateMenuBtn_ (Check/Check▾) move to the
+    // wizard's Check page below instead of staying on this row - Phase 4.
     componentEditRow->addWidget(insertMenuBtn_);
     componentEditRow->addWidget(structureMenuBtn_);
     componentEditRow->addStretch();
@@ -770,16 +773,26 @@ void PluginView::setupUi()
     guideGroup_->setVisible(false);
 
     editorLayout->addWidget(centerSplitter, 1);
-    editorLayout->addWidget(new QLabel(tr("Validation summary"), editorPane));
-    editorLayout->addWidget(componentDiagnostics_);
-    editorLayout->addWidget(diagnosticListEmptyLabel_);
-    editorLayout->addWidget(diagnosticList_);
     // Wizard Phase 3: the whole editor pane (path/toolbar + Source/Structure
     // tabs + Reference splitter) lives on the wizard's Edit page instead of
-    // the old (now-hidden) detailTabs_ "File" tab. componentDiagnostics_/
-    // diagnosticList_ ride along here for now - Phase 4 extracts them into
-    // their own Check page.
+    // the old (now-hidden) detailTabs_ "File" tab.
     wizardEditPageLayout->addWidget(editorPane, 1);
+
+    // Wizard Phase 4: Check/Offline Check + the validation summary and
+    // itemized diagnostics list live on their own Check page - promoted
+    // to page-level primary actions instead of small buttons buried in the
+    // Edit page's toolbar.
+    auto* checkPageToolbar = new QHBoxLayout;
+    checkPageToolbar->setSpacing(8);
+    checkPageToolbar->addWidget(validateComponentBtn_);
+    checkPageToolbar->addWidget(validateMenuBtn_);
+    checkPageToolbar->addStretch();
+    validateComponentBtn_->setObjectName("PrimaryButton");
+    wizardCheckPageLayout->addLayout(checkPageToolbar);
+    wizardCheckPageLayout->addWidget(new QLabel(tr("Validation summary"), this));
+    wizardCheckPageLayout->addWidget(componentDiagnostics_);
+    wizardCheckPageLayout->addWidget(diagnosticListEmptyLabel_);
+    wizardCheckPageLayout->addWidget(diagnosticList_, 1);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
