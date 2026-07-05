@@ -907,7 +907,13 @@ void PluginView::updateWizardBreadcrumb()
 
 void PluginView::bindViewModel()
 {
-    connect(refreshBtn_, &QPushButton::clicked, &vm_, &ViewModels::PluginViewModel::refresh);
+    connect(refreshBtn_, &QPushButton::clicked, this, [this] {
+        preRefreshPluginRoot_ = currentPluginRoot_;
+        refreshingPluginList_ = true;
+        vm_.refresh();
+    });
+    connect(&vm_, &ViewModels::PluginViewModel::pluginListChanged,
+            this, &PluginView::restoreSelectionAfterRefresh);
     connect(installBtn_, &QPushButton::clicked, this, &PluginView::onInstallClicked);
     connect(removeBtn_, &QPushButton::clicked, this, &PluginView::onRemoveClicked);
     connect(removeAction_, &QAction::triggered, this, &PluginView::onRemoveClicked);
@@ -995,6 +1001,8 @@ void PluginView::bindViewModel()
                 detailTabs_->setCurrentIndex(0);
                 detailEdit_->setPlainText(detail);
                 if (success) {
+                    preRefreshPluginRoot_ = currentPluginRoot_;
+                    refreshingPluginList_ = true;
                     currentPluginRoot_ = rootPath;
                     vm_.refresh();
                     cmdTlmVm_.listPluginFiles(rootPath);
@@ -1006,6 +1014,8 @@ void PluginView::bindViewModel()
                 detailTabs_->setCurrentIndex(0);
                 detailEdit_->setPlainText(detail);
                 if (success) {
+                    preRefreshPluginRoot_ = currentPluginRoot_;
+                    refreshingPluginList_ = true;
                     vm_.refresh();
                     const QString root = selectedPluginRoot();
                     if (!root.isEmpty())
@@ -1260,9 +1270,12 @@ void PluginView::onRemoveClicked()
 
 void PluginView::onScaffoldClicked()
 {
+    // No explicit refresh needed here: creating a plugin through this
+    // dialog fires infraVm_'s scaffoldComplete signal (connected above),
+    // which already snapshots/refreshes/reselects for us. Doing it again
+    // here would double-fire and stomp the snapshot that connection just took.
     Dialogs::PluginWizard wizard(infraVm_, this);
-    if (wizard.exec() == QDialog::Accepted)
-        vm_.refresh();
+    wizard.exec();
 }
 
 void PluginView::onAddTargetClicked()
@@ -1273,11 +1286,11 @@ void PluginView::onAddTargetClicked()
             tr("Select a plugin folder before adding a target."));
         return;
     }
+    // No explicit refresh needed here: adding a target fires infraVm_'s
+    // targetAdded signal (connected above), which already
+    // snapshots/refreshes/reselects and reloads the file list for us.
     Dialogs::AddTargetDialog dlg(infraVm_, root, this);
-    if (dlg.exec() == QDialog::Accepted) {
-        vm_.refresh();
-        cmdTlmVm_.listPluginFiles(root);
-    }
+    dlg.exec();
 }
 
 void PluginView::onValidateClicked()
@@ -1316,6 +1329,35 @@ void PluginView::onBuildClicked()
 void PluginView::onTableSelectionChanged()
 {
     const bool hasSel = tableView_->selectionModel()->hasSelection();
+
+    // Refreshing the plugin list (Refresh button, New Plugin, Add Target)
+    // resets the table model. Qt's model-reset-driven selection clear does
+    // not reliably emit selectionChanged (confirmed empirically), so the
+    // "!hasSel" transient case below is mostly a defensive no-op; the real
+    // work happens when restoreSelectionAfterRefresh() (on pluginListChanged)
+    // explicitly reselects a row, which *does* fire this slot with hasSel
+    // true. Compare against preRefreshPluginRoot_ (captured before this
+    // refresh cycle, and before scaffoldComplete-style handlers reassign
+    // currentPluginRoot_ to a new plugin) rather than currentPluginRoot_
+    // itself, so a routine "same plugin" refresh preserves the in-progress
+    // file-editing session while a genuine switch to a different plugin
+    // still gets the normal reset below.
+    if (refreshingPluginList_) {
+        if (!hasSel)
+            return; // wait for restoreSelectionAfterRefresh() to reselect
+        const auto* reselected =
+            vm_.pluginModel()->pluginAt(tableView_->selectionModel()->selectedRows().first().row());
+        const QString reselectedRoot = reselected ? QString::fromStdString(reselected->rootPath) : QString();
+        refreshingPluginList_ = false;
+        if (!preRefreshPluginRoot_.isEmpty() && reselectedRoot == preRefreshPluginRoot_) {
+            preRefreshPluginRoot_.clear();
+            updateWizardStepStrip();
+            return;
+        }
+        preRefreshPluginRoot_.clear();
+        // Otherwise this is a genuine switch to a different plugin - fall
+        // through to the normal reset below.
+    }
 
     // Wizard convenience: selecting a plugin while on the Plugin step
     // auto-advances to File - the Next button remains available too, and
@@ -1423,6 +1465,31 @@ void PluginView::onTableSelectionChanged()
     if (!currentPluginRoot_.isEmpty())
         cmdTlmVm_.listPluginFiles(currentPluginRoot_);
     updateWizardStepStrip();
+}
+
+void PluginView::restoreSelectionAfterRefresh()
+{
+    if (!refreshingPluginList_)
+        return; // pluginListChanged fired for a reason other than our own refresh
+
+    if (currentPluginRoot_.isEmpty()) {
+        refreshingPluginList_ = false;
+        return;
+    }
+
+    auto* model = vm_.pluginModel();
+    for (int row = 0; row < model->rowCount(); ++row) {
+        const auto* plugin = model->pluginAt(row);
+        if (plugin && QString::fromStdString(plugin->rootPath) == currentPluginRoot_) {
+            tableView_->selectRow(row); // fires onTableSelectionChanged(), which clears the flag
+            return;
+        }
+    }
+
+    // The plugin no longer exists (e.g. removed elsewhere) - run the real
+    // reset now for the resulting empty selection.
+    refreshingPluginList_ = false;
+    onTableSelectionChanged();
 }
 
 void PluginView::onComponentItemDoubleClicked(QListWidgetItem* item)

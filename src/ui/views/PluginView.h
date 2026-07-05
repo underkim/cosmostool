@@ -47,6 +47,7 @@ private slots:
     void onScaffoldClicked();
     void onAddTargetClicked();
     void onTableSelectionChanged();
+    void restoreSelectionAfterRefresh();
     void onComponentItemDoubleClicked(QListWidgetItem* item);
     void onOpenComponentClicked();
     void onSaveComponentClicked();
@@ -205,6 +206,27 @@ private:
     bool        pendingOfflineValidation_{false};
     bool        updatingStructureTable_{false};
     QVector<ViewModels::CmdTlmBlock> currentBlocks_;
+
+    // Set right before any vm_.refresh() call (Refresh button, New Plugin,
+    // Add Target, or the scaffoldComplete/targetAdded InfraViewModel
+    // callbacks). PluginTableModel::setPlugins() does beginResetModel()/
+    // endResetModel(), which silently clears the table's selection model
+    // *without* emitting selectionChanged (confirmed empirically - Qt's
+    // reset-driven clear bypasses the normal select()/signal path) - so
+    // restoreSelectionAfterRefresh(), connected to the always-reliable
+    // pluginListChanged() signal, is what re-selects the right row
+    // afterwards, not onTableSelectionChanged() reacting to the reset itself.
+    bool        refreshingPluginList_{false};
+
+    // Snapshot of currentPluginRoot_ taken at the *start* of a refresh
+    // cycle, before any handler (e.g. scaffoldComplete) has a chance to
+    // reassign currentPluginRoot_ to a different (e.g. newly-created)
+    // plugin. onTableSelectionChanged() compares the plugin reselected
+    // after refresh against *this*, not against currentPluginRoot_, to
+    // tell "the same plugin got reselected after a routine refresh"
+    // (preserve the open file/editing session) apart from "refresh also
+    // switched to a genuinely different plugin" (reset is correct there).
+    QString     preRefreshPluginRoot_;
 
     // Step-by-step wizard scaffold (Phase 0): Plugin -> File -> Edit -> Check
     // -> Build & Install. Phase 0 only wires navigation with placeholder
