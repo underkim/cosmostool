@@ -340,9 +340,14 @@ void InfraView::bindViewModel()
                 const QString prev = containerCombo_->currentText();
                 containerCombo_->clear();
                 containerCombo_->addItems(names);
-                // Restore previous selection if still present
+                // Restore the previous selection if it's still present, otherwise
+                // default to the first container - addItems() alone leaves
+                // currentIndex() at -1 (placeholderText showing "Select a
+                // container…" forever) even once entries exist, which silently
+                // no-ops Extract until the user manually opens the dropdown.
                 const int idx = containerCombo_->findText(prev);
                 if (idx >= 0) containerCombo_->setCurrentIndex(idx);
+                else if (!names.isEmpty()) containerCombo_->setCurrentIndex(0);
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::containerFileExtracted,
