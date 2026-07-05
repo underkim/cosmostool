@@ -399,7 +399,6 @@ void PluginView::setupUi()
     saveComponentBtn_ = new QPushButton("Save", editorPane);
     validateComponentBtn_ = new QPushButton("Check", editorPane);
     validateOfflineBtn_ = new QPushButton("Offline Check", editorPane);
-    openInCmdTlmBtn_ = new QPushButton("Open CMD/TLM", editorPane);
     startCmdTlmEditBtn_ = new QPushButton("Edit CMD/TLM", editorPane);
     insertCmdBtn_ = new QPushButton("+ COMMAND", editorPane);
     insertTlmBtn_ = new QPushButton("+ TELEMETRY", editorPane);
@@ -416,7 +415,6 @@ void PluginView::setupUi()
     validateOfflineBtn_->setText("Offline Check");
     validateOfflineBtn_->setToolTip(
         "Full per-rule offline check in the Validator view.");
-    openInCmdTlmBtn_->setText("Open CMD/TLM");
     startCmdTlmEditBtn_->setText("Edit CMD/TLM");
     startCmdTlmEditBtn_->setToolTip(
         "Open the first CMD/TLM file in this plugin and start the common edit flow.");
@@ -475,7 +473,6 @@ void PluginView::setupUi()
     saveComponentBtn_->setEnabled(false);
     validateComponentBtn_->setEnabled(false);
     validateOfflineBtn_->setEnabled(false);
-    openInCmdTlmBtn_->setEnabled(false);
     startCmdTlmEditBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
@@ -487,7 +484,7 @@ void PluginView::setupUi()
     updateComponentEmptyState();
     // No hardcoded pixel-width floors on the buttons below that are actually
     // shown in the UI (openComponentBtn_/saveComponentBtn_/
-    // validateComponentBtn_/openInCmdTlmBtn_/startCmdTlmEditBtn_/
+    // validateComponentBtn_/startCmdTlmEditBtn_/
     // addStructureFieldBtn_/deleteStructureFieldBtn_) - each QPushButton's
     // own sizeHint already reserves exactly the space its current text needs
     // for the active font/DPI, so it can never clip. The remaining buttons
@@ -508,7 +505,6 @@ void PluginView::setupUi()
     componentActionRow->addWidget(saveComponentBtn_);
     componentActionRow->addWidget(validateComponentBtn_);
     componentActionRow->addWidget(validateMenuBtn_);
-    componentActionRow->addWidget(openInCmdTlmBtn_);
     componentActionRow->addWidget(startCmdTlmEditBtn_);
     componentActionRow->addStretch();
     componentEditRow->addWidget(insertMenuBtn_);
@@ -712,7 +708,6 @@ void PluginView::bindViewModel()
     connect(validateComponentBtn_, &QPushButton::clicked, this, &PluginView::onValidateComponentClicked);
     connect(validateOfflineBtn_, &QPushButton::clicked, this, &PluginView::onValidateOfflineClicked);
     connect(validateOfflineAction_, &QAction::triggered, this, &PluginView::onValidateOfflineClicked);
-    connect(openInCmdTlmBtn_, &QPushButton::clicked, this, &PluginView::onOpenInCmdTlmClicked);
     connect(startCmdTlmEditBtn_, &QPushButton::clicked, this, &PluginView::onStartCmdTlmEditClicked);
     connect(insertCmdBtn_, &QPushButton::clicked, this, &PluginView::onInsertCmdClicked);
     connect(insertCmdAction_, &QAction::triggered, this, &PluginView::onInsertCmdClicked);
@@ -823,7 +818,6 @@ void PluginView::bindViewModel()
                 openComponentBtn_->setEnabled(!busy && componentList_->currentItem() != nullptr);
                 validateComponentBtn_->setEnabled(!busy && isCmdTlmFile(currentComponentPath_));
                 validateOfflineBtn_->setEnabled(!busy && !currentComponentPath_.isEmpty());
-                openInCmdTlmBtn_->setEnabled(!busy && isCmdTlmFile(currentComponentPath_));
                 startCmdTlmEditBtn_->setEnabled(!busy && !firstCmdTlmComponentPath_.isEmpty());
                 addFieldBtn_->setEnabled(!busy && isCmdTlmFile(currentComponentPath_));
                 addStructureFieldBtn_->setEnabled(!busy && isCmdTlmFile(currentComponentPath_));
@@ -914,7 +908,6 @@ void PluginView::bindViewModel()
                 const bool cmdTlm = isCmdTlmFile(path);
                 validateComponentBtn_->setEnabled(cmdTlm);
                 validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
-                openInCmdTlmBtn_->setEnabled(cmdTlm);
                 insertCmdBtn_->setEnabled(cmdTlm);
                 insertTlmBtn_->setEnabled(cmdTlm);
                 addFieldBtn_->setEnabled(cmdTlm);
@@ -1119,7 +1112,6 @@ void PluginView::onTableSelectionChanged()
     openComponentBtn_->setEnabled(false);
     validateComponentBtn_->setEnabled(false);
     validateOfflineBtn_->setEnabled(false);
-    openInCmdTlmBtn_->setEnabled(false);
     startCmdTlmEditBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
@@ -1240,16 +1232,6 @@ void PluginView::onValidateOfflineClicked()
     if (detailTabs_)
         detailTabs_->setCurrentIndex(1);
     validatorVm_.checkContent(content);
-}
-
-void PluginView::onOpenInCmdTlmClicked()
-{
-    if (currentComponentPath_.isEmpty()) return;
-    if (!isCmdTlmFile(currentComponentPath_)) {
-        componentDiagnostics_->setPlainText("Open CMD/TLM is available for cmd_tlm files.");
-        return;
-    }
-    emit openCmdTlmRequested(currentComponentPath_);
 }
 
 void PluginView::onStartCmdTlmEditClicked()
@@ -1438,7 +1420,6 @@ void PluginView::updateActionHints()
     saveComponentBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : "Save the open plugin file.");
     validateComponentBtn_->setToolTip(!cmdTlm ? fileReason : "Validate the open CMD/TLM .txt file.");
     validateOfflineBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : "Run the full per-rule offline validator on this file.");
-    openInCmdTlmBtn_->setToolTip(!cmdTlm ? fileReason : "Open this CMD/TLM file in the CMD/TLM view.");
     insertCmdBtn_->setToolTip(!cmdTlm ? fileReason : "Insert a COMMAND template.");
     insertTlmBtn_->setToolTip(!cmdTlm ? fileReason : "Insert a TELEMETRY template.");
     addFieldBtn_->setToolTip(!cmdTlm ? fileReason : "Add a CMD/TLM field at the cursor.");
@@ -1947,7 +1928,6 @@ void PluginView::setComponentDirty(bool dirty)
 void PluginView::setCmdTlmActionsVisible(bool visible)
 {
     const QList<QWidget*> widgets = {
-        openInCmdTlmBtn_,
         startCmdTlmEditBtn_,
         insertMenuBtn_,
         structureMenuBtn_,

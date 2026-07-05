@@ -5,7 +5,6 @@
 #include "views/SettingsView.h"
 #include "views/PluginView.h"
 #include "views/InfraView.h"
-#include "views/CmdTlmView.h"
 #include "views/PacketToolsView.h"
 #include "views/LogViewerView.h"
 #include "views/ValidatorView.h"
@@ -35,7 +34,6 @@ namespace {
 enum NavIndex {
     NavHome = 0,
     NavWorkspace,
-    NavCmdTlm,
     NavPacketTools,
     NavLogs,
     NavSettings,
@@ -138,12 +136,11 @@ void MainWindow::setupNavigation()
     };
 
     addItem("Home", "Review status and jump to common workflows");                 // 0  (Ctrl+1)
-    addItem("Workspace", "Manage plugins and generated target files");             // 1  (Ctrl+2)
-    addItem("CMD / TLM", "Browse, edit, and validate command/telemetry files");    // 2  (Ctrl+3)
-    addItem("Packet Tools", "Simulate and inspect packet payloads");              // 3  (Ctrl+4)
-    addItem("Logs", "Inspect toolkit and OpenC3 logs");                            // 4  (Ctrl+5)
-    addItem("Settings", "Manage connection profiles and preferences");             // 5  (Ctrl+6)
-    addItem("Tools", "Run Doctor, Validator, Docker, and infrastructure tools");   // 6  (Ctrl+7)
+    addItem("Workspace", "Manage plugins, and browse, edit, and validate CMD/TLM files"); // 1  (Ctrl+2)
+    addItem("Packet Tools", "Simulate and inspect packet payloads");              // 2  (Ctrl+3)
+    addItem("Logs", "Inspect toolkit and OpenC3 logs");                            // 3  (Ctrl+4)
+    addItem("Settings", "Manage connection profiles and preferences");             // 4  (Ctrl+5)
+    addItem("Tools", "Run Doctor, Validator, Docker, and infrastructure tools");   // 5  (Ctrl+6)
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -156,7 +153,6 @@ void MainWindow::setupViews()
 {
     auto* dashboardView = new Views::DashboardView(dashboardVm_, this);
     auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, this);
-    auto* cmdTlmView    = new Views::CmdTlmView(cmdTlmVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
 
     // Tools groups diagnostics and infrastructure utilities so the main rail stays
@@ -176,20 +172,12 @@ void MainWindow::setupViews()
         contentStack_->setCurrentIndex(row);
     };
 
-    // CMD/TLM Editor is a top-level page (index 2).
-    connect(pluginView, &Views::PluginView::openCmdTlmRequested,
-            this, [goTo, cmdTlmView](const QString& remoteFilePath) {
-                goTo(NavCmdTlm);
-                cmdTlmView->openFile(remoteFilePath);
-            });
-
     auto toValidator = [this, goTo, validatorView, toolsTabs,
                         kToolsValidatorTab](const QString& content) {
         goTo(NavTools);
         toolsTabs->setCurrentIndex(kToolsValidatorTab);
         validatorView->checkContent(content);
     };
-    connect(cmdTlmView, &Views::CmdTlmView::openInValidatorRequested, this, toValidator);
     connect(pluginView, &Views::PluginView::openInValidatorRequested, this, toValidator);
 
     // ── Home (Dashboard) quick actions ──────────────────────────────────────
@@ -209,7 +197,7 @@ void MainWindow::setupViews()
     connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
             this, [goTo] { goTo(NavWorkspace); });
     connect(dashboardView, &Views::DashboardView::openCmdTlmRequested,
-            this, [goTo] { goTo(NavCmdTlm); });
+            this, [goTo] { goTo(NavWorkspace); });
     connect(dashboardView, &Views::DashboardView::openValidatorRequested,
             this, [goTo, toolsTabs, kToolsValidatorTab] {
                 goTo(NavTools);
@@ -222,12 +210,11 @@ void MainWindow::setupViews()
 
     // Keep this order aligned with NavIndex and the navRail_ addItem calls in setupNavigation().
     contentStack_->addWidget(dashboardView);                                    // 0 Home
-    contentStack_->addWidget(pluginView);                                       // 1 Plugins
-    contentStack_->addWidget(cmdTlmView);                                       // 2 CMD/TLM Editor
-    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 3 Packets
-    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 4 Logs
-    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 5 Settings
-    contentStack_->addWidget(toolsTabs);                                        // 6 Tools
+    contentStack_->addWidget(pluginView);                                       // 1 Workspace (plugins + CMD/TLM)
+    contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 2 Packets
+    contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 3 Logs
+    contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 4 Settings
+    contentStack_->addWidget(toolsTabs);                                        // 5 Tools
 }
 
 void MainWindow::showConnectionDialog()
