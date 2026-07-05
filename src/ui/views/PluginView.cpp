@@ -403,6 +403,14 @@ void PluginView::setupUi()
     auto* editorLayout = new QVBoxLayout(editorPane);
     editorLayout->setContentsMargins(0, 0, 0, 0);
     editorLayout->setSpacing(8);
+    // Without an explicit floor here, nothing stops the vertical splitter
+    // (see terminalPanel_ below) from shrinking this pane's toolbar rows and
+    // the Structure editor's fields below their own minimum size hints -
+    // QSplitter compresses past a child's minimumSizeHint rather than
+    // guaranteeing it, which rendered rows squashed on top of each other at
+    // ordinary window heights once the Terminal panel was toggled on. This
+    // forces the window itself to stay tall enough instead.
+    editorPane->setMinimumHeight(520);
 
     auto* componentToolbarBlock = new QVBoxLayout;
     componentToolbarBlock->setSpacing(6);
@@ -703,8 +711,8 @@ void PluginView::setupUi()
     // rendering rows so tight they visually overlapped. Give the terminal a
     // smaller, still-usable default share and a firm floor so it - not the
     // primary editor content - absorbs the space pressure.
-    terminalPanel_->setMinimumHeight(120);
-    verticalSplitter->setSizes({760, 140});
+    terminalPanel_->setMinimumHeight(160);
+    verticalSplitter->setSizes({760, 180});
     terminalPanel_->setVisible(false);
     root->addWidget(verticalSplitter, 1);
 
