@@ -207,6 +207,7 @@ void MainWindow::setupNavigation()
             : tr("Switch to Plugin Creation") + " " + QString::fromUtf8("◂"),
         this);
     modeToggleBtn_->setFlat(true);
+    modeToggleBtn_->setObjectName("ModeToggleButton");
     modeToggleBtn_->setToolTip(appMode_ == AppMode::PluginCreation
         ? tr("Currently in Plugin Creation mode. Switch to see Environment, Validator, Packet Tools, and Logs.")
         : tr("Currently in Connect & Operate mode. Switch back to focus on plugin creation."));
