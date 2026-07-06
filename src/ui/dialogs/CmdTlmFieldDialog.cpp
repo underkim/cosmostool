@@ -76,7 +76,7 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     form->addRow(tr("Type"), typeCombo_);
     form->addRow(tr("Minimum"), minEdit_);
     form->addRow(tr("Maximum"), maxEdit_);
-    form->addRow(tr("Default"), defaultEdit_);
+    form->addRow(tr("Default / ID Value"), defaultEdit_);
     form->addRow(tr("Description"), descriptionEdit_);
     root->addLayout(form);
 
@@ -87,6 +87,8 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     connect(modeCombo_, &QComboBox::currentIndexChanged,
             this, [this] { updateMode(); });
     connect(typeCombo_, &QComboBox::currentIndexChanged,
+            this, [this] { updateMode(); });
+    connect(idFieldCheck_, &QCheckBox::toggled,
             this, [this] { updateMode(); });
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         const QString name = nameEdit_->text().trimmed();
@@ -132,6 +134,16 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
                 return;
             }
         }
+        // Telemetry item's APPEND_ID_ITEM needs its own id_value token
+        // (unlike plain APPEND_ITEM) - see generatedLine() below. Without
+        // one, CmdTlmParser's own column layout for ID items shifts the
+        // description into the id_value slot instead of failing loudly.
+        if (!parameter && idFieldCheck_->isChecked()
+            && defaultEdit_->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, tr("Add Field"),
+                tr("An ID value is required for identifier fields."));
+            return;
+        }
 
         accept();
     });
@@ -173,6 +185,16 @@ QString CmdTlmFieldDialog::generatedLine() const
                  defaultEdit_->text().trimmed(), desc);
     }
 
+    // APPEND_ID_ITEM inserts an id_value token right after the type, before
+    // the description (see CmdTlmParser's own column layout) - plain
+    // APPEND_ITEM has no such slot. Omitting it for an ID item would shift
+    // the description into where the parser expects the id_value instead.
+    if (idFieldCheck_->isChecked()) {
+        return QString("  %1 %2 %3 %4 %5 %6\n")
+            .arg(keyword, name)
+            .arg(bitSizeSpin_->value())
+            .arg(type, defaultEdit_->text().trimmed(), desc);
+    }
     return QString("  %1 %2 %3 %4 %5\n")
         .arg(keyword, name)
         .arg(bitSizeSpin_->value())
@@ -187,7 +209,9 @@ void CmdTlmFieldDialog::updateMode()
 
     minEdit_->setEnabled(parameter && !strBlock);
     maxEdit_->setEnabled(parameter && !strBlock);
-    defaultEdit_->setEnabled(parameter);
+    // A telemetry item has no Default of its own, but an ID item still
+    // needs this field to supply its id_value (see generatedLine()).
+    defaultEdit_->setEnabled(parameter || idFieldCheck_->isChecked());
 }
 
 } // namespace OpenC3::UI::Dialogs
