@@ -82,6 +82,12 @@ Services::ConnectionState SettingsViewModel::connectionState() const noexcept
     return connection_.state();
 }
 
+QString SettingsViewModel::defaultProfileId() const
+{
+    const auto profile = settings_.defaultProfile();
+    return profile ? QString::fromStdString(profile->id) : QString();
+}
+
 void SettingsViewModel::loadProfiles()
 {
     profileModel_->setProfiles(settings_.profiles());

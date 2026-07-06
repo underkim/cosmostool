@@ -6,8 +6,15 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QString>
+#include <QStringList>
 
 namespace OpenC3::UI::Dialogs {
+
+/// Detects installed WSL distros (via `wsl.exe --list --quiet`), for the
+/// Quick-WSL one-click profile flow - shared with MainWindow's silent
+/// auto-connect (Plugin Creation mode), which needs the same detection
+/// without a visible dialog.
+[[nodiscard]] QStringList detectWslDistros();
 
 /// Quick-connect dialog shown on startup if no default profile is configured.
 class ConnectionDialog final : public QDialog {

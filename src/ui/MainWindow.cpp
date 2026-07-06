@@ -11,6 +11,7 @@
 #include "dialogs/AboutDialog.h"
 #include "dialogs/UserGuideDialog.h"
 #include "dialogs/ConnectionDialog.h"
+#include "models/ConnectionProfile.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -27,6 +28,7 @@
 #include <QKeySequence>
 #include <QSettings>
 #include <QMessageBox>
+#include <QUuid>
 
 namespace OpenC3::UI {
 
@@ -87,6 +89,7 @@ MainWindow::MainWindow(
     // modeToggleBtn_ all exist, so their state can be synced against appMode_
     // at the same time.
     applyNavVisibility();
+    autoConnectIfNeeded();
 
     const QVariant geometry = windowSettings.value("MainWindow/geometry");
     if (geometry.isValid()) restoreGeometry(geometry.toByteArray());
@@ -258,6 +261,54 @@ void MainWindow::setAppMode(AppMode mode)
     }
 
     applyNavVisibility();
+
+    if (appMode_ == AppMode::PluginCreation) {
+        autoConnectAttempted_ = false;
+        autoConnectIfNeeded();
+    }
+}
+
+void MainWindow::autoConnectIfNeeded()
+{
+    if (appMode_ != AppMode::PluginCreation) return;
+    if (autoConnectAttempted_) return;
+    if (settingsVm_.isConnected()) return;
+    autoConnectAttempted_ = true;
+
+    settingsVm_.loadProfiles();
+
+    QString targetId = settingsVm_.defaultProfileId();
+    if (targetId.isEmpty() && settingsVm_.profileModel()->rowCount() > 0) {
+        if (const auto* first = settingsVm_.profileModel()->profileAt(0))
+            targetId = QString::fromStdString(first->id);
+    }
+
+    if (!targetId.isEmpty()) {
+        settingsVm_.connectToProfile(targetId);
+        return;
+    }
+
+    // No saved profile at all - silently create+connect a Quick-WSL profile,
+    // the same sequence as ConnectionDialog::onCreateWslProfile(), just
+    // headless. If no WSL distro is detected either, leave the app
+    // disconnected; the status-bar connectionButton_ already reads
+    // "Disconnected" and doubles as the click-to-configure recovery path.
+    const QStringList distros = Dialogs::detectWslDistros();
+    if (distros.isEmpty())
+        return;
+
+    Models::ConnectionProfile p;
+    p.id              = QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString();
+    p.name            = QStringLiteral("WSL (%1)").arg(distros.first()).toStdString();
+    p.mode            = Models::ConnectionMode::WSL;
+    p.isDefault       = false;
+    p.wslDistribution = distros.first().toStdString();
+    p.cosmosRootPath  = "/cosmos";
+
+    const QString profileId = QString::fromStdString(p.id);
+    settingsVm_.saveProfile(p);
+    settingsVm_.setDefaultProfile(profileId);
+    settingsVm_.connectToProfile(profileId);
 }
 
 void MainWindow::setupViews()

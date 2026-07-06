@@ -80,6 +80,13 @@ private:
     void applyNavVisibility();
     [[nodiscard]] bool rowVisibleInMode(int row, AppMode mode) const noexcept;
 
+    // Silently connects using the default (or first saved, or a freshly
+    // created Quick-WSL) profile when entering Plugin Creation mode without
+    // an active connection - no blocking dialog; a failure just leaves the
+    // existing status-bar connectionButton_ text showing the error, same as
+    // any other connection failure.
+    void autoConnectIfNeeded();
+
     ViewModels::DashboardViewModel&    dashboardVm_;
     ViewModels::DockerViewModel&       dockerVm_;
     ViewModels::InfraViewModel&        infraVm_;
@@ -108,6 +115,7 @@ private:
     QLabel*      dockerLabel_{nullptr};
 
     AppMode      appMode_{AppMode::PluginCreation};
+    bool         autoConnectAttempted_{false};
     QAction*     pluginCreationAction_{nullptr};
     QAction*     connectOperateAction_{nullptr};
     QPushButton* modeToggleBtn_{nullptr};

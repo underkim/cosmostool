@@ -12,8 +12,6 @@
 
 namespace OpenC3::UI::Dialogs {
 
-namespace {
-
 QStringList detectWslDistros()
 {
     QStringList distros;
@@ -48,6 +46,8 @@ QStringList detectWslDistros()
 
     return distros;
 }
+
+namespace {
 
 QString connectionStateText(Services::ConnectionState state, const QString& errorMessage)
 {

@@ -39,6 +39,12 @@ public:
     [[nodiscard]] ProfileListModel* profileModel() const noexcept;
     [[nodiscard]] bool isConnected() const noexcept;
 
+    // Empty if no profile is marked default. Exposed for MainWindow's silent
+    // auto-connect (Plugin Creation mode) - reuses the service-layer concept
+    // that already existed (ISettingsService::defaultProfile()) rather than
+    // making callers scan profileModel() rows for isDefault themselves.
+    [[nodiscard]] QString defaultProfileId() const;
+
     // Live query, not the last-received connectionStateChanged event - lets a
     // view constructed *after* a connection already succeeded elsewhere (e.g.
     // the startup ConnectionDialog, which runs and can connect before
