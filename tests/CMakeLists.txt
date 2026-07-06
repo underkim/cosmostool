@@ -1,6 +1,7 @@
 # ── Test Suite ─────────────────────────────────────────────────────────────────
 
 add_executable(opencosmos_tests
+    unit/app/StartupPolicyTest.cpp
     unit/core/ExecutorResultTest.cpp
     unit/core/EventBusTest.cpp
     unit/core/ShellQuoteTest.cpp

@@ -48,6 +48,13 @@ enum NavIndex {
 };
 } // namespace
 
+AppMode MainWindow::loadPersistedAppMode()
+{
+    QSettings s;
+    return s.value("MainWindow/appMode", "pluginCreation").toString() == "connectOperate"
+        ? AppMode::ConnectOperate : AppMode::PluginCreation;
+}
+
 MainWindow::MainWindow(
     ViewModels::DashboardViewModel&    dashboard,
     ViewModels::DockerViewModel&       docker,
@@ -77,8 +84,7 @@ MainWindow::MainWindow(
     resize(1440, 900);
 
     QSettings windowSettings;
-    appMode_ = windowSettings.value("MainWindow/appMode", "pluginCreation").toString() == "connectOperate"
-        ? AppMode::ConnectOperate : AppMode::PluginCreation;
+    appMode_ = loadPersistedAppMode();
 
     setupUi();
     setupMenuBar();

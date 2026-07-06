@@ -30,6 +30,7 @@
 
 #include "ui/styles/ThemeManager.h"
 #include "ui/dialogs/ConnectionDialog.h"
+#include "StartupPolicy.h"
 
 #include <QStandardPaths>
 #include <QDir>
@@ -85,8 +86,13 @@ int Application::run()
     }
 
     // ── Connection dialog on startup ──────────────────────────────────────────
+    // Plugin Creation mode skips this entirely - MainWindow's own
+    // autoConnectIfNeeded() connects silently once shown, so the user never
+    // has to clear a dialog before they can start editing a plugin.
     auto& settingsVm = *registry_.resolve<ViewModels::SettingsViewModel>();
-    {
+    const bool hasAnyProfile =
+        !registry_.resolve<Services::ISettingsService>()->profiles().empty();
+    if (shouldShowStartupConnectionDialog(UI::MainWindow::loadPersistedAppMode(), hasAnyProfile)) {
         // The startup dialog may be the only visible window. When the user clicks
         // Skip, Qt would otherwise mark the application for quit before the main
         // window is created, causing the app to exit immediately in an offline /

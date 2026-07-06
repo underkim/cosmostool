@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/AppMode.h"
+
 #include "viewmodels/dashboard/DashboardViewModel.h"
 #include "viewmodels/docker/DockerViewModel.h"
 #include "viewmodels/doctor/DoctorViewModel.h"
@@ -25,13 +27,6 @@ namespace OpenC3::UI::Views { class PluginView; }
 
 namespace OpenC3::UI {
 
-/// Which top-level workflow the app is currently focused on.
-/// PluginCreation: Home, Workspace (plugin/file/edit only) - no connection
-/// required up front, connects transparently in the background.
-/// ConnectOperate: Environment, Validator, Packet Tools, Logs, plus
-/// Workspace's Check & Build & Install step - requires a real connection.
-enum class AppMode { PluginCreation, ConnectOperate };
-
 /// Application main window.
 ///
 /// Implements a navigation rail (sidebar) + content area layout.
@@ -54,6 +49,13 @@ public:
         QWidget*                           parent = nullptr);
 
     ~MainWindow() override = default;
+
+    // Reads the persisted app mode (QSettings "MainWindow/appMode") without
+    // constructing a MainWindow - Application::run() needs this to decide
+    // whether to show the blocking startup ConnectionDialog *before* a
+    // MainWindow exists. Single source of truth for the key/parsing so
+    // Application.cpp and the constructor never drift apart.
+    [[nodiscard]] static AppMode loadPersistedAppMode();
 
 protected:
     void closeEvent(QCloseEvent* event) override;
