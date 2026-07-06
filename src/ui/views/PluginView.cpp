@@ -15,6 +15,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QShortcut>
 #include <QSignalBlocker>
@@ -106,6 +107,18 @@ QString quotedValue(QString value)
 {
     value.replace('"', '\'');
     return '"' + value + '"';
+}
+
+// Matches CmdTlmFieldDialog's own name validation - the generated line is
+// whitespace-tokenized when re-parsed (see CmdTlmParser), so a name
+// containing a space or other COSMOS syntax character would silently shift
+// every field after it instead of failing loudly. applyStructureRowToEditor()
+// edits the Structure table's Field cell directly (bypassing that dialog
+// entirely), so it needs the same check.
+bool isValidFieldName(const QString& name)
+{
+    static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+    return pattern.match(name).hasMatch();
 }
 
 bool startsWithAnyKeyword(const QString& trimmed, const QStringList& keywords)
@@ -2103,6 +2116,12 @@ void PluginView::applyStructureRowToEditor(int row)
 
     if (name.isEmpty() || bits.isEmpty() || type.isEmpty()) {
         componentDiagnostics_->setPlainText(tr("Name, Bits, and Type are required."));
+        return;
+    }
+    if (!isValidFieldName(name)) {
+        componentDiagnostics_->setPlainText(tr(
+            "Field name must start with a letter or underscore and contain only "
+            "letters, numbers, and underscores (no spaces or punctuation)."));
         return;
     }
     if (hasExplicitOffset && offset.isEmpty()) {
