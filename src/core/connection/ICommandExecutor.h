@@ -31,6 +31,12 @@ public:
 
     [[nodiscard]] virtual bool isConnected() const noexcept = 0;
 
+    /// Detail on why the most recent connect() call failed (empty if it
+    /// succeeded, or if the implementation doesn't distinguish failure
+    /// modes). Lets callers surface e.g. "auth failed" vs. "host
+    /// unreachable" instead of one generic message.
+    [[nodiscard]] virtual std::string lastError() const { return {}; }
+
     // ── Command execution ─────────────────────────────────────────────────────
 
     /// Execute a shell command and return combined stdout / stderr.

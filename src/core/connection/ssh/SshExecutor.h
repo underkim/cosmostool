@@ -27,6 +27,7 @@ public:
     [[nodiscard]] bool connect() override;
     void               disconnect() override;
     [[nodiscard]] bool isConnected() const noexcept override;
+    [[nodiscard]] std::string lastError() const override { return lastError_; }
 
     [[nodiscard]] ExecutorResult execute(const std::string& command) override;
 
@@ -65,6 +66,7 @@ private:
     _LIBSSH2_SESSION*  session_{nullptr};
     int                socket_{-1};
     bool               connected_{false};
+    std::string        lastError_;
 };
 
 } // namespace OpenC3::Core::Connection

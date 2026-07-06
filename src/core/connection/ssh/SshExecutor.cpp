@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <array>
+#include <cstdlib>
 
 #ifdef _WIN32
 #  include <winsock2.h>
@@ -29,6 +30,38 @@ namespace OpenC3::Core::Connection {
 
 namespace {
 constexpr std::size_t kSshReadBuffer = 8192;
+
+// Expands a leading "~" or "~/..." to the user's home directory. libssh2
+// (and the raw fopen() it uses under the hood for key files) has no concept
+// of "~" - a key path typed as "~/.ssh/id_rsa" (the exact placeholder shown
+// in ConnectionConfig's own doc comment) would otherwise fail to open and
+// surface as a generic auth failure with no hint why.
+std::string expandHome(const std::string& path)
+{
+    if (path.empty() || path[0] != '~') return path;
+    if (path.size() > 1 && path[1] != '/' && path[1] != '\\') return path; // "~user" form - not handled
+
+#ifdef _WIN32
+    const char* home = std::getenv("USERPROFILE");
+#else
+    const char* home = std::getenv("HOME");
+#endif
+    if (!home || !*home) return path;
+
+    return std::string(home) + path.substr(1);
+}
+
+// Retrieves libssh2's own description of the last error on this session, if
+// any - the difference between "wrong password" and "connection reset by
+// peer" is otherwise lost the moment authenticate*() returns a plain bool.
+std::string sessionErrorDetail(LIBSSH2_SESSION* session)
+{
+    if (!session) return {};
+    char* msg    = nullptr;
+    int   msgLen = 0;
+    libssh2_session_last_error(session, &msg, &msgLen, 0);
+    return (msg && msgLen > 0) ? std::string(msg, static_cast<std::size_t>(msgLen)) : std::string{};
+}
 } // namespace
 
 SshExecutor::SshExecutor(ConnectionConfig config)
@@ -52,11 +85,13 @@ SshExecutor::~SshExecutor()
 bool SshExecutor::connect()
 {
     if (connected_) return true;
+    lastError_.clear();
 
     if (!resolveAndConnect()) return false;
 
     session_ = libssh2_session_init();
     if (!session_) {
+        lastError_ = "Failed to initialize SSH session (libssh2_session_init failed)";
         Logging::Logger::error("[SshExecutor] libssh2_session_init failed");
         closesocket(static_cast<SocketType>(socket_));
         socket_ = static_cast<int>(kInvalidSocket);
@@ -66,6 +101,9 @@ bool SshExecutor::connect()
     libssh2_session_set_blocking(session_, 1);
 
     if (libssh2_session_handshake(session_, socket_) != 0) {
+        const std::string detail = sessionErrorDetail(session_);
+        lastError_ = "SSH handshake failed with " + config_.host + ":" + std::to_string(config_.port)
+            + (detail.empty() ? "" : " (" + detail + ")");
         Logging::Logger::error("[SshExecutor] Handshake failed with {}:{}",
                                config_.host, config_.port);
         cleanupSession();
@@ -238,6 +276,7 @@ bool SshExecutor::resolveAndConnect()
     addrinfo*         res     = nullptr;
 
     if (getaddrinfo(config_.host.c_str(), portStr.c_str(), &hints, &res) != 0) {
+        lastError_ = "Could not resolve host '" + config_.host + "' - check the hostname/IP.";
         Logging::Logger::error("[SshExecutor] DNS resolution failed for {}",
                                config_.host);
         return false;
@@ -246,6 +285,7 @@ bool SshExecutor::resolveAndConnect()
     SocketType sock = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sock == kInvalidSocket) {
         freeaddrinfo(res);
+        lastError_ = "Failed to create a network socket";
         Logging::Logger::error("[SshExecutor] socket() failed");
         return false;
     }
@@ -253,6 +293,8 @@ bool SshExecutor::resolveAndConnect()
     if (::connect(sock, res->ai_addr, static_cast<SockLenType>(res->ai_addrlen)) != 0) {
         freeaddrinfo(res);
         closesocket(sock);
+        lastError_ = "Could not connect to " + config_.host + ":" + std::to_string(config_.port)
+            + " - check the host/port and that the SSH server is reachable (firewall, VPN, etc.).";
         Logging::Logger::error("[SshExecutor] connect() failed to {}:{}",
                                config_.host, config_.port);
         return false;
@@ -271,6 +313,9 @@ bool SshExecutor::authenticatePassword()
         config_.password.c_str());
 
     if (rc != 0) {
+        const std::string detail = sessionErrorDetail(session_);
+        lastError_ = "Password authentication failed for " + config_.username + "@" + config_.host
+            + (detail.empty() ? "" : " (" + detail + ")");
         Logging::Logger::error("[SshExecutor] Password auth failed for {}@{}",
                                config_.username, config_.host);
         return false;
@@ -280,18 +325,32 @@ bool SshExecutor::authenticatePassword()
 
 bool SshExecutor::authenticatePublicKey()
 {
+    const std::string privateKey = expandHome(config_.privateKeyPath);
     const std::string pubKey = config_.publicKeyPath.empty()
-        ? config_.privateKeyPath + ".pub"
-        : config_.publicKeyPath;
+        ? privateKey + ".pub"
+        : expandHome(config_.publicKeyPath);
+
+    // libssh2 (and the fopen() it does internally) surfaces a missing key
+    // file as the same generic auth-failure return code as a wrong
+    // passphrase or a rejected key - check for it up front so the error
+    // message actually says what's wrong.
+    if (std::ifstream(privateKey).fail()) {
+        lastError_ = "Private key file not found: " + privateKey;
+        Logging::Logger::error("[SshExecutor] Private key file not found: {}", privateKey);
+        return false;
+    }
 
     const int rc = libssh2_userauth_publickey_fromfile(
         session_,
         config_.username.c_str(),
         pubKey.c_str(),
-        config_.privateKeyPath.c_str(),
+        privateKey.c_str(),
         config_.passphrase.empty() ? nullptr : config_.passphrase.c_str());
 
     if (rc != 0) {
+        const std::string detail = sessionErrorDetail(session_);
+        lastError_ = "Public-key authentication failed for " + config_.username + "@" + config_.host
+            + (detail.empty() ? "" : " (" + detail + ")");
         Logging::Logger::error("[SshExecutor] Public-key auth failed for {}@{}",
                                config_.username, config_.host);
         return false;

@@ -31,9 +31,10 @@ bool ConnectionService::connect(const std::string& profileId)
         executor_ = std::make_unique<SshExecutor>(cfg);
 
     if (!executor_->connect()) {
+        const std::string detail = executor_->lastError();
         executor_.reset();
         setState(ConnectionState::Error,
-                 "Failed to connect to " + profile.name);
+                 "Failed to connect to " + profile.name + (detail.empty() ? "" : ": " + detail));
         return false;
     }
 
