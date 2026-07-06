@@ -62,6 +62,7 @@ private slots:
     void onAddTargetClicked();
     void onAddScriptClicked();
     void onInsertScriptClicked();
+    void onRunScriptClicked();
     void onTableSelectionChanged();
     void restoreSelectionAfterRefresh();
     void onComponentItemDoubleClicked(QListWidgetItem* item);
@@ -211,6 +212,7 @@ private:
     QAction*     addFieldAction_{nullptr};
     QPushButton* insertScriptBtn_{nullptr};
     QAction*     insertScriptAction_{nullptr};
+    QPushButton* runScriptBtn_{nullptr};
     QPushButton* addStructureFieldBtn_{nullptr};
     QPushButton* deleteStructureFieldBtn_{nullptr};
     QPushButton* refreshStructureBtn_{nullptr};

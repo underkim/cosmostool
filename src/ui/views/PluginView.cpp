@@ -13,6 +13,7 @@
 #include "ui/widgets/PluginManifestSnippets.h"
 #include "viewmodels/validation/PluginKeywords.h"
 #include "viewmodels/screen/ScreenLayoutParser.h"
+#include "core/connection/ShellQuote.h"
 
 #include <QAbstractItemView>
 #include <QColor>
@@ -553,6 +554,11 @@ void PluginView::setupUi()
     insertCmdBtn_ = new QPushButton(tr("+ COMMAND"), editorPane);
     insertTlmBtn_ = new QPushButton(tr("+ TELEMETRY"), editorPane);
     insertScriptBtn_ = new QPushButton(tr("+ SCRIPT STEP"), editorPane);
+    runScriptBtn_ = new QPushButton(tr("Run Script"), editorPane);
+    runScriptBtn_->setToolTip(tr(
+        "Runs this file with `ruby` on the connected host (cd <plugin root> && "
+        "ruby <path>) - not the full COSMOS Script Runner, so cmd()/tlm() only "
+        "work if the openc3 script libraries are loadable there."));
     addFieldBtn_ = new QPushButton(tr("Add Field"), editorPane);
     addStructureFieldBtn_ = new QPushButton(tr("Add Row"), editorPane);
     deleteStructureFieldBtn_ = new QPushButton(tr("Delete Row"), editorPane);
@@ -628,6 +634,7 @@ void PluginView::setupUi()
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
     insertScriptBtn_->setEnabled(false);
+    runScriptBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     addStructureFieldBtn_->setEnabled(false);
     deleteStructureFieldBtn_->setEnabled(false);
@@ -655,6 +662,7 @@ void PluginView::setupUi()
     componentPathRow->addWidget(componentPathLabel_, 1);
     componentActionRow->addWidget(saveComponentBtn_);
     componentActionRow->addWidget(startCmdTlmEditBtn_);
+    componentActionRow->addWidget(runScriptBtn_);
     componentActionRow->addStretch();
     // validateComponentBtn_/validateMenuBtn_ (Check/Check▾) move to the
     // wizard's Check page below instead of staying on this row - Phase 4.
@@ -1177,6 +1185,7 @@ void PluginView::bindViewModel()
     connect(insertTlmAction_, &QAction::triggered, this, &PluginView::onInsertTlmClicked);
     connect(insertScriptBtn_, &QPushButton::clicked, this, &PluginView::onInsertScriptClicked);
     connect(insertScriptAction_, &QAction::triggered, this, &PluginView::onInsertScriptClicked);
+    connect(runScriptBtn_, &QPushButton::clicked, this, &PluginView::onRunScriptClicked);
     connect(addFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddFieldClicked);
     connect(addFieldAction_, &QAction::triggered, this, &PluginView::onAddFieldClicked);
     connect(addStructureFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddStructureFieldClicked);
@@ -1431,6 +1440,7 @@ void PluginView::bindViewModel()
                 insertCmdBtn_->setEnabled(cmdTlm);
                 insertTlmBtn_->setEnabled(cmdTlm);
                 insertScriptBtn_->setEnabled(script);
+                runScriptBtn_->setEnabled(script);
                 addFieldBtn_->setEnabled(cmdTlm);
                 addStructureFieldBtn_->setEnabled(cmdTlm);
                 deleteStructureFieldBtn_->setEnabled(false);
@@ -1748,6 +1758,7 @@ void PluginView::onTableSelectionChanged()
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
     insertScriptBtn_->setEnabled(false);
+    runScriptBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     addStructureFieldBtn_->setEnabled(false);
     deleteStructureFieldBtn_->setEnabled(false);
@@ -1922,6 +1933,38 @@ void PluginView::onInsertTlmClicked()
 void PluginView::onInsertScriptClicked()
 {
     insertTextAtCursor(Widgets::CmdTlmSnippets::scriptStep());
+}
+
+void PluginView::onRunScriptClicked()
+{
+    if (!isScriptFile(currentComponentPath_))
+        return;
+    if (!logViewerVm_.isConnected()) {
+        QMessageBox::information(this, tr("Run Script"),
+            tr("Connect to an OpenC3 environment first."));
+        return;
+    }
+    if (componentDirty_) {
+        QMessageBox::information(this, tr("Run Script"),
+            tr("Save the script before running it."));
+        return;
+    }
+
+    // Runs directly on the connected host via `ruby` (same execution model
+    // PluginService::build() already uses for `gem build`) - not the real
+    // COSMOS Script Runner, so cmd()/tlm() only resolve if the openc3 script
+    // libraries happen to be loadable in that environment. Honest, scoped
+    // "run this file" support, not a faithful Script Runner replacement.
+    const std::string cmd =
+        "cd " + Core::Connection::shellQuote(currentPluginRoot_.toStdString())
+        + " && ruby " + Core::Connection::shellQuote(currentComponentDisplayPath_.toStdString())
+        + " 2>&1";
+
+    if (terminalPanel_ && !terminalPanel_->isVisible())
+        onToggleTerminalClicked();
+
+    logViewerVm_.startStream(QString::fromStdString(cmd));
+    componentDiagnostics_->setPlainText(tr("Running script - see Terminal panel for output."));
 }
 
 void PluginView::onAddFieldClicked()
