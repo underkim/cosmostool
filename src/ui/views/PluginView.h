@@ -32,12 +32,24 @@ class LogViewerView;
 class PluginView final : public QWidget {
     Q_OBJECT
 public:
+    // Which range of the wizard's 5 steps the step strip currently shows.
+    // Creation (steps 1-3: Plugin/File/Edit) is reachable from the app's
+    // Plugin Creation mode without a connection; CheckBuild (steps 4-5:
+    // Check/Build & Install) is reachable from Connect & Operate mode and
+    // needs a real connection (openc3cli, gem build). Both modes act on the
+    // exact same underlying session state (currentPluginRoot_,
+    // currentComponentPath_, componentEditor_ contents, etc.) - switching
+    // modes never resets or loses an open file's edits.
+    enum class StepStripMode { Creation, CheckBuild };
+
     explicit PluginView(ViewModels::PluginViewModel& vm,
                         ViewModels::InfraViewModel&  infraVm,
                         ViewModels::CmdTlmViewModel& cmdTlmVm,
                         ViewModels::ValidatorViewModel& validatorVm,
                         ViewModels::LogViewerViewModel& logViewerVm,
                         QWidget*                     parent = nullptr);
+
+    void setStepStripMode(StepStripMode mode);
 
 private slots:
     void onInstallClicked();
@@ -244,12 +256,14 @@ private:
     QPushButton*           wizardNextBtn_{nullptr};
     int                    currentWizardStep_{kWizardStepPlugin};
     QLabel*                breadcrumbLabel_{nullptr};
+    StepStripMode          stepStripMode_{StepStripMode::Creation};
 
     // Phase 6: forward gating - returns the furthest step reachable given
     // current selections (no plugin selected -> File is out of reach; no
     // file open -> Edit/Check/Build are out of reach). Back is always free.
     int maxReachableWizardStep() const;
     void updateWizardBreadcrumb();
+    [[nodiscard]] bool stepVisibleInCurrentMode(int step) const noexcept;
 };
 
 } // namespace OpenC3::UI::Views

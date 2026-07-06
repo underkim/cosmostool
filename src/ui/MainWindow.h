@@ -21,6 +21,8 @@
 
 class QAction;
 
+namespace OpenC3::UI::Views { class PluginView; }
+
 namespace OpenC3::UI {
 
 /// Which top-level workflow the app is currently focused on.
@@ -92,6 +94,7 @@ private:
     QWidget*        centralWidget_{nullptr};
     QListWidget*    navRail_{nullptr};
     QStackedWidget* contentStack_{nullptr};
+    Views::PluginView* pluginView_{nullptr};
 
     // Maps nav-rail row index -> contentStack_ page index. Most rows map to
     // their own dedicated page, but the "Check & Build" row shares the same

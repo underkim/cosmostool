@@ -265,6 +265,11 @@ void MainWindow::setupViews()
     auto* dashboardView = new Views::DashboardView(dashboardVm_, this);
     auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
+    pluginView_ = pluginView;
+    // Matches the default AppMode::PluginCreation - without this, the step
+    // strip would show all 5 steps (PluginView's own construction-time
+    // default) until the user's first nav switch called setStepStripMode.
+    pluginView_->setStepStripMode(Views::PluginView::StepStripMode::Creation);
 
     // Environment groups diagnostics and infrastructure utilities so the main rail
     // stays short. Put Doctor first so setup checks are the most discoverable tool.
@@ -491,6 +496,17 @@ void MainWindow::onNavItemSelected(int index)
 {
     if (index >= 0 && index < rowToStackPage_.size())
         contentStack_->setCurrentIndex(rowToStackPage_[index]);
+
+    // Workspace and Check & Build share one PluginView page but show
+    // different step ranges - sync whenever navigation lands on either one.
+    // All navigation paths (nav-rail click, goTo(), Ctrl+<n> shortcuts, the
+    // mode toggle) funnel through here via navRail_'s currentRowChanged.
+    if (pluginView_) {
+        if (index == NavWorkspace)
+            pluginView_->setStepStripMode(Views::PluginView::StepStripMode::Creation);
+        else if (index == NavCheckBuild)
+            pluginView_->setStepStripMode(Views::PluginView::StepStripMode::CheckBuild);
+    }
 }
 
 void MainWindow::onConnectionStatusChanged()

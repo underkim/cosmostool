@@ -876,9 +876,21 @@ int PluginView::maxReachableWizardStep() const
     return kWizardStepBuild;
 }
 
+bool PluginView::stepVisibleInCurrentMode(int step) const noexcept
+{
+    return stepStripMode_ == StepStripMode::Creation
+        ? step <= kWizardStepEdit
+        : step >= kWizardStepCheck;
+}
+
 void PluginView::goToWizardStep(int step)
 {
     if (step < 0 || step >= wizardStack_->count())
+        return;
+    // Never jump to a step outside the range the current app mode shows -
+    // e.g. Next from Edit must not spill into Check while in Plugin
+    // Creation mode, even if the underlying session data would allow it.
+    if (!stepVisibleInCurrentMode(step))
         return;
     // Forward navigation (step-click or Next) is gated on prerequisites;
     // Back is always free since currentWizardStep_ is, by definition,
@@ -891,28 +903,51 @@ void PluginView::goToWizardStep(int step)
     updateWizardStepStrip();
 }
 
+void PluginView::setStepStripMode(StepStripMode mode)
+{
+    stepStripMode_ = mode;
+    for (int i = 0; i < wizardStepButtons_.size(); ++i)
+        wizardStepButtons_[i]->setVisible(stepVisibleInCurrentMode(i));
+    // Re-clamps currentWizardStep_ into the new mode's range below - none of
+    // currentPluginRoot_/currentComponentPath_/componentEditor_'s contents
+    // are touched, so an open file's edits survive the mode switch.
+    updateWizardStepStrip();
+}
+
 void PluginView::updateWizardStepStrip()
 {
     const int maxReachable = maxReachableWizardStep();
+    const int modeFloor = stepStripMode_ == StepStripMode::Creation ? kWizardStepPlugin : kWizardStepCheck;
+    const int modeCeiling = stepStripMode_ == StepStripMode::Creation ? kWizardStepEdit : kWizardStepBuild;
+    const int ceiling = maxReachable < modeCeiling ? maxReachable : modeCeiling;
 
     // A prerequisite met earlier can be lost later (e.g. the plugin
     // selection is cleared by a refresh that doesn't land on the same
     // plugin) while currentWizardStep_ still points deeper into the wizard.
     // Snap back rather than leaving the user stranded on a step whose page
     // now shows "no plugin/file selected" with no way forward.
-    if (currentWizardStep_ > maxReachable) {
-        currentWizardStep_ = maxReachable;
+    if (currentWizardStep_ > ceiling) {
+        currentWizardStep_ = ceiling;
+        wizardStack_->setCurrentIndex(currentWizardStep_);
+    }
+    // Symmetrically, never rest on a step below the current mode's own
+    // range (e.g. arriving at Check & Build with no file open yet still
+    // shows the Check page's own "nothing to check" empty state, rather
+    // than falling back to a Plugin/File step whose button isn't even
+    // visible in this mode).
+    if (currentWizardStep_ < modeFloor) {
+        currentWizardStep_ = modeFloor;
         wizardStack_->setCurrentIndex(currentWizardStep_);
     }
 
     if (currentWizardStep_ >= 0 && currentWizardStep_ < wizardStepButtons_.size())
         wizardStepButtons_[currentWizardStep_]->setChecked(true);
 
-    wizardBackBtn_->setEnabled(currentWizardStep_ > kWizardStepPlugin);
-    wizardNextBtn_->setEnabled(currentWizardStep_ < kWizardStepBuild
+    wizardBackBtn_->setEnabled(currentWizardStep_ > modeFloor);
+    wizardNextBtn_->setEnabled(currentWizardStep_ < modeCeiling
         && currentWizardStep_ < maxReachable);
     for (int i = 0; i < wizardStepButtons_.size(); ++i)
-        wizardStepButtons_[i]->setEnabled(i <= maxReachable);
+        wizardStepButtons_[i]->setEnabled(i <= maxReachable && stepVisibleInCurrentMode(i));
 
     updateWizardBreadcrumb();
 }
