@@ -1,6 +1,7 @@
 #include "PluginView.h"
 #include "ui/dialogs/AddTargetDialog.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
+#include "ui/dialogs/PluginManifestInterfaceDialog.h"
 #include "ui/dialogs/PluginManifestModifierDialog.h"
 #include "ui/dialogs/PluginWizard.h"
 #include "ui/views/LogViewerView.h"
@@ -835,10 +836,8 @@ void PluginView::setupUi()
     auto* newToolAction = newBlockMenu->addAction(tr("Tool"));
     auto* newWidgetAction = newBlockMenu->addAction(tr("Widget"));
     auto* newVariableAction = newBlockMenu->addAction(tr("Variable"));
-    connect(newInterfaceAction, &QAction::triggered, this, [this] {
-        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::interfaceBlock()); });
-    connect(newRouterAction, &QAction::triggered, this, [this] {
-        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::routerBlock()); });
+    connect(newInterfaceAction, &QAction::triggered, this, [this] { onNewManifestInterfaceOrRouter(false); });
+    connect(newRouterAction, &QAction::triggered, this, [this] { onNewManifestInterfaceOrRouter(true); });
     connect(newMicroserviceAction, &QAction::triggered, this, [this] {
         appendManifestBlockSnippet(Widgets::PluginManifestSnippets::microserviceBlock()); });
     connect(newToolAction, &QAction::triggered, this, [this] {
@@ -2429,6 +2428,23 @@ void PluginView::appendManifestBlockSnippet(const QString& snippet)
     refreshManifestTable();
     componentDiagnostics_->setPlainText(
         tr("Added new block at the end of the file. Edit its placeholder names, then save."));
+}
+
+void PluginView::onNewManifestInterfaceOrRouter(bool isRouter)
+{
+    if (!isPluginManifestFile(currentComponentPath_))
+        return;
+
+    QStringList knownTargets;
+    for (const auto& block : currentManifestBlocks_)
+        if (block.kind == ViewModels::PluginManifestBlock::Kind::Target && !block.name.isEmpty())
+            knownTargets << block.name;
+
+    Dialogs::PluginManifestInterfaceDialog dialog(isRouter, knownTargets, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    appendManifestBlockSnippet(dialog.generatedBlock());
 }
 
 void PluginView::onAddManifestModifierClicked()

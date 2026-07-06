@@ -39,6 +39,15 @@ public:
         const QString& targetName,
         int            templateType,
         const QString& pluginNamespace = QString());
+
+    /// The "<class_file.rb> <args...>" portion of an INTERFACE/ROUTER line
+    /// for the given connection type (0=TCP/IP Client, 1=TCP/IP Server,
+    /// 2=UDP, 3=Serial) - the same mapping buildFiles() uses internally,
+    /// exposed so other guided-creation UI (e.g. the Manifest tab's "New
+    /// Block" dialog) can generate an identical, correct line without
+    /// duplicating COSMOS's interface class/argument conventions.
+    [[nodiscard]] static QString buildInterfaceArgs(
+        int ifaceType, const QString& host, const QString& port);
 };
 
 } // namespace OpenC3::ViewModels

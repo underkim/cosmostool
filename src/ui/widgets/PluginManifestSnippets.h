@@ -7,25 +7,12 @@
 // inserts (PluginView.cpp's onAddManifestBlockClicked-style flow) - TARGET is
 // deliberately excluded here since it already has its own dedicated creation
 // flow (AddTargetDialog, wired to "Add Target"), which also scaffolds the
-// target's folder structure, not just a plugin.txt line.
+// target's folder structure, not just a plugin.txt line. INTERFACE/ROUTER are
+// also excluded - unlike these plain-text snippets, they're beginner-unfriendly
+// enough (connection type, host/port, class file conventions) to warrant a
+// guided dialog instead (PluginManifestInterfaceDialog), not a raw template.
 
 namespace OpenC3::UI::Widgets::PluginManifestSnippets {
-
-inline const QString& interfaceBlock()
-{
-    static const QString s =
-        "\nINTERFACE NEW_INTERFACE tcpip_client_interface.rb host 8080 8081 10 nil BURST\n"
-        "  MAP_TARGET TARGET_NAME\n";
-    return s;
-}
-
-inline const QString& routerBlock()
-{
-    static const QString s =
-        "\nROUTER NEW_ROUTER generic_router.rb\n"
-        "  MAP_TARGET TARGET_NAME\n";
-    return s;
-}
 
 inline const QString& microserviceBlock()
 {

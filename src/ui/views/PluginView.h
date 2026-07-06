@@ -112,6 +112,7 @@ private:
     void populateManifestBlockForm(int blockIndex);
     void insertManifestModifierAfterBlock(int blockIndex, const QString& line);
     void appendManifestBlockSnippet(const QString& snippet);
+    void onNewManifestInterfaceOrRouter(bool isRouter);
     void setManifestActionsVisible(bool visible);
     void refreshScreenPreview();
     void setScreenPreviewActionsVisible(bool visible);

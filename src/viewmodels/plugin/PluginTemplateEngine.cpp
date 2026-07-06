@@ -134,20 +134,7 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
     const int effectiveIfaceType =
         (ifaceType >= 0) ? ifaceType : (templateType == 2 ? 1 : 0);
 
-    QString ifaceLine;
-    switch (effectiveIfaceType) {
-    case 1: // TCP/IP Server
-        ifaceLine = QString("tcpip_server_interface.rb %1 %1 10 nil BURST").arg(ifacePort);
-        break;
-    case 2: // UDP
-        ifaceLine = QString("udp_interface.rb %1 %2 %2 nil 10 nil").arg(ifaceHost, ifacePort);
-        break;
-    case 3: // Serial - host field holds the device path (e.g. /dev/ttyUSB0)
-        ifaceLine = QString("serial_interface.rb %1 %2 NONE 1 10 nil").arg(ifaceHost, ifacePort);
-        break;
-    default: // TCP/IP Client
-        ifaceLine = QString("tcpip_client_interface.rb %1 %2 %2 10 nil BURST").arg(ifaceHost, ifacePort);
-    }
+    const QString ifaceLine = buildInterfaceArgs(effectiveIfaceType, ifaceHost, ifacePort);
 
     QMap<QString, QString> files;
 
@@ -211,6 +198,21 @@ QMap<QString, QString> PluginTemplateEngine::buildTargetFiles(
     files.insert(buildCmdTlmFiles(tgt, templateType, pluginNamespace));
     files.insert(buildScreenAndProcedures(tgt));
     return files;
+}
+
+QString PluginTemplateEngine::buildInterfaceArgs(
+    int ifaceType, const QString& host, const QString& port)
+{
+    switch (ifaceType) {
+    case 1: // TCP/IP Server
+        return QString("tcpip_server_interface.rb %1 %1 10 nil BURST").arg(port);
+    case 2: // UDP
+        return QString("udp_interface.rb %1 %2 %2 nil 10 nil").arg(host, port);
+    case 3: // Serial - host field holds the device path (e.g. /dev/ttyUSB0)
+        return QString("serial_interface.rb %1 %2 NONE 1 10 nil").arg(host, port);
+    default: // TCP/IP Client
+        return QString("tcpip_client_interface.rb %1 %2 %2 10 nil BURST").arg(host, port);
+    }
 }
 
 } // namespace OpenC3::ViewModels
