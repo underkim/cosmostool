@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QSplitter>
 #include <QComboBox>
+#include <QCheckBox>
 
 namespace OpenC3::UI::Views {
 
@@ -44,6 +45,7 @@ private:
     QString collectTableToEnv() const;
     void syncTableToRaw();
     void syncRawToTable();
+    void applySecretMasking();
 
     ViewModels::InfraViewModel& vm_;
 
@@ -58,6 +60,7 @@ private:
     QPlainTextEdit* envRawEdit_{nullptr};
     QPushButton*    envSyncToRawBtn_{nullptr};
     QPushButton*    envSyncToTableBtn_{nullptr};
+    QCheckBox*      showSecretsCheck_{nullptr};
     bool            suppressTableSignal_{false};
 
     // ── Compose tab ───────────────────────────────────────────────────────────

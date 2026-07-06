@@ -72,6 +72,12 @@ QWidget* InfraView::buildEnvTab()
     syncBar->addWidget(envSyncToRawBtn_);
     syncBar->addWidget(envSyncToTableBtn_);
     syncBar->addStretch();
+    // Password/secret-looking values (e.g. OPENC3_API_PASSWORD) were shown in
+    // plain text in the table by default - visible to anyone glancing at the
+    // screen or a screenshot. Mask them by default; this checkbox reveals
+    // the real, editable values on demand.
+    showSecretsCheck_ = new QCheckBox(tr("Show secrets"), page);
+    syncBar->addWidget(showSecretsCheck_);
     layout->addLayout(syncBar);
 
     // ── Splitter: table (left) | raw text (right) ─────────────────────────────
@@ -271,6 +277,11 @@ void InfraView::bindViewModel()
             this, &InfraView::syncRawToTable);
     connect(envTable_, &QTableWidget::cellChanged,
             this, &InfraView::onTableCellChanged);
+    connect(showSecretsCheck_, &QCheckBox::toggled, this, [this] {
+        suppressTableSignal_ = true;
+        applySecretMasking();
+        suppressTableSignal_ = false;
+    });
 
     // Compose tab
     connect(composeLoadBtn_, &QPushButton::clicked, this, &InfraView::onComposeLoad);
@@ -499,11 +510,48 @@ void InfraView::loadEnvIntoTable(const QString& content)
         const int row = envTable_->rowCount();
         envTable_->insertRow(row);
         envTable_->setItem(row, 0, new QTableWidgetItem(key));
-        envTable_->setItem(row, 1, new QTableWidgetItem(value));
+        auto* valueItem = new QTableWidgetItem(value);
+        valueItem->setData(Qt::UserRole, value);
+        envTable_->setItem(row, 1, valueItem);
         envTable_->setItem(row, 2, new QTableWidgetItem(comment));
     }
 
+    applySecretMasking();
     suppressTableSignal_ = false;
+}
+
+namespace {
+bool isSecretEnvKey(const QString& key)
+{
+    static const QStringList kNeedles = {"PASSWORD", "SECRET", "TOKEN", "KEY"};
+    for (const QString& needle : kNeedles)
+        if (key.contains(needle, Qt::CaseInsensitive))
+            return true;
+    return false;
+}
+} // namespace
+
+void InfraView::applySecretMasking()
+{
+    const bool reveal = showSecretsCheck_->isChecked();
+    for (int row = 0; row < envTable_->rowCount(); ++row) {
+        const auto* keyItem = envTable_->item(row, 0);
+        auto*       valItem = envTable_->item(row, 1);
+        if (!keyItem || !valItem || !isSecretEnvKey(keyItem->text()))
+            continue;
+
+        if (reveal) {
+            valItem->setText(valItem->data(Qt::UserRole).toString());
+            valItem->setFlags(valItem->flags() | Qt::ItemIsEditable);
+        } else {
+            // Snapshot the current (possibly just-edited) real value before
+            // masking, so re-checking "Show secrets" later restores it
+            // rather than whatever was loaded at the start of the session.
+            valItem->setData(Qt::UserRole, valItem->text());
+            valItem->setText(QStringLiteral("••••••••"));
+            valItem->setFlags(valItem->flags() & ~Qt::ItemIsEditable);
+        }
+    }
 }
 
 QString InfraView::collectTableToEnv() const
@@ -515,8 +563,14 @@ QString InfraView::collectTableToEnv() const
         const auto* cmtItem = envTable_->item(row, 2);
 
         if (!keyItem) continue;
-        const QString key     = keyItem->text();
-        const QString value   = valItem ? valItem->text()  : QString{};
+        const QString key = keyItem->text();
+        // A masked secret row displays "••••••••" in valItem->text() - the
+        // real value lives in UserRole while masked (see applySecretMasking).
+        const bool    masked = valItem && !(valItem->flags() & Qt::ItemIsEditable)
+                                && isSecretEnvKey(key);
+        const QString value   = valItem ? (masked ? valItem->data(Qt::UserRole).toString()
+                                                    : valItem->text())
+                                          : QString{};
         const QString comment = cmtItem ? cmtItem->text()  : QString{};
 
         if (!comment.isEmpty())
