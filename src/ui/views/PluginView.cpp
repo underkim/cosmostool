@@ -14,6 +14,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
+#include <QMap>
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QSettings>
@@ -34,6 +35,7 @@ namespace {
 // CMD/TLM insert templates and the cmd_tlm file-kind check
 // (ui/widgets/CmdTlmSnippets.h).
 using OpenC3::UI::Widgets::CmdTlmSnippets::isCmdTlmFile;
+using OpenC3::UI::Widgets::CmdTlmSnippets::isPluginManifestFile;
 
 // Matches `dir` as a path component regardless of whether `path` is
 // plugin-root-relative (e.g. "cmd_tlm/foo.txt", no leading separator - what
@@ -758,8 +760,35 @@ void PluginView::setupUi()
     diagnosticListEmptyLabel_->setObjectName("SubLabel");
     diagnosticListEmptyLabel_->setWordWrap(true);
 
+    auto* manifestTab = new QWidget(componentEditorTabs_);
+    auto* manifestTabLayout = new QVBoxLayout(manifestTab);
+    manifestTabLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto* manifestGroup = new QGroupBox(
+        tr("Plugin Manifest (Target / Interface / Router / Microservice / Tool / Widget / Variable)"),
+        editorPane);
+    auto* manifestLayout = new QVBoxLayout(manifestGroup);
+
+    manifestTable_ = new QTableWidget(0, 4, manifestGroup);
+    manifestTable_->setObjectName("PluginManifestTable");
+    manifestTable_->setHorizontalHeaderLabels({
+        tr("Line"), tr("Block / Keyword"), tr("Args"), tr("Kind")
+    });
+    manifestTable_->horizontalHeader()->setStretchLastSection(false);
+    manifestTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    manifestTable_->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    manifestTable_->verticalHeader()->setVisible(false);
+    manifestTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    manifestTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+    manifestTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    manifestTable_->setMinimumHeight(260);
+    manifestTable_->setColumnWidth(0, 48);   // Line
+    manifestLayout->addWidget(manifestTable_, 1);
+    manifestTabLayout->addWidget(manifestGroup, 1);
+
     componentEditorTabs_->addTab(componentEditor_, tr("Source"));
     componentEditorTabs_->addTab(structureTab, tr("Structure"));
+    componentEditorTabs_->addTab(manifestTab, tr("Manifest"));
 
     guideGroup_ = new QGroupBox(tr("Quick Reference"), editorPane);
     auto* guideLayout = new QVBoxLayout(guideGroup_);
@@ -1224,6 +1253,7 @@ void PluginView::bindViewModel()
                 componentEditor_->setPlainText(content);
                 setComponentDirty(false);
                 const bool cmdTlm = isCmdTlmFile(path);
+                const bool manifest = isPluginManifestFile(path);
                 validateComponentBtn_->setEnabled(cmdTlm);
                 validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
                 insertCmdBtn_->setEnabled(cmdTlm);
@@ -1241,10 +1271,13 @@ void PluginView::bindViewModel()
                 diagnosticList_->clear();
                 diagnosticListEmptyLabel_->setVisible(true);
                 refreshStructureTable();
+                refreshManifestTable();
                 detailTabs_->setCurrentIndex(1);
                 setCmdTlmActionsVisible(cmdTlm);
-                if (componentEditorTabs_)
+                if (componentEditorTabs_) {
+                    componentEditorTabs_->setTabEnabled(2, manifest);
                     componentEditorTabs_->setCurrentIndex(0);
+                }
 
                 // Wizard convenience: opening a file while on the File step
                 // auto-advances to Edit (mirrors the Plugin->File auto-advance
@@ -1989,6 +2022,77 @@ void PluginView::refreshStructureTable()
         .arg(result.errorCount())
         .arg(result.warningCount()));
     updatingStructureTable_ = false;
+}
+
+void PluginView::refreshManifestTable()
+{
+    manifestTable_->setRowCount(0);
+
+    if (!isPluginManifestFile(currentComponentPath_)) {
+        currentManifestBlocks_.clear();
+        return;
+    }
+
+    static const QMap<ViewModels::PluginManifestBlock::Kind, QString> kKindLabels = {
+        {ViewModels::PluginManifestBlock::Kind::Target,       "TARGET"},
+        {ViewModels::PluginManifestBlock::Kind::Interface,    "INTERFACE"},
+        {ViewModels::PluginManifestBlock::Kind::Router,       "ROUTER"},
+        {ViewModels::PluginManifestBlock::Kind::Microservice, "MICROSERVICE"},
+        {ViewModels::PluginManifestBlock::Kind::Tool,         "TOOL"},
+        {ViewModels::PluginManifestBlock::Kind::Widget,       "WIDGET"},
+        {ViewModels::PluginManifestBlock::Kind::Variable,     "VARIABLE"},
+    };
+
+    const auto result = ViewModels::PluginManifestParser::parse(componentEditor_->toPlainText());
+    currentManifestBlocks_ = result.blocks;
+
+    int row = 0;
+    for (const auto& block : result.blocks) {
+        const QString kindLabel = kKindLabels.value(block.kind);
+
+        manifestTable_->insertRow(row);
+        auto* lineItem = new QTableWidgetItem(QString::number(block.lineNumber));
+        lineItem->setFlags(lineItem->flags() & ~Qt::ItemIsEditable);
+        manifestTable_->setItem(row, 0, lineItem);
+
+        const QString blockLabel = block.name.isEmpty()
+            ? kindLabel : QString("%1 %2").arg(kindLabel, block.name);
+        auto* blockItem = new QTableWidgetItem(blockLabel);
+        blockItem->setFlags(blockItem->flags() & ~Qt::ItemIsEditable);
+        manifestTable_->setItem(row, 1, blockItem);
+
+        QStringList blockArgs;
+        if (!block.classFileOrFolder.isEmpty()) blockArgs << block.classFileOrFolder;
+        blockArgs << block.extraArgs;
+        auto* argsItem = new QTableWidgetItem(blockArgs.join(' '));
+        argsItem->setFlags(argsItem->flags() & ~Qt::ItemIsEditable);
+        manifestTable_->setItem(row, 2, argsItem);
+
+        auto* kindItem = new QTableWidgetItem(kindLabel);
+        kindItem->setFlags(kindItem->flags() & ~Qt::ItemIsEditable);
+        manifestTable_->setItem(row, 3, kindItem);
+        ++row;
+
+        for (const auto& mod : block.modifiers) {
+            manifestTable_->insertRow(row);
+            auto* modLineItem = new QTableWidgetItem(QString::number(mod.lineNumber));
+            modLineItem->setFlags(modLineItem->flags() & ~Qt::ItemIsEditable);
+            manifestTable_->setItem(row, 0, modLineItem);
+
+            auto* modKeywordItem = new QTableWidgetItem("  " + mod.keyword);
+            modKeywordItem->setFlags(modKeywordItem->flags() & ~Qt::ItemIsEditable);
+            manifestTable_->setItem(row, 1, modKeywordItem);
+
+            auto* modArgsItem = new QTableWidgetItem(mod.rawArgsText);
+            modArgsItem->setFlags(modArgsItem->flags() & ~Qt::ItemIsEditable);
+            manifestTable_->setItem(row, 2, modArgsItem);
+
+            auto* modKindItem = new QTableWidgetItem(tr("modifier"));
+            modKindItem->setFlags(modKindItem->flags() & ~Qt::ItemIsEditable);
+            manifestTable_->setItem(row, 3, modKindItem);
+            ++row;
+        }
+    }
 }
 
 void PluginView::refreshBlockEditor()

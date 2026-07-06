@@ -52,4 +52,16 @@ inline bool isCmdTlmFile(const QString& path)
         || path.startsWith(QStringLiteral("cmd_tlm\\"), Qt::CaseInsensitive);
 }
 
+// True for the plugin's top-level manifest file (plugin.txt), which declares
+// TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/WIDGET/VARIABLE blocks. Unlike
+// isCmdTlmFile()'s directory check, plugin.txt always lives at the plugin
+// root, so an exact filename match on the final path segment is the right
+// test - handling the same plugin-root-relative vs. absolute-path duality
+// isCmdTlmFile() documents above.
+inline bool isPluginManifestFile(const QString& path)
+{
+    const QString base = path.section('/', -1).section('\\', -1);
+    return base.compare(QStringLiteral("plugin.txt"), Qt::CaseInsensitive) == 0;
+}
+
 } // namespace OpenC3::UI::Widgets::CmdTlmSnippets

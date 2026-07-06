@@ -1,6 +1,7 @@
 #pragma once
 
 #include "viewmodels/plugin/PluginViewModel.h"
+#include "viewmodels/plugin/PluginManifestParser.h"
 #include "viewmodels/infra/InfraViewModel.h"
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
 #include "viewmodels/validator/ValidatorViewModel.h"
@@ -100,6 +101,7 @@ private:
     void refreshStructureTable();
     void refreshBlockEditor();
     void populateBlockForm(int blockIndex);
+    void refreshManifestTable();
     void applyStructureRowToEditor(int row);
     void focusEditorLineForStructureRow(int row);
     void insertStructureFieldAfterRow(int row, const QString& line);
@@ -218,6 +220,11 @@ private:
     bool        pendingOfflineValidation_{false};
     bool        updatingStructureTable_{false};
     QVector<ViewModels::CmdTlmBlock> currentBlocks_;
+
+    // ── Manifest tab (plugin.txt: TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/
+    // WIDGET/VARIABLE) - read-only in this phase; add/edit/delete lands later.
+    QTableWidget* manifestTable_{nullptr};
+    QVector<ViewModels::PluginManifestBlock> currentManifestBlocks_;
 
     // Set right before any vm_.refresh() call (Refresh button, New Plugin,
     // Add Target, or the scaffoldComplete/targetAdded InfraViewModel
