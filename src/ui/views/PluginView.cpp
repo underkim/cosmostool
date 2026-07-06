@@ -1292,6 +1292,15 @@ void PluginView::onRemoveClicked()
 
 void PluginView::onScaffoldClicked()
 {
+    // A successful creation refreshes the plugin list and resets the
+    // currently open file (see scaffoldComplete below), which would
+    // silently discard an unsaved edit with no warning - block it here the
+    // same way onBuildClicked() already does for Build.
+    if (componentDirty_) {
+        QMessageBox::information(this, tr("New Plugin"),
+            tr("Save the open CMD/TLM file before creating a new plugin."));
+        return;
+    }
     // No explicit refresh needed here: creating a plugin through this
     // dialog fires infraVm_'s scaffoldComplete signal (connected above),
     // which already snapshots/refreshes/reselects for us. Doing it again
@@ -1306,6 +1315,13 @@ void PluginView::onAddTargetClicked()
     if (root.isEmpty()) {
         QMessageBox::information(this, tr("Add Target"),
             tr("Select a plugin folder before adding a target."));
+        return;
+    }
+    // Same unsaved-edit data-loss risk as onScaffoldClicked() above: a
+    // successful target-add refreshes the file list and resets the open file.
+    if (componentDirty_) {
+        QMessageBox::information(this, tr("Add Target"),
+            tr("Save the open CMD/TLM file before adding a target."));
         return;
     }
     // No explicit refresh needed here: adding a target fires infraVm_'s
