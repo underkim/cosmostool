@@ -1,4 +1,5 @@
 #include "viewmodels/plugin/PluginTemplateEngine.h"
+#include "viewmodels/cmdtlm/CmdTlmParser.h"
 
 #include <gtest/gtest.h>
 #include <QString>
@@ -96,4 +97,37 @@ TEST(PluginTemplateEngineTest, BuildTargetFilesOnlyEmitsTargetTree)
     EXPECT_FALSE(files.contains("plugin.txt"));
     EXPECT_FALSE(files.contains("Gemfile"));
     EXPECT_TRUE(files.contains("targets/FSW/cmd_tlm/fsw_cmds.txt"));
+}
+
+namespace {
+QString diagnosticsText(const CmdTlmParseResult& result)
+{
+    QStringList lines;
+    for (const auto& d : result.diagnostics)
+        lines << QString("line %1: %2").arg(d.line).arg(d.message);
+    return lines.join('\n');
+}
+} // namespace
+
+// The wizard's whole promise is "create a plugin that just works" - a
+// generated cmd/tlm file that this app's own parser can't cleanly read
+// would mean every freshly-scaffolded plugin fails Check before the user
+// has even changed a thing. Covers both the generic (templateType 0) and
+// CCSDS (templateType 1) templates, the two starting points offered in the
+// wizard's "CMD/TLM Template" step.
+TEST(PluginTemplateEngineTest, GeneratedCmdTlmFilesParseWithoutErrors)
+{
+    for (const int templateType : {0, 1}) {
+        const auto files = PluginTemplateEngine::buildTargetFiles("fsw", templateType);
+
+        const auto cmdsResult = CmdTlmParser::parse(files.value("targets/FSW/cmd_tlm/fsw_cmds.txt"));
+        EXPECT_EQ(cmdsResult.errorCount(), 0)
+            << "templateType=" << templateType << " cmds.txt diagnostics:\n"
+            << diagnosticsText(cmdsResult).toStdString();
+
+        const auto tlmResult = CmdTlmParser::parse(files.value("targets/FSW/cmd_tlm/fsw_tlm.txt"));
+        EXPECT_EQ(tlmResult.errorCount(), 0)
+            << "templateType=" << templateType << " tlm.txt diagnostics:\n"
+            << diagnosticsText(tlmResult).toStdString();
+    }
 }
