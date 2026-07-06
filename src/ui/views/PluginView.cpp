@@ -7,6 +7,7 @@
 #include "ui/widgets/CmdTlmHighlighter.h"
 #include "ui/widgets/CmdTlmSnippets.h"
 #include "viewmodels/validation/PluginKeywords.h"
+#include "viewmodels/screen/ScreenLayoutParser.h"
 
 #include <QAbstractItemView>
 #include <QColor>
@@ -19,6 +20,7 @@
 #include <QMap>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QScrollArea>
 #include <QSet>
 #include <QSettings>
 #include <QShortcut>
@@ -39,6 +41,7 @@ namespace {
 // (ui/widgets/CmdTlmSnippets.h).
 using OpenC3::UI::Widgets::CmdTlmSnippets::isCmdTlmFile;
 using OpenC3::UI::Widgets::CmdTlmSnippets::isPluginManifestFile;
+using OpenC3::UI::Widgets::CmdTlmSnippets::isScreenFile;
 
 // Matches `dir` as a path component regardless of whether `path` is
 // plugin-root-relative (e.g. "cmd_tlm/foo.txt", no leading separator - what
@@ -850,9 +853,27 @@ void PluginView::setupUi()
     manifestLayout->addWidget(manifestTable_, 1);
     manifestTabLayout->addWidget(manifestGroup, 1);
 
+    auto* previewTab = new QWidget(componentEditorTabs_);
+    auto* previewTabLayout = new QVBoxLayout(previewTab);
+    previewTabLayout->setContentsMargins(0, 0, 0, 0);
+
+    auto* previewBanner = new QLabel(
+        tr("Layout preview - static placeholders, not live telemetry."), previewTab);
+    previewBanner->setObjectName("SubLabel");
+    previewBanner->setWordWrap(true);
+    previewTabLayout->addWidget(previewBanner);
+
+    auto* previewScroll = new QScrollArea(previewTab);
+    previewScroll->setObjectName("ScreenPreviewScrollArea");
+    previewScroll->setWidgetResizable(true);
+    screenPreview_ = new Widgets::ScreenPreviewWidget(previewScroll);
+    previewScroll->setWidget(screenPreview_);
+    previewTabLayout->addWidget(previewScroll, 1);
+
     componentEditorTabs_->addTab(componentEditor_, tr("Source"));
     componentEditorTabs_->addTab(structureTab, tr("Structure"));
     componentEditorTabs_->addTab(manifestTab, tr("Manifest"));
+    componentEditorTabs_->addTab(previewTab, tr("Preview"));
 
     guideGroup_ = new QGroupBox(tr("Quick Reference"), editorPane);
     auto* guideLayout = new QVBoxLayout(guideGroup_);
@@ -1121,6 +1142,14 @@ void PluginView::bindViewModel()
     connect(deleteManifestModifierAction_, &QAction::triggered, this, &PluginView::onDeleteManifestModifierClicked);
     connect(refreshManifestAction_, &QAction::triggered, this, &PluginView::refreshManifestTable);
     connect(manifestTable_, &QTableWidget::cellChanged, this, &PluginView::onManifestCellChanged);
+    connect(componentEditorTabs_, &QTabWidget::currentChanged, this, [this](int index) {
+        // Screen files have no structured "Apply" edit flow yet - Source-tab
+        // text edits are the only way to change one - so refresh the preview
+        // when the tab becomes current rather than re-parsing on every
+        // keystroke while the user is still on the Source tab.
+        if (index == 3)
+            refreshScreenPreview();
+    });
     connect(toggleReferenceBtn_, &QPushButton::clicked, this, &PluginView::onToggleReferenceClicked);
     connect(toggleTerminalBtn_, &QPushButton::clicked, this, &PluginView::onToggleTerminalClicked);
     connect(diagnosticList_, &QListWidget::itemClicked, this, &PluginView::onDiagnosticItemClicked);
@@ -1325,6 +1354,7 @@ void PluginView::bindViewModel()
                 setComponentDirty(false);
                 const bool cmdTlm = isCmdTlmFile(path);
                 const bool manifest = isPluginManifestFile(path);
+                const bool screen = isScreenFile(path);
                 validateComponentBtn_->setEnabled(cmdTlm);
                 validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
                 insertCmdBtn_->setEnabled(cmdTlm);
@@ -1343,9 +1373,11 @@ void PluginView::bindViewModel()
                 diagnosticListEmptyLabel_->setVisible(true);
                 refreshStructureTable();
                 refreshManifestTable();
+                refreshScreenPreview();
                 detailTabs_->setCurrentIndex(1);
                 setCmdTlmActionsVisible(cmdTlm);
                 setManifestActionsVisible(manifest);
+                setScreenPreviewActionsVisible(screen);
                 if (componentEditorTabs_)
                     componentEditorTabs_->setCurrentIndex(0);
 
@@ -2851,6 +2883,29 @@ void PluginView::setManifestActionsVisible(bool visible)
         if (!visible)
             componentEditorTabs_->setCurrentIndex(0); // Source
     }
+}
+
+void PluginView::setScreenPreviewActionsVisible(bool visible)
+{
+    if (componentEditorTabs_) {
+        componentEditorTabs_->setTabEnabled(3, visible); // Preview
+        if (!visible)
+            componentEditorTabs_->setCurrentIndex(0); // Source
+    }
+}
+
+void PluginView::refreshScreenPreview()
+{
+    if (!screenPreview_)
+        return;
+
+    if (!isScreenFile(currentComponentPath_)) {
+        screenPreview_->setLayoutTree({});
+        return;
+    }
+
+    const auto result = ViewModels::ScreenLayoutParser::parse(componentEditor_->toPlainText());
+    screenPreview_->setLayoutTree(result);
 }
 
 void PluginView::updateGroupedActionState()

@@ -6,6 +6,7 @@
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
 #include "viewmodels/validator/ValidatorViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
+#include "ui/widgets/ScreenPreviewWidget.h"
 
 #include <QWidget>
 #include <QTableView>
@@ -111,6 +112,8 @@ private:
     void populateManifestBlockForm(int blockIndex);
     void insertManifestModifierAfterBlock(int blockIndex, const QString& line);
     void setManifestActionsVisible(bool visible);
+    void refreshScreenPreview();
+    void setScreenPreviewActionsVisible(bool visible);
     void applyStructureRowToEditor(int row);
     void focusEditorLineForStructureRow(int row);
     void insertStructureFieldAfterRow(int row, const QString& line);
@@ -245,6 +248,9 @@ private:
     QAction*     addManifestModifierAction_{nullptr};
     QAction*     deleteManifestModifierAction_{nullptr};
     QAction*     refreshManifestAction_{nullptr};
+
+    // ── Preview tab (screens/*.txt static layout preview) ──────────────────
+    Widgets::ScreenPreviewWidget* screenPreview_{nullptr};
 
     // Set right before any vm_.refresh() call (Refresh button, New Plugin,
     // Add Target, or the scaffoldComplete/targetAdded InfraViewModel

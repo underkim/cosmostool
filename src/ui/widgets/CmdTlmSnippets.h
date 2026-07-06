@@ -64,4 +64,15 @@ inline bool isPluginManifestFile(const QString& path)
     return base.compare(QStringLiteral("plugin.txt"), Qt::CaseInsensitive) == 0;
 }
 
+// True when the path lives under a COSMOS screens directory (screen
+// definition files, any filename) - directory-based like isCmdTlmFile()
+// above, not a fixed filename like isPluginManifestFile()'s plugin.txt.
+inline bool isScreenFile(const QString& path)
+{
+    return path.contains(QStringLiteral("/screens/"), Qt::CaseInsensitive)
+        || path.contains(QStringLiteral("\\screens\\"), Qt::CaseInsensitive)
+        || path.startsWith(QStringLiteral("screens/"), Qt::CaseInsensitive)
+        || path.startsWith(QStringLiteral("screens\\"), Qt::CaseInsensitive);
+}
+
 } // namespace OpenC3::UI::Widgets::CmdTlmSnippets
