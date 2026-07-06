@@ -6,8 +6,22 @@
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QFont>
+#include <QRegularExpression>
 
 namespace OpenC3::UI::Dialogs {
+
+namespace {
+// The target name becomes a remote file-path segment (targets/<name>/...)
+// and a literal COSMOS DSL token (TARGET <name> ...) - the old check only
+// rejected spaces/single quotes, so e.g. "../../etc" would have been
+// accepted and hand straight to mkdir/writeFile, escaping the plugin's own
+// target folder instead of failing loudly here.
+bool isValidTargetName(const QString& name)
+{
+    static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+    return pattern.match(name).hasMatch();
+}
+} // namespace
 
 AddTargetDialog::AddTargetDialog(
     ViewModels::InfraViewModel& vm,
@@ -127,9 +141,10 @@ void AddTargetDialog::onCreate()
         QMessageBox::warning(this, tr("Invalid Input"), tr("Enter a target name."));
         return;
     }
-    if (tname.contains('\'') || tname.contains(' ')) {
+    if (!isValidTargetName(tname)) {
         QMessageBox::warning(this, tr("Invalid Input"),
-            tr("Target names cannot contain spaces or single quotes."));
+            tr("Target names may only contain letters, numbers, and underscores, "
+               "and must start with a letter or underscore."));
         return;
     }
 

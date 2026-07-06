@@ -9,8 +9,31 @@
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QFrame>
+#include <QRegularExpression>
 
 namespace OpenC3::UI::Dialogs {
+
+namespace {
+// Both names end up as remote file-path segments (targets/<TARGET>/...) and
+// as literal COSMOS DSL tokens (TARGET <name> ...) - the old check only
+// rejected spaces/quotes, so e.g. a target name of "../../etc" would have
+// been accepted and handed straight to mkdir/writeFile as a path segment,
+// escaping the plugin's own target folder instead of failing loudly here.
+bool isValidTargetName(const QString& name)
+{
+    static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+    return pattern.match(name).hasMatch();
+}
+
+// Plugin names conventionally use lowercase-hyphen form (e.g. "my-satellite"
+// -> gem "cosmos-my-satellite"), so hyphens are allowed here unlike target
+// names, but "/", "..", and other path/shell metacharacters still are not.
+bool isValidPluginName(const QString& name)
+{
+    static const QRegularExpression pattern("^[A-Za-z][A-Za-z0-9_-]*$");
+    return pattern.match(name).hasMatch();
+}
+} // namespace
 
 // ── Constructor ───────────────────────────────────────────────────────────────
 
@@ -116,6 +139,12 @@ void PluginWizard::buildInfoPage()
     form->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     pluginNameEdit_ = new QLineEdit("my-satellite", grp);
+    // Named so tooling (and the screenshot-verification harness) can find
+    // this exact field reliably - a plain findChild<QLineEdit*>() with no
+    // name is a DFS over the whole dialog's object tree and does not
+    // necessarily return this field first, despite it being constructed
+    // first, once all 3 steps' widgets exist in the same tree.
+    pluginNameEdit_->setObjectName("PluginWizardNameEdit");
     pluginNameEdit_->setPlaceholderText(tr("lowercase-hyphen, e.g. my-satellite"));
     descriptionEdit_ = new QLineEdit(tr("My satellite target plugin"), grp);
     remoteRootEdit_  = new QLineEdit(vm_.defaultPluginsPath(), grp);
@@ -151,6 +180,7 @@ void PluginWizard::buildTargetPage()
     tgtForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     targetNameEdit_ = new QLineEdit("MYSAT", tgtGrp);
+    targetNameEdit_->setObjectName("PluginWizardTargetNameEdit");
     targetNameEdit_->setPlaceholderText(tr("UPPERCASE, e.g. MYSAT"));
     namespaceEdit_  = new QLineEdit("MySat", tgtGrp);
     namespaceEdit_->setPlaceholderText(tr("CamelCase, e.g. MySat"));
@@ -279,14 +309,18 @@ void PluginWizard::onNext()
     // Validate current step before advancing
     if (currentStep_ == 0) {
         const QString pname = pluginNameEdit_->text().trimmed();
-        if (pname.isEmpty() || pname.contains(' ') || pname.contains('\'')) {
+        if (pname.isEmpty() || !isValidPluginName(pname)) {
             QMessageBox::warning(this, tr("Invalid Input"),
-                tr("Enter the plugin name in lowercase-hyphen form, without spaces or single quotes."));
+                tr("Enter the plugin name in lowercase-hyphen form (letters, numbers, "
+                   "and hyphens only, starting with a letter) - e.g. \"my-satellite\"."));
             return;
         }
     } else if (currentStep_ == 1) {
-        if (targetNameEdit_->text().trimmed().isEmpty()) {
-            QMessageBox::warning(this, tr("Invalid Input"), tr("Enter a target name."));
+        const QString tname = targetNameEdit_->text().trimmed();
+        if (tname.isEmpty() || !isValidTargetName(tname)) {
+            QMessageBox::warning(this, tr("Invalid Input"),
+                tr("Enter a target name using only letters, numbers, and underscores, "
+                   "starting with a letter or underscore - e.g. \"MYSAT\"."));
             return;
         }
     }
