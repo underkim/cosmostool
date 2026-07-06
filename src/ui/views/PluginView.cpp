@@ -651,9 +651,9 @@ void PluginView::setupUi()
     // validateComponentBtn_/startCmdTlmEditBtn_) - each QPushButton's own
     // sizeHint already reserves exactly the space its current text needs for
     // the active font/DPI, so it can never clip. The remaining buttons here
-    // (validateOfflineBtn_, insertCmdBtn_, insertTlmBtn_, addFieldBtn_,
-    // addStructureFieldBtn_, deleteStructureFieldBtn_, refreshStructureBtn_,
-    // applyStructureBtn_) are never added to a layout - they only back the
+    // (validateOfflineBtn_, insertCmdBtn_, insertTlmBtn_, insertScriptBtn_,
+    // addFieldBtn_, addStructureFieldBtn_, deleteStructureFieldBtn_,
+    // refreshStructureBtn_, applyStructureBtn_) are never added to a layout - they only back the
     // enabled/tooltip state mirrored onto the equivalent QAction in the
     // Check/Insert/Fields dropdown menus - so their width is irrelevant.
     validateOfflineBtn_->setMinimumWidth(110);
@@ -994,6 +994,7 @@ void PluginView::setupUi()
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
+    insertScriptBtn_->setVisible(false);
     addFieldBtn_->setVisible(false);
     addStructureFieldBtn_->setVisible(false);
     deleteStructureFieldBtn_->setVisible(false);
