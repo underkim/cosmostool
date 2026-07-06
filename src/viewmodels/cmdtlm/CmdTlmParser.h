@@ -75,6 +75,13 @@ class CmdTlmParser {
 public:
     [[nodiscard]] static CmdTlmParseResult parse(const QString& content);
 
+    // True for sub-directives (STATE, UNITS, FORMAT_STRING, ...) that modify
+    // the immediately-preceding item/parameter rather than defining a new
+    // one. Exposed so callers that delete a field's line (PluginView) can
+    // also remove its trailing sub-directive lines instead of orphaning
+    // them under whatever field ends up above once the parent is gone.
+    [[nodiscard]] static bool isSubDirectiveKeyword(const QString& keyword);
+
 private:
     static QStringList tokenize(const QString& line);
     static bool        isValidDataType(const QString& type);

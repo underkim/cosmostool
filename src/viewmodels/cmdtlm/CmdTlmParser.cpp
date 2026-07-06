@@ -99,6 +99,11 @@ bool CmdTlmParser::isValidDataType(const QString& type)
     return kValidDataTypes.contains(type.toUpper());
 }
 
+bool CmdTlmParser::isSubDirectiveKeyword(const QString& keyword)
+{
+    return kSubKeywords.contains(keyword.toUpper());
+}
+
 // ── parse() ───────────────────────────────────────────────────────────────────
 
 CmdTlmParseResult CmdTlmParser::parse(const QString& content)

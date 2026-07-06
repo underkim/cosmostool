@@ -1665,10 +1665,30 @@ void PluginView::onDeleteStructureFieldClicked()
     if (answer != QMessageBox::Yes)
         return;
 
-    deleteEditorLine(lineNumber);
+    // Sub-directive lines (STATE, UNITS, ...) modify the field they
+    // immediately follow - deleting only the field's own line left them
+    // orphaned under whatever field ended up above once the parent was
+    // gone, silently altering that unrelated field instead of failing
+    // loudly (this app's own parser has no notion of "orphaned", so it
+    // reported no diagnostic for the corruption either).
+    int linesToDelete = 1;
+    QTextBlock block = componentEditor_->document()->findBlockByNumber(lineNumber);
+    while (block.isValid()) {
+        const QString trimmed = block.text().trimmed();
+        if (trimmed.isEmpty())
+            break;
+        const QString firstTok = trimmed.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts).value(0);
+        if (!ViewModels::CmdTlmParser::isSubDirectiveKeyword(firstTok))
+            break;
+        ++linesToDelete;
+        block = block.next();
+    }
+
+    for (int i = 0; i < linesToDelete; ++i)
+        deleteEditorLine(lineNumber);
     refreshStructureTable();
-    componentDiagnostics_->setPlainText(tr("Deleted field '%1'. Save the file to keep it.")
-        .arg(fieldName));
+    componentDiagnostics_->setPlainText(tr("Deleted field '%1' (%2 line(s)). Save the file to keep it.")
+        .arg(fieldName).arg(linesToDelete));
 }
 
 void PluginView::onRefreshStructureClicked()

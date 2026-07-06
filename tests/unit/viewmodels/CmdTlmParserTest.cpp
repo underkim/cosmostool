@@ -252,3 +252,17 @@ TEST(CmdTlmParserTest, IdItemCapturesIdValueAndDescription)
     EXPECT_EQ(item.defaultVal, "5");
     EXPECT_EQ(item.description, "Packet identifier");
 }
+
+// Exposed for PluginView's field-delete flow, which needs to remove a
+// field's trailing sub-directive lines (STATE, UNITS, ...) along with its
+// own line - otherwise they'd be orphaned under whatever field ends up
+// above once the parent is deleted, silently altering that unrelated field.
+TEST(CmdTlmParserTest, IsSubDirectiveKeywordRecognisesKnownDirectivesOnly)
+{
+    EXPECT_TRUE(CmdTlmParser::isSubDirectiveKeyword("STATE"));
+    EXPECT_TRUE(CmdTlmParser::isSubDirectiveKeyword("state"));
+    EXPECT_TRUE(CmdTlmParser::isSubDirectiveKeyword("UNITS"));
+    EXPECT_FALSE(CmdTlmParser::isSubDirectiveKeyword("APPEND_ITEM"));
+    EXPECT_FALSE(CmdTlmParser::isSubDirectiveKeyword("TELEMETRY"));
+    EXPECT_FALSE(CmdTlmParser::isSubDirectiveKeyword("NOT_A_KEYWORD"));
+}
