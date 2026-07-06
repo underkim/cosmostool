@@ -15,15 +15,28 @@
    using SocketType = SOCKET;
    using SockLenType = int;
    constexpr SocketType kInvalidSocket = INVALID_SOCKET;
+   inline bool setNonBlocking(SocketType s, bool nonBlocking) {
+       u_long mode = nonBlocking ? 1 : 0;
+       return ioctlsocket(s, FIONBIO, &mode) == 0;
+   }
+   inline bool wouldBlock() { return WSAGetLastError() == WSAEWOULDBLOCK; }
 #else
 #  include <arpa/inet.h>
 #  include <netdb.h>
 #  include <sys/socket.h>
 #  include <unistd.h>
+#  include <fcntl.h>
+#  include <cerrno>
    using SocketType = int;
    using SockLenType = socklen_t;
    constexpr SocketType kInvalidSocket = -1;
    inline void closesocket(int s) { close(s); }
+   inline bool setNonBlocking(SocketType s, bool nonBlocking) {
+       const int flags = fcntl(s, F_GETFL, 0);
+       if (flags == -1) return false;
+       return fcntl(s, F_SETFL, nonBlocking ? (flags | O_NONBLOCK) : (flags & ~O_NONBLOCK)) == 0;
+   }
+   inline bool wouldBlock() { return errno == EINPROGRESS; }
 #endif
 
 namespace OpenC3::Core::Connection {
@@ -290,7 +303,48 @@ bool SshExecutor::resolveAndConnect()
         return false;
     }
 
-    if (::connect(sock, res->ai_addr, static_cast<SockLenType>(res->ai_addrlen)) != 0) {
+    // A blocking connect() to an unreachable/firewalled host (one that
+    // silently drops packets rather than refusing the connection) can hang
+    // for the platform's default TCP timeout - often well over a minute -
+    // leaving the user staring at a "connecting..." spinner with no idea
+    // whether it's still trying or already stuck. Connect non-blocking and
+    // bound the wait ourselves to config_.connectTimeoutMs, so a bad
+    // host/port fails predictably and quickly instead.
+    const bool canTimeBox = setNonBlocking(sock, true);
+    const int connectRc = ::connect(sock, res->ai_addr, static_cast<SockLenType>(res->ai_addrlen));
+
+    bool connectOk = (connectRc == 0);
+    if (!connectOk && canTimeBox && wouldBlock()) {
+        fd_set writeSet;
+        FD_ZERO(&writeSet);
+        FD_SET(sock, &writeSet);
+        const int timeoutMs = config_.connectTimeoutMs > 0 ? config_.connectTimeoutMs : 10'000;
+        timeval tv{};
+        tv.tv_sec  = timeoutMs / 1000;
+        tv.tv_usec = (timeoutMs % 1000) * 1000;
+
+        const int selectRc = ::select(static_cast<int>(sock) + 1, nullptr, &writeSet, nullptr, &tv);
+        if (selectRc > 0) {
+            int       sockErr    = 0;
+            SockLenType sockErrLen = sizeof(sockErr);
+            if (getsockopt(sock, SOL_SOCKET, SO_ERROR,
+                            reinterpret_cast<char*>(&sockErr), &sockErrLen) == 0 && sockErr == 0) {
+                connectOk = true;
+            }
+        } else if (selectRc == 0) {
+            freeaddrinfo(res);
+            closesocket(sock);
+            lastError_ = "Connection to " + config_.host + ":" + std::to_string(config_.port)
+                + " timed out after " + std::to_string(timeoutMs / 1000)
+                + "s - check the host/port, firewall, and VPN.";
+            Logging::Logger::error("[SshExecutor] connect() timed out to {}:{}",
+                                   config_.host, config_.port);
+            return false;
+        }
+    }
+    if (canTimeBox) setNonBlocking(sock, false);
+
+    if (!connectOk) {
         freeaddrinfo(res);
         closesocket(sock);
         lastError_ = "Could not connect to " + config_.host + ":" + std::to_string(config_.port)

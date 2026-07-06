@@ -253,12 +253,19 @@ void SettingsView::setupUi()
     keyRowLayout->addWidget(keyPathEdit_);
     keyRowLayout->addWidget(browseKey);
 
+    // Passphrase field (shown alongside Key Path when auth = Public Key).
+    // Optional - leave blank for an unencrypted key.
+    passphraseEdit_ = new QLineEdit(sshPage);
+    passphraseEdit_->setEchoMode(QLineEdit::Password);
+    passphraseEdit_->setPlaceholderText(tr("Leave blank if the key has no passphrase"));
+
     sshLayout->addRow(tr("SSH Host:"),    hostEdit_);
     sshLayout->addRow(tr("SSH Port:"),    portEdit_);
     sshLayout->addRow(tr("Username:"),    usernameEdit_);
     sshLayout->addRow(tr("Auth Method:"), authMethodCombo_);
     sshLayout->addRow(tr("Password:"),    passwordEdit_);
     sshLayout->addRow(tr("Key Path:"),    keyWidget);
+    sshLayout->addRow(tr("Key Passphrase:"), passphraseEdit_);
 
     // Browse key button
     connect(browseKey, &QPushButton::clicked, this, [this] {
@@ -273,8 +280,9 @@ void SettingsView::setupUi()
     // Show password row or key-path row based on auth method selection
     auto updateAuthFields = [this, sshLayout, keyWidget](int idx) {
         const bool isPassword = (idx == 0); // Password=0, PublicKey=1
-        sshLayout->setRowVisible(passwordEdit_, isPassword);
-        sshLayout->setRowVisible(keyWidget,     !isPassword);
+        sshLayout->setRowVisible(passwordEdit_,    isPassword);
+        sshLayout->setRowVisible(keyWidget,        !isPassword);
+        sshLayout->setRowVisible(passphraseEdit_,  !isPassword);
     };
     connect(authMethodCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, updateAuthFields);
@@ -631,6 +639,7 @@ void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
     authMethodCombo_->setCurrentIndex(static_cast<int>(p.authMethod));
     passwordEdit_->setText(QString::fromStdString(p.password));
     keyPathEdit_->setText(QString::fromStdString(p.privateKeyPath));
+    passphraseEdit_->setText(QString::fromStdString(p.passphrase));
 }
 
 Models::ConnectionProfile SettingsView::collectProfileForm() const
@@ -658,6 +667,7 @@ Models::ConnectionProfile SettingsView::collectProfileForm() const
     p.authMethod     = static_cast<Models::AuthMethod>(authMethodCombo_->currentIndex());
     p.password       = passwordEdit_->text().toStdString();
     p.privateKeyPath = keyPathEdit_->text().toStdString();
+    p.passphrase     = passphraseEdit_->text().toStdString();
 
     return p;
 }

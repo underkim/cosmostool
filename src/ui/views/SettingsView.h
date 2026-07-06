@@ -79,6 +79,7 @@ private:
     QComboBox*   authMethodCombo_{nullptr};
     QLineEdit*   passwordEdit_{nullptr};
     QLineEdit*   keyPathEdit_{nullptr};
+    QLineEdit*   passphraseEdit_{nullptr};
 
     QLabel*      profileFormStateLabel_{nullptr};
     QPushButton* saveProfileBtn_{nullptr};
