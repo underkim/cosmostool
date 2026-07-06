@@ -834,17 +834,25 @@ void PluginView::setupUi()
     auto* newInterfaceAction = newBlockMenu->addAction(tr("Interface"));
     auto* newRouterAction = newBlockMenu->addAction(tr("Router"));
     auto* newMicroserviceAction = newBlockMenu->addAction(tr("Microservice"));
-    auto* newToolAction = newBlockMenu->addAction(tr("Tool"));
-    auto* newWidgetAction = newBlockMenu->addAction(tr("Widget"));
+    auto* newToolAction = newBlockMenu->addAction(tr("Tool (Advanced)"));
+    auto* newWidgetAction = newBlockMenu->addAction(tr("Widget (Advanced)"));
+    newToolAction->setToolTip(tr(
+        "A Tool needs a real web frontend (Vue.js) you write outside this app - "
+        "this only adds its plugin.txt declaration."));
+    newWidgetAction->setToolTip(tr(
+        "A Widget needs real frontend code you write outside this app - "
+        "this only adds its plugin.txt declaration."));
     auto* newVariableAction = newBlockMenu->addAction(tr("Variable"));
     connect(newInterfaceAction, &QAction::triggered, this, [this] { onNewManifestInterfaceOrRouter(false); });
     connect(newRouterAction, &QAction::triggered, this, [this] { onNewManifestInterfaceOrRouter(true); });
     connect(newMicroserviceAction, &QAction::triggered, this, [this] {
         appendManifestBlockSnippet(Widgets::PluginManifestSnippets::microserviceBlock()); });
     connect(newToolAction, &QAction::triggered, this, [this] {
-        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::toolBlock()); });
+        if (confirmAdvancedFrontendBlock(tr("Tool")))
+            appendManifestBlockSnippet(Widgets::PluginManifestSnippets::toolBlock()); });
     connect(newWidgetAction, &QAction::triggered, this, [this] {
-        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::widgetBlock()); });
+        if (confirmAdvancedFrontendBlock(tr("Widget")))
+            appendManifestBlockSnippet(Widgets::PluginManifestSnippets::widgetBlock()); });
     connect(newVariableAction, &QAction::triggered, this, [this] {
         appendManifestBlockSnippet(Widgets::PluginManifestSnippets::variableBlock()); });
 
@@ -2438,6 +2446,21 @@ void PluginView::appendManifestBlockSnippet(const QString& snippet)
     refreshManifestTable();
     componentDiagnostics_->setPlainText(
         tr("Added new block at the end of the file. Edit its placeholder names, then save."));
+}
+
+bool PluginView::confirmAdvancedFrontendBlock(const QString& kind)
+{
+    // A Tool/Widget declaration alone does nothing visible - COSMOS loads it
+    // as a real web frontend (Vue.js) that has to be written separately, in
+    // a codebase this app has no editor for. Without this notice, a
+    // beginner adding this block would have every reason to believe they'd
+    // just finished making a working Tool/Widget.
+    return QMessageBox::question(this, tr("Add %1").arg(kind),
+        tr("A %1 needs a real web frontend (Vue.js component) that you write "
+           "yourself, outside this app - this only adds its plugin.txt "
+           "declaration, not a working %1.\n\nAdd the declaration anyway?")
+            .arg(kind),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::Yes;
 }
 
 void PluginView::onNewManifestInterfaceOrRouter(bool isRouter)

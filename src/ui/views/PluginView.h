@@ -112,6 +112,7 @@ private:
     void populateManifestBlockForm(int blockIndex);
     void insertManifestModifierAfterBlock(int blockIndex, const QString& line);
     void appendManifestBlockSnippet(const QString& snippet);
+    [[nodiscard]] bool confirmAdvancedFrontendBlock(const QString& kind);
     void onNewManifestInterfaceOrRouter(bool isRouter);
     void onAddScreenWidgetClicked();
     void setManifestActionsVisible(bool visible);
