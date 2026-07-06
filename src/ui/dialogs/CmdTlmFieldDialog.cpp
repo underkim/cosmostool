@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -83,8 +84,20 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     connect(typeCombo_, &QComboBox::currentIndexChanged,
             this, [this] { updateMode(); });
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
-        if (nameEdit_->text().trimmed().isEmpty()) {
+        const QString name = nameEdit_->text().trimmed();
+        if (name.isEmpty()) {
             QMessageBox::warning(this, tr("Add Field"), tr("Name is required."));
+            return;
+        }
+        // The generated line is whitespace-tokenized when re-parsed (see
+        // CmdTlmParser), so a name containing a space or other COSMOS
+        // syntax character (quotes, etc.) would silently shift every field
+        // after it instead of failing loudly here.
+        static const QRegularExpression validName("^[A-Za-z_][A-Za-z0-9_]*$");
+        if (!validName.match(name).hasMatch()) {
+            QMessageBox::warning(this, tr("Add Field"),
+                tr("Name must start with a letter or underscore and contain only "
+                   "letters, numbers, and underscores (no spaces or punctuation)."));
             return;
         }
 
