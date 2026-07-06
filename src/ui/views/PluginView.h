@@ -113,6 +113,7 @@ private:
     void insertManifestModifierAfterBlock(int blockIndex, const QString& line);
     void appendManifestBlockSnippet(const QString& snippet);
     void onNewManifestInterfaceOrRouter(bool isRouter);
+    void onAddScreenWidgetClicked();
     void setManifestActionsVisible(bool visible);
     void refreshScreenPreview();
     void setScreenPreviewActionsVisible(bool visible);
@@ -253,6 +254,7 @@ private:
 
     // ── Preview tab (screens/*.txt static layout preview) ──────────────────
     Widgets::ScreenPreviewWidget* screenPreview_{nullptr};
+    QPushButton* addScreenWidgetBtn_{nullptr};
 
     // Set right before any vm_.refresh() call (Refresh button, New Plugin,
     // Add Target, or the scaffoldComplete/targetAdded InfraViewModel

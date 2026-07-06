@@ -3,6 +3,7 @@
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/dialogs/PluginManifestInterfaceDialog.h"
 #include "ui/dialogs/PluginManifestModifierDialog.h"
+#include "ui/dialogs/ScreenWidgetDialog.h"
 #include "ui/dialogs/PluginWizard.h"
 #include "ui/views/LogViewerView.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
@@ -889,6 +890,14 @@ void PluginView::setupUi()
     previewBanner->setWordWrap(true);
     previewTabLayout->addWidget(previewBanner);
 
+    auto* previewToolbarRow = new QHBoxLayout;
+    addScreenWidgetBtn_ = new QPushButton(tr("Add Widget"), previewTab);
+    addScreenWidgetBtn_->setToolTip(tr(
+        "Add a Title, Label, Value, or Button to the end of this screen."));
+    previewToolbarRow->addWidget(addScreenWidgetBtn_);
+    previewToolbarRow->addStretch();
+    previewTabLayout->addLayout(previewToolbarRow);
+
     auto* previewScroll = new QScrollArea(previewTab);
     previewScroll->setObjectName("ScreenPreviewScrollArea");
     previewScroll->setWidgetResizable(true);
@@ -1176,6 +1185,7 @@ void PluginView::bindViewModel()
         if (index == 3)
             refreshScreenPreview();
     });
+    connect(addScreenWidgetBtn_, &QPushButton::clicked, this, &PluginView::onAddScreenWidgetClicked);
     connect(toggleReferenceBtn_, &QPushButton::clicked, this, &PluginView::onToggleReferenceClicked);
     connect(toggleTerminalBtn_, &QPushButton::clicked, this, &PluginView::onToggleTerminalClicked);
     connect(diagnosticList_, &QListWidget::itemClicked, this, &PluginView::onDiagnosticItemClicked);
@@ -2944,11 +2954,32 @@ void PluginView::setManifestActionsVisible(bool visible)
 
 void PluginView::setScreenPreviewActionsVisible(bool visible)
 {
+    if (addScreenWidgetBtn_)
+        addScreenWidgetBtn_->setVisible(visible);
+
     if (componentEditorTabs_) {
         componentEditorTabs_->setTabEnabled(3, visible); // Preview
         if (!visible)
             componentEditorTabs_->setCurrentIndex(0); // Source
     }
+}
+
+void PluginView::onAddScreenWidgetClicked()
+{
+    if (!isScreenFile(currentComponentPath_))
+        return;
+
+    Dialogs::ScreenWidgetDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    QTextCursor cursor = componentEditor_->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    cursor.insertText("\n" + dialog.generatedLine());
+    componentEditor_->setTextCursor(cursor);
+    refreshScreenPreview();
+    componentDiagnostics_->setPlainText(
+        tr("Added widget at the end of the screen. Save the file to keep it."));
 }
 
 void PluginView::refreshScreenPreview()
