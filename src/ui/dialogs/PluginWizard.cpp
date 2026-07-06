@@ -372,6 +372,19 @@ void PluginWizard::refreshPreview()
 
     if (pname.isEmpty() || tname.isEmpty()) return;
 
+    // Revisiting this step (e.g. Back then Next again) with no change to any
+    // of the generating fields should not clobber edits the user already
+    // made in the preview tabs - only regenerate when something that affects
+    // the generated content has actually changed.
+    const QString key = QStringList{
+        pname, tname, desc, QString::number(templateType()),
+        QString::number(ifaceTypeCombo_->currentIndex()),
+        ifaceHostEdit_->text().trimmed(), ifacePortEdit_->text().trimmed(),
+        namespaceEdit_->text().trimmed()
+    }.join('\x1f');
+    if (key == lastPreviewKey_ && previewTabs_->count() > 0) return;
+    lastPreviewKey_ = key;
+
     const QMap<QString, QString> files =
         ViewModels::PluginTemplateEngine::buildFiles(
             pname, tname, desc, templateType(),

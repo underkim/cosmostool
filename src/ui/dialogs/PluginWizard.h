@@ -82,6 +82,13 @@ private:
     // ── Page 2 — File Preview ─────────────────────────────────────────────────
     QTabWidget*                    previewTabs_{nullptr};
     QMap<QString, QPlainTextEdit*> fileEditors_;   // relativePath → editor
+
+    // Fingerprint of the inputs used for the last generated preview - lets
+    // refreshPreview() tell "revisited this step with the same settings"
+    // (keep the user's in-progress edits) apart from "a step-0/1 field
+    // actually changed" (regenerate, since the old paths/content no longer
+    // match the new settings anyway).
+    QString lastPreviewKey_;
 };
 
 } // namespace OpenC3::UI::Dialogs
