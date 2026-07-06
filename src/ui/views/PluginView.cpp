@@ -559,6 +559,10 @@ void PluginView::setupUi()
         "Runs this file with `ruby` on the connected host (cd <plugin root> && "
         "ruby <path>) - not the full COSMOS Script Runner, so cmd()/tlm() only "
         "work if the openc3 script libraries are loadable there."));
+    checkScriptSyntaxBtn_ = new QPushButton(tr("Check Syntax"), editorPane);
+    checkScriptSyntaxBtn_->setToolTip(tr(
+        "Runs `ruby -c` on the saved file - catches Ruby syntax errors "
+        "without needing a live COSMOS connection or the openc3 gem."));
     addFieldBtn_ = new QPushButton(tr("Add Field"), editorPane);
     addStructureFieldBtn_ = new QPushButton(tr("Add Row"), editorPane);
     deleteStructureFieldBtn_ = new QPushButton(tr("Delete Row"), editorPane);
@@ -635,6 +639,7 @@ void PluginView::setupUi()
     insertTlmBtn_->setEnabled(false);
     insertScriptBtn_->setEnabled(false);
     runScriptBtn_->setEnabled(false);
+    checkScriptSyntaxBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     addStructureFieldBtn_->setEnabled(false);
     deleteStructureFieldBtn_->setEnabled(false);
@@ -663,6 +668,7 @@ void PluginView::setupUi()
     componentActionRow->addWidget(saveComponentBtn_);
     componentActionRow->addWidget(startCmdTlmEditBtn_);
     componentActionRow->addWidget(runScriptBtn_);
+    componentActionRow->addWidget(checkScriptSyntaxBtn_);
     componentActionRow->addStretch();
     // validateComponentBtn_/validateMenuBtn_ (Check/Check▾) move to the
     // wizard's Check page below instead of staying on this row - Phase 4.
@@ -1186,6 +1192,7 @@ void PluginView::bindViewModel()
     connect(insertScriptBtn_, &QPushButton::clicked, this, &PluginView::onInsertScriptClicked);
     connect(insertScriptAction_, &QAction::triggered, this, &PluginView::onInsertScriptClicked);
     connect(runScriptBtn_, &QPushButton::clicked, this, &PluginView::onRunScriptClicked);
+    connect(checkScriptSyntaxBtn_, &QPushButton::clicked, this, &PluginView::onCheckScriptSyntaxClicked);
     connect(addFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddFieldClicked);
     connect(addFieldAction_, &QAction::triggered, this, &PluginView::onAddFieldClicked);
     connect(addStructureFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddStructureFieldClicked);
@@ -1441,6 +1448,7 @@ void PluginView::bindViewModel()
                 insertTlmBtn_->setEnabled(cmdTlm);
                 insertScriptBtn_->setEnabled(script);
                 runScriptBtn_->setEnabled(script);
+                checkScriptSyntaxBtn_->setEnabled(script);
                 addFieldBtn_->setEnabled(cmdTlm);
                 addStructureFieldBtn_->setEnabled(cmdTlm);
                 deleteStructureFieldBtn_->setEnabled(false);
@@ -1759,6 +1767,7 @@ void PluginView::onTableSelectionChanged()
     insertTlmBtn_->setEnabled(false);
     insertScriptBtn_->setEnabled(false);
     runScriptBtn_->setEnabled(false);
+    checkScriptSyntaxBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     addStructureFieldBtn_->setEnabled(false);
     deleteStructureFieldBtn_->setEnabled(false);
@@ -1965,6 +1974,36 @@ void PluginView::onRunScriptClicked()
 
     logViewerVm_.startStream(QString::fromStdString(cmd));
     componentDiagnostics_->setPlainText(tr("Running script - see Terminal panel for output."));
+}
+
+void PluginView::onCheckScriptSyntaxClicked()
+{
+    if (!isScriptFile(currentComponentPath_))
+        return;
+    if (!logViewerVm_.isConnected()) {
+        QMessageBox::information(this, tr("Check Syntax"),
+            tr("Connect to an OpenC3 environment first."));
+        return;
+    }
+    if (componentDirty_) {
+        QMessageBox::information(this, tr("Check Syntax"),
+            tr("Save the script before checking its syntax."));
+        return;
+    }
+
+    // `ruby -c` only parses the file (no execution, no openc3 gem needed) -
+    // a lightweight, always-available complement to Run Script, catching
+    // typos/syntax errors even without a full COSMOS runtime.
+    const std::string cmd =
+        "cd " + Core::Connection::shellQuote(currentPluginRoot_.toStdString())
+        + " && ruby -c " + Core::Connection::shellQuote(currentComponentDisplayPath_.toStdString())
+        + " 2>&1";
+
+    if (terminalPanel_ && !terminalPanel_->isVisible())
+        onToggleTerminalClicked();
+
+    logViewerVm_.startStream(QString::fromStdString(cmd));
+    componentDiagnostics_->setPlainText(tr("Checking script syntax - see Terminal panel for output."));
 }
 
 void PluginView::onAddFieldClicked()
