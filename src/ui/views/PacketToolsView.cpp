@@ -345,6 +345,12 @@ void PacketToolsView::bindViewModel()
     connect(refreshBtn_, &QPushButton::clicked,
             &vm_, &ViewModels::PacketToolsViewModel::refreshLogList);
 
+    // A single click already selects the row, so preview its content right
+    // away too - previously only itemDoubleClicked loaded the content, which
+    // left the File Content pane silently empty after a single click with no
+    // hint that a preview exists at all.
+    connect(logList_, &QListWidget::itemClicked,
+            this, &PacketToolsView::onLogFileSelected);
     connect(logList_, &QListWidget::itemDoubleClicked,
             this, &PacketToolsView::onLogFileSelected);
 
