@@ -45,6 +45,11 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     bitSizeSpin_ = new QSpinBox(this);
     bitSizeSpin_->setRange(1, 65535);
     bitSizeSpin_->setValue(16);
+    // Unlike every other narrow numeric field in this app (e.g. SSH Port,
+    // Interface Port), this had no width cap, so it stretched to fill the
+    // whole form-field column - a lone oversized spinner next to otherwise
+    // compact rows.
+    bitSizeSpin_->setMaximumWidth(100);
 
     typeCombo_ = new QComboBox(this);
     typeCombo_->addItems({
