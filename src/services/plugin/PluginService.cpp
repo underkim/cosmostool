@@ -161,13 +161,33 @@ bool PluginService::remove(
 
 std::string PluginService::build(const std::string& pluginRootPath)
 {
+    // PluginViewModel::build() decides success/failure by sniffing this
+    // string for "ERROR"/"failed" (there's no separate success flag on this
+    // interface) - so every failure path here must both (a) actually reach
+    // the caller (previously a missing gemspec or a missing `gem` binary
+    // produced no output at all, since `&&` short-circuited the whole
+    // pipeline silently) and (b) say "ERROR" so it isn't mistaken for a
+    // real gem path and reported as a successful build.
     auto r = executor_.execute(
         "cd " + shellQuote(pluginRootPath) +
+        " && if ! command -v gem >/dev/null 2>&1; then"
+        "      echo 'ERROR: gem (RubyGems) is not installed on this host - Ruby is required to build a plugin.';"
+        "      exit 1;"
+        "    fi"
         " && gemspec=$(find . -maxdepth 1 -type f -name '*.gemspec' | head -n 1)"
-        " && [ -n \"$gemspec\" ]"
+        " && if [ -z \"$gemspec\" ]; then"
+        "      echo 'ERROR: No .gemspec file found in the plugin folder.';"
+        "      exit 1;"
+        "    fi"
         " && gem build \"$gemspec\" 2>&1"
         " && find . -maxdepth 1 -type f -name '*.gem' -printf '%p\\n' 2>/dev/null");
-    return r ? r.stdOut : r.errorMessage;
+
+    // The command above always echoes an "ERROR: ..." line (or the real
+    // gem-build output) to stdout before failing, via the explicit checks
+    // and gem build's own 2>&1 redirect - so stdOut, not the generic
+    // errorMessage fallback, is what actually carries the useful diagnostic.
+    if (!r.stdOut.empty()) return r.stdOut;
+    return r ? std::string{} : r.errorMessage;
 }
 
 bool PluginService::backup(

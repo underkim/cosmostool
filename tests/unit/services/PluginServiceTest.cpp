@@ -105,3 +105,22 @@ TEST_F(PluginServiceTest, BuildQuotesPluginRoot)
     const auto output = sut_.build("/cosmos/plugins/my plugin");
     EXPECT_THAT(output, HasSubstr("cosmos-my-plugin-0.1.0.gem"));
 }
+
+// PluginViewModel::build() has no separate success flag - it decides
+// success/failure by sniffing this returned string for "ERROR"/"failed".
+// A failed build (missing `gem` binary, missing .gemspec, or gem build
+// itself erroring) must therefore both reach the caller with real content
+// and say "ERROR" - not come back empty, and not come back as the generic
+// "Process exited with code N" text with no such keyword, which the
+// heuristic would misread as a successful build (see ExecutorResult::
+// fromProcess()'s errorMessage fallback, which build() used to return here).
+TEST_F(PluginServiceTest, BuildSurfacesFailureTextInsteadOfGenericMessage)
+{
+    EXPECT_CALL(mock_, execute(HasSubstr("cd '/cosmos/plugins/broken'")))
+        .WillOnce(Return(ExecutorResult::fromProcess(
+            1, "ERROR: No .gemspec file found in the plugin folder.\n", "")));
+
+    const auto output = sut_.build("/cosmos/plugins/broken");
+    EXPECT_THAT(output, HasSubstr("ERROR"));
+    EXPECT_THAT(output, HasSubstr("No .gemspec file found"));
+}
