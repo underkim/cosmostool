@@ -1104,8 +1104,19 @@ void PluginView::bindViewModel()
                     return;
                 }
                 detailEdit_->setPlainText(summary);
+                // This only ever fires from the whole-plugin "Check" button
+                // on the Plugin step's own toolbar, but its result renders
+                // into detailEdit_ on the separate Build & Install step's
+                // page - without this, a successful check left the user on
+                // the unchanged Plugin step with no visible sign anything
+                // had happened at all (failure already showed a warning
+                // popup; success showed nothing).
                 if (!valid)
                     QMessageBox::warning(this, tr("Workspace"), summary);
+                else
+                    QMessageBox::information(this, tr("Workspace"),
+                        tr("Plugin check passed.\n\nSee full details in the "
+                           "Overview tab (Build & Install step)."));
             });
 
     connect(&vm_, &ViewModels::PluginViewModel::actionCompleted,
