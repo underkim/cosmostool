@@ -266,6 +266,18 @@ QWidget* PacketToolsView::buildSimulatorTab()
     layout->addWidget(sendGroup);
 
     // ── Packet table ───────────────────────────────────────────────────────────
+    // Nothing ever clears this table (not on Start/Stop, not on switching
+    // UDP/TCP mode), so a long-running session just accumulates rows
+    // forever with no way to reset short of restarting the app - add a
+    // Clear button, matching the one Docker Manager's Container Logs panel
+    // already has for the same kind of accumulating log view.
+    auto* packetsHeaderRow = new QHBoxLayout;
+    packetsHeaderRow->addWidget(new QLabel(tr("Captured Packets"), tab));
+    packetsHeaderRow->addStretch();
+    auto* simulatorClearBtn = new QPushButton(tr("Clear"), tab);
+    packetsHeaderRow->addWidget(simulatorClearBtn);
+    layout->addLayout(packetsHeaderRow);
+
     simulatorPackets_ = new QTableWidget(0, 4, tab);
     simulatorPackets_->setHorizontalHeaderLabels({tr("Direction"), tr("Peer"), tr("Hex"), tr("ASCII")});
     simulatorPackets_->horizontalHeader()->setStretchLastSection(true);
@@ -276,6 +288,9 @@ QWidget* PacketToolsView::buildSimulatorTab()
     simulatorPackets_->setSelectionBehavior(QAbstractItemView::SelectRows);
     simulatorPackets_->setMinimumHeight(140);
     layout->addWidget(simulatorPackets_, 1);
+
+    connect(simulatorClearBtn, &QPushButton::clicked,
+            simulatorPackets_, [this] { simulatorPackets_->setRowCount(0); });
 
     updateSimulatorSendMode();  // set initial labels for the default (UDP) mode
     updateSimulatorSendState(); // set initial Send-button + readiness text
