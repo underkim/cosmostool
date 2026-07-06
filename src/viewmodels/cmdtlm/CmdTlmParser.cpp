@@ -220,7 +220,13 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                 // default value, or id_value for ID parameters
                 if (idx < toks.size()) item.defaultVal = toks[idx++];
             } else if (item.isId && !isParam) {
-                if (idx < toks.size()) ++idx;            // id_value (items)
+                // Reuse defaultVal for the id_value, same as ID parameters
+                // above - this was previously just skipped (++idx) and
+                // never captured anywhere, so PluginView's structure table
+                // (which reads item.defaultVal into its DEFAULT column) had
+                // no way to display or preserve an existing ID item's value,
+                // silently dropping it from the file on any re-save.
+                if (idx < toks.size()) item.defaultVal = toks[idx++];
             }
 
             if (idx < toks.size()) item.description = toks[idx];

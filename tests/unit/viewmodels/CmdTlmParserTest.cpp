@@ -229,3 +229,26 @@ TEST(CmdTlmParserTest, ArrayParameterKeepsRangeAndDefault)
     EXPECT_EQ(result.blocks[0].items[0].defaultVal, "1");
     EXPECT_EQ(result.blocks[0].items[0].description, "x");
 }
+
+// APPEND_ID_ITEM's id_value token (right after the type, before the
+// description) was previously just skipped (++idx) and never captured
+// anywhere - PluginView's structure table reads item.defaultVal to display
+// and to regenerate this row's line, so a discarded id_value meant editing
+// any cell of an existing ID telemetry item silently dropped its numeric ID
+// from the file on save.
+TEST(CmdTlmParserTest, IdItemCapturesIdValueAndDescription)
+{
+    const QString src =
+        "TELEMETRY T HK BIG_ENDIAN \"d\"\n"
+        "  APPEND_ID_ITEM PKTID 8 UINT 5 \"Packet identifier\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.errorCount(), 0);
+    ASSERT_EQ(result.blocks.size(), 1);
+    ASSERT_EQ(result.blocks[0].items.size(), 1);
+    const auto& item = result.blocks[0].items[0];
+    EXPECT_TRUE(item.isId);
+    EXPECT_EQ(item.name, "PKTID");
+    EXPECT_EQ(item.defaultVal, "5");
+    EXPECT_EQ(item.description, "Packet identifier");
+}

@@ -2136,19 +2136,20 @@ void PluginView::applyStructureRowToEditor(int row)
                 .arg(keyword, name, bits, type, textAt(7), textAt(8), textAt(9), description);
         }
     } else {
-        if (isArray && hasExplicitOffset) {
-            replacement = QString("  %1 %2 %3 %4 %5 %6 %7")
-                .arg(keyword, name, offset, bits, type, arrayBits, description);
-        } else if (isArray) {
-            replacement = QString("  %1 %2 %3 %4 %5 %6")
-                .arg(keyword, name, bits, type, arrayBits, description);
-        } else if (hasExplicitOffset) {
-            replacement = QString("  %1 %2 %3 %4 %5 %6")
-                .arg(keyword, name, offset, bits, type, description);
-        } else {
-            replacement = QString("  %1 %2 %3 %4 %5")
-                .arg(keyword, name, bits, type, description);
-        }
+        // APPEND_ID_ITEM inserts an id_value token right after the type
+        // (see CmdTlmParser's own column layout, and CmdTlmFieldDialog's
+        // generatedLine()) - the four branches below previously never
+        // included it for isId rows at all, so editing any cell of an
+        // existing ID telemetry item's row silently dropped its id_value
+        // from the file the next time it was saved.
+        QStringList toks;
+        toks << keyword << name;
+        if (hasExplicitOffset) toks << offset;
+        toks << bits << type;
+        if (isArray) toks << arrayBits;
+        if (isId) toks << textAt(9);
+        toks << description;
+        replacement = "  " + toks.join(' ');
     }
 
     QTextBlock block = componentEditor_->document()->findBlockByNumber(lineNumber - 1);
