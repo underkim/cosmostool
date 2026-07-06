@@ -73,15 +73,17 @@ MainWindow::MainWindow(
     resize(1440, 900);
 
     QSettings windowSettings;
-    showAdvancedTools_ = windowSettings.value("MainWindow/showAdvancedTools", false).toBool();
+    appMode_ = windowSettings.value("MainWindow/appMode", "pluginCreation").toString() == "connectOperate"
+        ? AppMode::ConnectOperate : AppMode::PluginCreation;
 
     setupUi();
     setupMenuBar();
     setupStatusBar();
     connectSignals();
 
-    // Applied last, once navRail_/showAdvancedAction_/advancedToggleBtn_ all exist,
-    // so their state can be synced against showAdvancedTools_ at the same time.
+    // Applied last, once navRail_/pluginCreationAction_/connectOperateAction_/
+    // modeToggleBtn_ all exist, so their state can be synced against appMode_
+    // at the same time.
     applyNavVisibility();
 
     const QVariant geometry = windowSettings.value("MainWindow/geometry");
@@ -101,14 +103,14 @@ void MainWindow::setupUi()
 
     setupNavigation();
 
-    // Wrap navRail_ with the Simple/Advanced toggle button so it travels with the
-    // rail rather than floating separately in the layout.
+    // Wrap navRail_ with the mode toggle button so it travels with the rail
+    // rather than floating separately in the layout.
     auto* navPanel       = new QWidget(this);
     auto* navPanelLayout = new QVBoxLayout(navPanel);
     navPanelLayout->setContentsMargins(0, 0, 0, 0);
     navPanelLayout->setSpacing(0);
     navPanelLayout->addWidget(navRail_, 1);
-    navPanelLayout->addWidget(advancedToggleBtn_);
+    navPanelLayout->addWidget(modeToggleBtn_);
 
     contentStack_ = new QStackedWidget(this);
     setupViews();
@@ -150,16 +152,17 @@ void MainWindow::setupNavigation()
                              .arg(row + 1));
         navRail_->addItem(item);
 
-        // Ctrl+<n> jumps straight to this section from anywhere in the app - reveal
-        // Advanced mode first if the target row is currently hidden, same as goTo()
-        // does for programmatic navigation, so a shortcut never lands on a page with
-        // no visible nav highlight.
+        // Ctrl+<n> jumps straight to this section from anywhere in the app - switch
+        // app mode first if the target row is currently hidden in the active mode,
+        // same as goTo() does for programmatic navigation, so a shortcut never lands
+        // on a page with no visible nav highlight.
         auto* shortcut = new QShortcut(
             QKeySequence(QStringLiteral("Ctrl+%1").arg(row + 1)), this);
         connect(shortcut, &QShortcut::activated,
                 this, [this, row] {
-                    if (isAdvancedRow(row) && navRail_->item(row) && navRail_->item(row)->isHidden())
-                        setShowAdvancedTools(true);
+                    if (!rowVisibleInMode(row, appMode_) && navRail_->item(row))
+                        setAppMode(appMode_ == AppMode::PluginCreation
+                            ? AppMode::ConnectOperate : AppMode::PluginCreation);
                     navRail_->setCurrentRow(row);
                 });
     };
@@ -178,55 +181,77 @@ void MainWindow::setupNavigation()
     connect(navRail_, &QListWidget::currentRowChanged,
             this, &MainWindow::onNavItemSelected);
 
-    // In-context toggle for Simple/Advanced mode - a menu item alone (setupMenuBar())
+    // In-context toggle for the app mode - a menu item alone (setupMenuBar())
     // is too easy to miss for something this central to hiding/revealing nav rows.
-    advancedToggleBtn_ = new QPushButton(
-        showAdvancedTools_ ? tr("Show Less") + " " + QString::fromUtf8("▴") : tr("Show More") + " " + QString::fromUtf8("▾"),
+    // appMode_ is already loaded from QSettings by the time this runs (set in
+    // the constructor before setupUi()), so this reflects the persisted mode;
+    // setAppMode() only re-syncs this text on later *changes* (it no-ops if
+    // the mode passed in already matches appMode_), so the initial text has
+    // to be set here explicitly.
+    modeToggleBtn_ = new QPushButton(
+        appMode_ == AppMode::PluginCreation
+            ? tr("Switch to Connect && Operate") + " " + QString::fromUtf8("▸")
+            : tr("Switch to Plugin Creation") + " " + QString::fromUtf8("◂"),
         this);
-    advancedToggleBtn_->setFlat(true);
-    advancedToggleBtn_->setToolTip(tr("Show or hide Environment, Validator, Packet Tools, and Logs."));
-    connect(advancedToggleBtn_, &QPushButton::clicked, this, [this] {
-        setShowAdvancedTools(!showAdvancedTools_);
+    modeToggleBtn_->setFlat(true);
+    modeToggleBtn_->setToolTip(appMode_ == AppMode::PluginCreation
+        ? tr("Currently in Plugin Creation mode. Switch to see Environment, Validator, Packet Tools, and Logs.")
+        : tr("Currently in Connect & Operate mode. Switch back to focus on plugin creation."));
+    connect(modeToggleBtn_, &QPushButton::clicked, this, [this] {
+        setAppMode(appMode_ == AppMode::PluginCreation
+            ? AppMode::ConnectOperate : AppMode::PluginCreation);
     });
 }
 
-bool MainWindow::isAdvancedRow(int row) const noexcept
+bool MainWindow::rowVisibleInMode(int row, AppMode mode) const noexcept
 {
-    return row == NavEnvironment || row == NavValidator
-        || row == NavPacketTools || row == NavLogs;
+    // Home and Settings are common to both modes. Workspace (plugin creation,
+    // no connection required up front) is Plugin Creation-only; Environment/
+    // Validator/Packet Tools/Logs (all inherently connection-dependent) are
+    // Connect & Operate-only.
+    if (row == NavHome || row == NavSettings)
+        return true;
+    if (row == NavWorkspace)
+        return mode == AppMode::PluginCreation;
+    return mode == AppMode::ConnectOperate;
 }
 
 void MainWindow::applyNavVisibility()
 {
     for (int row = 0; row < navRail_->count(); ++row) {
-        if (isAdvancedRow(row))
-            navRail_->item(row)->setHidden(!showAdvancedTools_);
+        if (navRail_->item(row))
+            navRail_->item(row)->setHidden(!rowVisibleInMode(row, appMode_));
     }
 }
 
-void MainWindow::setShowAdvancedTools(bool show)
+void MainWindow::setAppMode(AppMode mode)
 {
-    if (show == showAdvancedTools_)
+    if (mode == appMode_)
         return;
-    showAdvancedTools_ = show;
+    appMode_ = mode;
 
-    // Collapsing to Simple mode while sitting on a row about to be hidden would
-    // strand the user on a page with no visible nav highlight and no way back -
-    // Qt's setRowHidden doesn't move the current selection on its own.
-    if (!showAdvancedTools_ && isAdvancedRow(navRail_->currentRow())) {
+    // Switching modes while sitting on a row the new mode hides would strand
+    // the user on a page with no visible nav highlight and no way back - Qt's
+    // setRowHidden doesn't move the current selection on its own.
+    if (!rowVisibleInMode(navRail_->currentRow(), appMode_)) {
         navRail_->setCurrentRow(NavHome);
         contentStack_->setCurrentIndex(NavHome);
     }
 
     QSettings windowSettings;
-    windowSettings.setValue("MainWindow/showAdvancedTools", showAdvancedTools_);
+    windowSettings.setValue("MainWindow/appMode",
+        appMode_ == AppMode::ConnectOperate ? "connectOperate" : "pluginCreation");
 
-    if (showAdvancedAction_)
-        showAdvancedAction_->setChecked(showAdvancedTools_);
-    if (advancedToggleBtn_)
-        advancedToggleBtn_->setText(showAdvancedTools_
-            ? tr("Show Less") + " " + QString::fromUtf8("▴")
-            : tr("Show More") + " " + QString::fromUtf8("▾"));
+    if (pluginCreationAction_) pluginCreationAction_->setChecked(appMode_ == AppMode::PluginCreation);
+    if (connectOperateAction_) connectOperateAction_->setChecked(appMode_ == AppMode::ConnectOperate);
+    if (modeToggleBtn_) {
+        modeToggleBtn_->setText(appMode_ == AppMode::PluginCreation
+            ? tr("Switch to Connect && Operate") + " " + QString::fromUtf8("▸")
+            : tr("Switch to Plugin Creation") + " " + QString::fromUtf8("◂"));
+        modeToggleBtn_->setToolTip(appMode_ == AppMode::PluginCreation
+            ? tr("Currently in Plugin Creation mode. Switch to see Environment, Validator, Packet Tools, and Logs.")
+            : tr("Currently in Connect & Operate mode. Switch back to focus on plugin creation."));
+    }
 
     applyNavVisibility();
 }
@@ -266,10 +291,11 @@ void MainWindow::setupViews()
     // ── Navigation helpers ──────────────────────────────────────────────────
     auto goTo = [this](int row) {
         // Programmatic navigation (e.g. Home's quick actions) to a row hidden by
-        // Simple mode transparently reveals it first, rather than landing on a page
-        // with no visible nav highlight.
-        if (isAdvancedRow(row) && navRail_->item(row) && navRail_->item(row)->isHidden())
-            setShowAdvancedTools(true);
+        // the current mode transparently switches mode first, rather than landing
+        // on a page with no visible nav highlight.
+        if (!rowVisibleInMode(row, appMode_) && navRail_->item(row))
+            setAppMode(appMode_ == AppMode::PluginCreation
+                ? AppMode::ConnectOperate : AppMode::PluginCreation);
         navRail_->setCurrentRow(row);   // also switches the stack via the signal
         contentStack_->setCurrentIndex(row);
     };
@@ -341,13 +367,26 @@ void MainWindow::setupMenuBar()
     viewMenu->addAction(refreshAction);
 
     viewMenu->addSeparator();
-    showAdvancedAction_ = new QAction(tr("Show Advanced Tools"), this);
-    showAdvancedAction_->setCheckable(true);
-    showAdvancedAction_->setChecked(showAdvancedTools_);
-    connect(showAdvancedAction_, &QAction::toggled, this, [this](bool checked) {
-        setShowAdvancedTools(checked);
+    auto* modeGroup = new QActionGroup(this);
+    modeGroup->setExclusive(true);
+
+    pluginCreationAction_ = new QAction(tr("Plugin Creation Mode"), this);
+    pluginCreationAction_->setCheckable(true);
+    pluginCreationAction_->setChecked(appMode_ == AppMode::PluginCreation);
+    modeGroup->addAction(pluginCreationAction_);
+    viewMenu->addAction(pluginCreationAction_);
+    connect(pluginCreationAction_, &QAction::triggered, this, [this] {
+        setAppMode(AppMode::PluginCreation);
     });
-    viewMenu->addAction(showAdvancedAction_);
+
+    connectOperateAction_ = new QAction(tr("Connect && Operate Mode"), this);
+    connectOperateAction_->setCheckable(true);
+    connectOperateAction_->setChecked(appMode_ == AppMode::ConnectOperate);
+    modeGroup->addAction(connectOperateAction_);
+    viewMenu->addAction(connectOperateAction_);
+    connect(connectOperateAction_, &QAction::triggered, this, [this] {
+        setAppMode(AppMode::ConnectOperate);
+    });
 
     // Language: takes effect on next launch - this app has no dynamic
     // retranslation wiring (QEvent::LanguageChange handlers on every view),

@@ -22,6 +22,13 @@ class QAction;
 
 namespace OpenC3::UI {
 
+/// Which top-level workflow the app is currently focused on.
+/// PluginCreation: Home, Workspace (plugin/file/edit only) - no connection
+/// required up front, connects transparently in the background.
+/// ConnectOperate: Environment, Validator, Packet Tools, Logs, plus
+/// Workspace's Check & Build & Install step - requires a real connection.
+enum class AppMode { PluginCreation, ConnectOperate };
+
 /// Application main window.
 ///
 /// Implements a navigation rail (sidebar) + content area layout.
@@ -61,13 +68,14 @@ private:
     void connectSignals();
     void showConnectionDialog();
 
-    // Simple/Advanced mode: Environment/Validator/Packet Tools/Logs are hidden from
-    // the nav rail by default so a new/occasional user sees only Home, Workspace, and
-    // Settings. Nothing is removed - just hidden - and any programmatic navigation to
-    // a hidden row (e.g. Home's "Run Doctor" quick action) transparently reveals it.
-    void setShowAdvancedTools(bool show);
+    // App mode: Plugin Creation (Home, Workspace, Settings - no connection required
+    // up front) vs. Connect & Operate (Environment/Validator/Packet Tools/Logs, plus
+    // Workspace's Check & Build & Install step). Nothing is removed - just hidden -
+    // and any programmatic navigation to a row hidden by the current mode
+    // transparently switches mode first.
+    void setAppMode(AppMode mode);
     void applyNavVisibility();
-    [[nodiscard]] bool isAdvancedRow(int row) const noexcept;
+    [[nodiscard]] bool rowVisibleInMode(int row, AppMode mode) const noexcept;
 
     ViewModels::DashboardViewModel&    dashboardVm_;
     ViewModels::DockerViewModel&       dockerVm_;
@@ -88,9 +96,10 @@ private:
     QPushButton* connectionButton_{nullptr};
     QLabel*      dockerLabel_{nullptr};
 
-    bool         showAdvancedTools_{false};
-    QAction*     showAdvancedAction_{nullptr};
-    QPushButton* advancedToggleBtn_{nullptr};
+    AppMode      appMode_{AppMode::PluginCreation};
+    QAction*     pluginCreationAction_{nullptr};
+    QAction*     connectOperateAction_{nullptr};
+    QPushButton* modeToggleBtn_{nullptr};
 };
 
 } // namespace OpenC3::UI
