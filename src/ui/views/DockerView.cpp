@@ -170,8 +170,6 @@ void DockerView::updateHint()
 void DockerView::onTableSelectionChanged()
 {
     const bool hasSelection = tableView_->selectionModel()->hasSelection();
-    removeBtn_->setEnabled(hasSelection);
-    removeBtn_->setToolTip(hasSelection ? tr("Remove the selected container.") : tr("Select a container first."));
     logsBtn_->setEnabled(hasSelection);
     logsBtn_->setToolTip(hasSelection ? tr("View the selected container's recent logs.") : tr("Select a container first."));
 
@@ -182,6 +180,8 @@ void DockerView::onTableSelectionChanged()
         stopBtn_->setToolTip(tr("Select a container first."));
         restartBtn_->setEnabled(false);
         restartBtn_->setToolTip(tr("Select a container first."));
+        removeBtn_->setEnabled(false);
+        removeBtn_->setToolTip(tr("Select a container first."));
         return;
     }
 
@@ -195,6 +195,14 @@ void DockerView::onTableSelectionChanged()
     stopBtn_->setToolTip(running ? tr("Stop the selected container.") : tr("Container is not running."));
     restartBtn_->setEnabled(running);
     restartBtn_->setToolTip(running ? tr("Restart the selected container.") : tr("Container is not running."));
+
+    // Removal always runs `docker rm` without -f, which Docker itself
+    // rejects for a running container - disable rather than let the user
+    // hit a generic "Action failed" popup with no explanation.
+    removeBtn_->setEnabled(!running);
+    removeBtn_->setToolTip(running
+        ? tr("Stop the container first to remove it.")
+        : tr("Remove the selected container."));
 }
 
 void DockerView::onStartClicked()
