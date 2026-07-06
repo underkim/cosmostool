@@ -34,6 +34,14 @@ DashboardViewModel::DashboardViewModel(
             connectionState_ = state;
             connectionErrorMessage_ = errorMessage;
             emit connectionStatusChanged();
+            // Otherwise Docker/system-metrics/version status (surfaced in
+            // MainWindow's persistent status bar too) stays at its stale
+            // pre-connect default - e.g. "Docker: Not running" - for up to
+            // the full 5s timer period after every connect, contradicting
+            // whatever the Docker/Home pages show once their own data
+            // arrives moments later.
+            if (state == Services::ConnectionState::Connected)
+                refresh();
         }, Qt::QueuedConnection);
     });
 }
