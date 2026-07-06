@@ -6,6 +6,7 @@
 #include "ui/views/LogViewerView.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
 #include "ui/widgets/CmdTlmSnippets.h"
+#include "ui/widgets/PluginManifestSnippets.h"
 #include "viewmodels/validation/PluginKeywords.h"
 #include "viewmodels/screen/ScreenLayoutParser.h"
 
@@ -818,10 +819,36 @@ void PluginView::setupUi()
     applyManifestBlockBtn_->setEnabled(false);
 
     manifestMenuBtn_ = new QToolButton(manifestGroup);
-    manifestMenuBtn_->setText(tr("Modifiers") + " ▾");
-    manifestMenuBtn_->setToolTip(tr("Add or delete a modifier line (PROTOCOL, ENV, SECRET, ...)."));
+    manifestMenuBtn_->setText(tr("Manifest") + " ▾");
+    manifestMenuBtn_->setToolTip(tr(
+        "Add a new block, or add/delete a modifier line (PROTOCOL, ENV, SECRET, ...)."));
     manifestMenuBtn_->setPopupMode(QToolButton::InstantPopup);
     auto* manifestMenu = new QMenu(manifestMenuBtn_);
+
+    // TARGET is deliberately excluded - it already has its own dedicated
+    // creation flow ("Add Target", AddTargetDialog), which also scaffolds
+    // the target's folder structure, not just a plugin.txt line.
+    auto* newBlockMenu = manifestMenu->addMenu(tr("New Block"));
+    auto* newInterfaceAction = newBlockMenu->addAction(tr("Interface"));
+    auto* newRouterAction = newBlockMenu->addAction(tr("Router"));
+    auto* newMicroserviceAction = newBlockMenu->addAction(tr("Microservice"));
+    auto* newToolAction = newBlockMenu->addAction(tr("Tool"));
+    auto* newWidgetAction = newBlockMenu->addAction(tr("Widget"));
+    auto* newVariableAction = newBlockMenu->addAction(tr("Variable"));
+    connect(newInterfaceAction, &QAction::triggered, this, [this] {
+        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::interfaceBlock()); });
+    connect(newRouterAction, &QAction::triggered, this, [this] {
+        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::routerBlock()); });
+    connect(newMicroserviceAction, &QAction::triggered, this, [this] {
+        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::microserviceBlock()); });
+    connect(newToolAction, &QAction::triggered, this, [this] {
+        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::toolBlock()); });
+    connect(newWidgetAction, &QAction::triggered, this, [this] {
+        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::widgetBlock()); });
+    connect(newVariableAction, &QAction::triggered, this, [this] {
+        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::variableBlock()); });
+
+    manifestMenu->addSeparator();
     addManifestModifierAction_ = manifestMenu->addAction(tr("Add Modifier"));
     deleteManifestModifierAction_ = manifestMenu->addAction(tr("Delete Modifier"));
     refreshManifestAction_ = manifestMenu->addAction(tr("Refresh"));
@@ -2388,6 +2415,20 @@ void PluginView::insertManifestModifierAfterBlock(int blockIndex, const QString&
     componentEditor_->setTextCursor(cursor);
     refreshManifestTable();
     componentDiagnostics_->setPlainText(tr("Added modifier line. Save the file to keep it."));
+}
+
+void PluginView::appendManifestBlockSnippet(const QString& snippet)
+{
+    if (!isPluginManifestFile(currentComponentPath_))
+        return;
+
+    QTextCursor cursor = componentEditor_->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    cursor.insertText(snippet);
+    componentEditor_->setTextCursor(cursor);
+    refreshManifestTable();
+    componentDiagnostics_->setPlainText(
+        tr("Added new block at the end of the file. Edit its placeholder names, then save."));
 }
 
 void PluginView::onAddManifestModifierClicked()
