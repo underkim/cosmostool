@@ -77,6 +77,11 @@ private slots:
     void onBlockSelectionChanged(int index);
     void onApplyBlockClicked();
     void onStructureCellChanged(int row, int column);
+    void onManifestBlockSelectionChanged(int index);
+    void onApplyManifestBlockClicked();
+    void onAddManifestModifierClicked();
+    void onDeleteManifestModifierClicked();
+    void onManifestCellChanged(int row, int column);
     void onToggleReferenceClicked();
     void onBrowseGoClicked();
     void onBrowseItemDoubleClicked(QListWidgetItem* item);
@@ -102,6 +107,10 @@ private:
     void refreshBlockEditor();
     void populateBlockForm(int blockIndex);
     void refreshManifestTable();
+    void refreshManifestBlockEditor();
+    void populateManifestBlockForm(int blockIndex);
+    void insertManifestModifierAfterBlock(int blockIndex, const QString& line);
+    void setManifestActionsVisible(bool visible);
     void applyStructureRowToEditor(int row);
     void focusEditorLineForStructureRow(int row);
     void insertStructureFieldAfterRow(int row, const QString& line);
@@ -222,9 +231,20 @@ private:
     QVector<ViewModels::CmdTlmBlock> currentBlocks_;
 
     // ── Manifest tab (plugin.txt: TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/
-    // WIDGET/VARIABLE) - read-only in this phase; add/edit/delete lands later.
+    // WIDGET/VARIABLE) ──────────────────────────────────────────────────────
     QTableWidget* manifestTable_{nullptr};
     QVector<ViewModels::PluginManifestBlock> currentManifestBlocks_;
+    bool         updatingManifestTable_{false};
+    QComboBox*   manifestBlockSelectorCombo_{nullptr};
+    QLabel*      manifestKindLabel_{nullptr};
+    QLineEdit*   manifestNameEdit_{nullptr};
+    QLineEdit*   manifestClassOrFolderEdit_{nullptr};
+    QLineEdit*   manifestArgsEdit_{nullptr};
+    QPushButton* applyManifestBlockBtn_{nullptr};
+    QToolButton* manifestMenuBtn_{nullptr};
+    QAction*     addManifestModifierAction_{nullptr};
+    QAction*     deleteManifestModifierAction_{nullptr};
+    QAction*     refreshManifestAction_{nullptr};
 
     // Set right before any vm_.refresh() call (Refresh button, New Plugin,
     // Add Target, or the scaffoldComplete/targetAdded InfraViewModel

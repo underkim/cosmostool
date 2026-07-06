@@ -1,10 +1,12 @@
 #include "PluginView.h"
 #include "ui/dialogs/AddTargetDialog.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
+#include "ui/dialogs/PluginManifestModifierDialog.h"
 #include "ui/dialogs/PluginWizard.h"
 #include "ui/views/LogViewerView.h"
 #include "ui/widgets/CmdTlmHighlighter.h"
 #include "ui/widgets/CmdTlmSnippets.h"
+#include "viewmodels/validation/PluginKeywords.h"
 
 #include <QAbstractItemView>
 #include <QColor>
@@ -17,6 +19,7 @@
 #include <QMap>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QSet>
 #include <QSettings>
 #include <QShortcut>
 #include <QSignalBlocker>
@@ -769,6 +772,62 @@ void PluginView::setupUi()
         editorPane);
     auto* manifestLayout = new QVBoxLayout(manifestGroup);
 
+    // ── Block editor (TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/WIDGET/
+    // VARIABLE header line) - mirrors the Structure tab's block editor above.
+    auto* manifestBlockSelectRow = new QHBoxLayout;
+    manifestBlockSelectRow->setSpacing(6);
+    manifestBlockSelectRow->addWidget(new QLabel(tr("Block:"), manifestGroup));
+    manifestBlockSelectorCombo_ = new QComboBox(manifestGroup);
+    manifestBlockSelectorCombo_->setObjectName("PluginManifestBlockCombo");
+    manifestBlockSelectorCombo_->setMinimumWidth(220);
+    manifestBlockSelectorCombo_->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    manifestKindLabel_ = new QLabel("", manifestGroup);
+    manifestKindLabel_->setObjectName("SubLabel");
+    manifestBlockSelectRow->addWidget(manifestBlockSelectorCombo_, 1);
+    manifestBlockSelectRow->addWidget(manifestKindLabel_);
+    manifestLayout->addLayout(manifestBlockSelectRow);
+
+    auto* manifestBlockFieldRow = new QHBoxLayout;
+    manifestBlockFieldRow->setSpacing(6);
+    manifestNameEdit_ = new QLineEdit(manifestGroup);
+    manifestNameEdit_->setPlaceholderText(tr("NAME"));
+    manifestClassOrFolderEdit_ = new QLineEdit(manifestGroup);
+    manifestClassOrFolderEdit_->setPlaceholderText(tr("FOLDER / CLASS FILE"));
+    manifestArgsEdit_ = new QLineEdit(manifestGroup);
+    manifestArgsEdit_->setPlaceholderText(tr("Additional arguments"));
+    applyManifestBlockBtn_ = new QPushButton(tr("Apply Block"), manifestGroup);
+    applyManifestBlockBtn_->setToolTip(tr(
+        "Updates the selected block's header line. Modifier lines are preserved."));
+    applyManifestBlockBtn_->setMinimumWidth(applyManifestBlockBtn_->sizeHint().width());
+    manifestBlockFieldRow->addWidget(new QLabel(tr("Name:"), manifestGroup));
+    manifestBlockFieldRow->addWidget(manifestNameEdit_);
+    manifestBlockFieldRow->addWidget(new QLabel(tr("Folder/Class:"), manifestGroup));
+    manifestBlockFieldRow->addWidget(manifestClassOrFolderEdit_);
+    manifestBlockFieldRow->addWidget(new QLabel(tr("Args:"), manifestGroup));
+    manifestBlockFieldRow->addWidget(manifestArgsEdit_, 1);
+    manifestBlockFieldRow->addWidget(applyManifestBlockBtn_);
+    manifestLayout->addLayout(manifestBlockFieldRow);
+
+    manifestBlockSelectorCombo_->setEnabled(false);
+    manifestNameEdit_->setEnabled(false);
+    manifestClassOrFolderEdit_->setEnabled(false);
+    manifestArgsEdit_->setEnabled(false);
+    applyManifestBlockBtn_->setEnabled(false);
+
+    manifestMenuBtn_ = new QToolButton(manifestGroup);
+    manifestMenuBtn_->setText(tr("Modifiers") + " ▾");
+    manifestMenuBtn_->setToolTip(tr("Add or delete a modifier line (PROTOCOL, ENV, SECRET, ...)."));
+    manifestMenuBtn_->setPopupMode(QToolButton::InstantPopup);
+    auto* manifestMenu = new QMenu(manifestMenuBtn_);
+    addManifestModifierAction_ = manifestMenu->addAction(tr("Add Modifier"));
+    deleteManifestModifierAction_ = manifestMenu->addAction(tr("Delete Modifier"));
+    refreshManifestAction_ = manifestMenu->addAction(tr("Refresh"));
+    manifestMenuBtn_->setMenu(manifestMenu);
+    auto* manifestMenuRow = new QHBoxLayout;
+    manifestMenuRow->addWidget(manifestMenuBtn_);
+    manifestMenuRow->addStretch();
+    manifestLayout->addLayout(manifestMenuRow);
+
     manifestTable_ = new QTableWidget(0, 4, manifestGroup);
     manifestTable_->setObjectName("PluginManifestTable");
     manifestTable_->setHorizontalHeaderLabels({
@@ -780,8 +839,13 @@ void PluginView::setupUi()
     manifestTable_->verticalHeader()->setVisible(false);
     manifestTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     manifestTable_->setSelectionMode(QAbstractItemView::SingleSelection);
-    manifestTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    manifestTable_->setMinimumHeight(260);
+    // Only modifier rows' Keyword/Args cells are made editable (in
+    // refreshManifestTable()) - block header rows stay read-only here since
+    // they're edited via the form above instead.
+    manifestTable_->setEditTriggers(QAbstractItemView::DoubleClicked
+        | QAbstractItemView::EditKeyPressed
+        | QAbstractItemView::SelectedClicked);
+    manifestTable_->setMinimumHeight(220);
     manifestTable_->setColumnWidth(0, 48);   // Line
     manifestLayout->addWidget(manifestTable_, 1);
     manifestTabLayout->addWidget(manifestGroup, 1);
@@ -1050,6 +1114,13 @@ void PluginView::bindViewModel()
     connect(applyBlockBtn_, &QPushButton::clicked, this, &PluginView::onApplyBlockClicked);
     connect(blockSelectorCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &PluginView::onBlockSelectionChanged);
+    connect(applyManifestBlockBtn_, &QPushButton::clicked, this, &PluginView::onApplyManifestBlockClicked);
+    connect(manifestBlockSelectorCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &PluginView::onManifestBlockSelectionChanged);
+    connect(addManifestModifierAction_, &QAction::triggered, this, &PluginView::onAddManifestModifierClicked);
+    connect(deleteManifestModifierAction_, &QAction::triggered, this, &PluginView::onDeleteManifestModifierClicked);
+    connect(refreshManifestAction_, &QAction::triggered, this, &PluginView::refreshManifestTable);
+    connect(manifestTable_, &QTableWidget::cellChanged, this, &PluginView::onManifestCellChanged);
     connect(toggleReferenceBtn_, &QPushButton::clicked, this, &PluginView::onToggleReferenceClicked);
     connect(toggleTerminalBtn_, &QPushButton::clicked, this, &PluginView::onToggleTerminalClicked);
     connect(diagnosticList_, &QListWidget::itemClicked, this, &PluginView::onDiagnosticItemClicked);
@@ -1274,10 +1345,9 @@ void PluginView::bindViewModel()
                 refreshManifestTable();
                 detailTabs_->setCurrentIndex(1);
                 setCmdTlmActionsVisible(cmdTlm);
-                if (componentEditorTabs_) {
-                    componentEditorTabs_->setTabEnabled(2, manifest);
+                setManifestActionsVisible(manifest);
+                if (componentEditorTabs_)
                     componentEditorTabs_->setCurrentIndex(0);
-                }
 
                 // Wizard convenience: opening a file while on the File step
                 // auto-advances to Edit (mirrors the Plugin->File auto-advance
@@ -2026,10 +2096,14 @@ void PluginView::refreshStructureTable()
 
 void PluginView::refreshManifestTable()
 {
+    updatingManifestTable_ = true;
+    const QSignalBlocker blocker(manifestTable_);
     manifestTable_->setRowCount(0);
 
     if (!isPluginManifestFile(currentComponentPath_)) {
         currentManifestBlocks_.clear();
+        refreshManifestBlockEditor();
+        updatingManifestTable_ = false;
         return;
     }
 
@@ -2045,6 +2119,7 @@ void PluginView::refreshManifestTable()
 
     const auto result = ViewModels::PluginManifestParser::parse(componentEditor_->toPlainText());
     currentManifestBlocks_ = result.blocks;
+    refreshManifestBlockEditor();
 
     int row = 0;
     for (const auto& block : result.blocks) {
@@ -2053,6 +2128,8 @@ void PluginView::refreshManifestTable()
         manifestTable_->insertRow(row);
         auto* lineItem = new QTableWidgetItem(QString::number(block.lineNumber));
         lineItem->setFlags(lineItem->flags() & ~Qt::ItemIsEditable);
+        lineItem->setData(Qt::UserRole, block.lineNumber);
+        lineItem->setData(Qt::UserRole + 1, false); // not a modifier row
         manifestTable_->setItem(row, 0, lineItem);
 
         const QString blockLabel = block.name.isEmpty()
@@ -2077,14 +2154,17 @@ void PluginView::refreshManifestTable()
             manifestTable_->insertRow(row);
             auto* modLineItem = new QTableWidgetItem(QString::number(mod.lineNumber));
             modLineItem->setFlags(modLineItem->flags() & ~Qt::ItemIsEditable);
+            modLineItem->setData(Qt::UserRole, mod.lineNumber);
+            modLineItem->setData(Qt::UserRole + 1, true); // modifier row
             manifestTable_->setItem(row, 0, modLineItem);
 
+            // Keyword/Args cells stay editable (default QTableWidgetItem
+            // flags) so onManifestCellChanged() can apply in-place edits -
+            // unlike every other cell in this table, which is read-only.
             auto* modKeywordItem = new QTableWidgetItem("  " + mod.keyword);
-            modKeywordItem->setFlags(modKeywordItem->flags() & ~Qt::ItemIsEditable);
             manifestTable_->setItem(row, 1, modKeywordItem);
 
             auto* modArgsItem = new QTableWidgetItem(mod.rawArgsText);
-            modArgsItem->setFlags(modArgsItem->flags() & ~Qt::ItemIsEditable);
             manifestTable_->setItem(row, 2, modArgsItem);
 
             auto* modKindItem = new QTableWidgetItem(tr("modifier"));
@@ -2093,6 +2173,293 @@ void PluginView::refreshManifestTable()
             ++row;
         }
     }
+    updatingManifestTable_ = false;
+}
+
+void PluginView::refreshManifestBlockEditor()
+{
+    const bool editable = isPluginManifestFile(currentComponentPath_) && !currentManifestBlocks_.isEmpty();
+
+    QSignalBlocker blocker(manifestBlockSelectorCombo_);
+    manifestBlockSelectorCombo_->clear();
+    for (const auto& block : currentManifestBlocks_) {
+        const QString kindLabel = [&] {
+            switch (block.kind) {
+            case ViewModels::PluginManifestBlock::Kind::Target:       return "TARGET";
+            case ViewModels::PluginManifestBlock::Kind::Interface:    return "INTERFACE";
+            case ViewModels::PluginManifestBlock::Kind::Router:       return "ROUTER";
+            case ViewModels::PluginManifestBlock::Kind::Microservice: return "MICROSERVICE";
+            case ViewModels::PluginManifestBlock::Kind::Tool:         return "TOOL";
+            case ViewModels::PluginManifestBlock::Kind::Widget:       return "WIDGET";
+            case ViewModels::PluginManifestBlock::Kind::Variable:     return "VARIABLE";
+            }
+            return "";
+        }();
+        manifestBlockSelectorCombo_->addItem(block.name.isEmpty()
+            ? QString("%1  (line %2)").arg(kindLabel).arg(block.lineNumber)
+            : QString("%1 %2  (line %3)").arg(kindLabel, block.name).arg(block.lineNumber));
+    }
+
+    manifestBlockSelectorCombo_->setEnabled(editable);
+    manifestNameEdit_->setEnabled(editable);
+    manifestClassOrFolderEdit_->setEnabled(editable);
+    manifestArgsEdit_->setEnabled(editable);
+    applyManifestBlockBtn_->setEnabled(editable);
+
+    if (editable) {
+        manifestBlockSelectorCombo_->setCurrentIndex(0);
+        populateManifestBlockForm(0);
+    } else {
+        manifestKindLabel_->clear();
+        manifestNameEdit_->clear();
+        manifestClassOrFolderEdit_->clear();
+        manifestArgsEdit_->clear();
+    }
+}
+
+void PluginView::populateManifestBlockForm(int blockIndex)
+{
+    if (blockIndex < 0 || blockIndex >= currentManifestBlocks_.size())
+        return;
+
+    const auto& block = currentManifestBlocks_[blockIndex];
+    const QString kindLabel = [&] {
+        switch (block.kind) {
+        case ViewModels::PluginManifestBlock::Kind::Target:       return "TARGET";
+        case ViewModels::PluginManifestBlock::Kind::Interface:    return "INTERFACE";
+        case ViewModels::PluginManifestBlock::Kind::Router:       return "ROUTER";
+        case ViewModels::PluginManifestBlock::Kind::Microservice: return "MICROSERVICE";
+        case ViewModels::PluginManifestBlock::Kind::Tool:         return "TOOL";
+        case ViewModels::PluginManifestBlock::Kind::Widget:       return "WIDGET";
+        case ViewModels::PluginManifestBlock::Kind::Variable:     return "VARIABLE";
+        }
+        return "";
+    }();
+    manifestKindLabel_->setText(kindLabel);
+
+    manifestNameEdit_->setText(block.name);
+    manifestNameEdit_->setCursorPosition(0);
+    manifestClassOrFolderEdit_->setText(block.classFileOrFolder);
+    manifestClassOrFolderEdit_->setCursorPosition(0);
+    manifestArgsEdit_->setText(block.extraArgs.join(' '));
+    manifestArgsEdit_->setCursorPosition(0);
+
+    // TOOL/WIDGET carry no fixed Name/Folder-Class positional args (pure
+    // modifier bags) - disable those two fields for them so Apply Block
+    // can't accidentally inject a stray leading token onto the header line.
+    const bool hasNameAndClass = block.kind != ViewModels::PluginManifestBlock::Kind::Tool
+                               && block.kind != ViewModels::PluginManifestBlock::Kind::Widget;
+    manifestNameEdit_->setEnabled(hasNameAndClass);
+    manifestClassOrFolderEdit_->setEnabled(
+        hasNameAndClass && block.kind != ViewModels::PluginManifestBlock::Kind::Variable);
+}
+
+void PluginView::onManifestBlockSelectionChanged(int index)
+{
+    populateManifestBlockForm(index);
+    const auto selected = (index >= 0 && index < currentManifestBlocks_.size())
+        ? currentManifestBlocks_[index].lineNumber : 0;
+    if (selected > 0) {
+        QTextBlock block = componentEditor_->document()->findBlockByNumber(selected - 1);
+        if (block.isValid()) {
+            QTextCursor cursor(block);
+            cursor.select(QTextCursor::LineUnderCursor);
+            componentEditor_->setTextCursor(cursor);
+            componentEditor_->ensureCursorVisible();
+        }
+    }
+}
+
+void PluginView::onApplyManifestBlockClicked()
+{
+    const int index = manifestBlockSelectorCombo_->currentIndex();
+    if (index < 0 || index >= currentManifestBlocks_.size()) {
+        componentDiagnostics_->setPlainText(tr("Select a manifest block first."));
+        return;
+    }
+
+    const auto& block = currentManifestBlocks_[index];
+    const QString name   = manifestNameEdit_->text().trimmed().toUpper();
+    const QString folder = manifestClassOrFolderEdit_->text().trimmed();
+    const QString args   = manifestArgsEdit_->text().trimmed();
+
+    QString line;
+    switch (block.kind) {
+    case ViewModels::PluginManifestBlock::Kind::Target:
+        if (folder.isEmpty() || name.isEmpty()) {
+            componentDiagnostics_->setPlainText(tr("Folder/Class and Name are required for TARGET."));
+            return;
+        }
+        line = QString("TARGET %1 %2").arg(folder, name);
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Interface:
+    case ViewModels::PluginManifestBlock::Kind::Router:
+        if (name.isEmpty() || folder.isEmpty()) {
+            componentDiagnostics_->setPlainText(tr("Name and Folder/Class are required."));
+            return;
+        }
+        line = QString("%1 %2 %3")
+            .arg(block.kind == ViewModels::PluginManifestBlock::Kind::Interface ? "INTERFACE" : "ROUTER",
+                 name, folder);
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Microservice:
+        if (folder.isEmpty() || name.isEmpty()) {
+            componentDiagnostics_->setPlainText(tr("Folder/Class and Name are required for MICROSERVICE."));
+            return;
+        }
+        line = QString("MICROSERVICE %1 %2").arg(folder, name);
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Tool:
+        line = "TOOL";
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Widget:
+        line = "WIDGET";
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Variable:
+        if (name.isEmpty()) {
+            componentDiagnostics_->setPlainText(tr("Name is required for VARIABLE."));
+            return;
+        }
+        line = QString("VARIABLE %1").arg(name);
+        break;
+    }
+    if (!args.isEmpty())
+        line += " " + args;
+
+    replaceEditorLine(block.lineNumber, line);
+    componentDiagnostics_->setPlainText(tr(
+        "Updated block at line %1. Modifier lines were preserved. Save to keep it.")
+        .arg(block.lineNumber));
+    refreshManifestTable();
+}
+
+void PluginView::insertManifestModifierAfterBlock(int blockIndex, const QString& line)
+{
+    if (blockIndex < 0 || blockIndex >= currentManifestBlocks_.size())
+        return;
+
+    QString modLine = line;
+    while (modLine.endsWith('\n') || modLine.endsWith('\r'))
+        modLine.chop(1);
+
+    const auto& block = currentManifestBlocks_[blockIndex];
+    const int insertAfterLine = block.modifiers.isEmpty()
+        ? block.lineNumber : block.modifiers.last().lineNumber;
+
+    QTextBlock textBlock = componentEditor_->document()->findBlockByNumber(insertAfterLine - 1);
+    if (!textBlock.isValid())
+        return;
+
+    QTextCursor cursor(textBlock);
+    cursor.movePosition(QTextCursor::EndOfBlock);
+    cursor.insertText("\n" + modLine);
+    componentEditor_->setTextCursor(cursor);
+    refreshManifestTable();
+    componentDiagnostics_->setPlainText(tr("Added modifier line. Save the file to keep it."));
+}
+
+void PluginView::onAddManifestModifierClicked()
+{
+    const int index = manifestBlockSelectorCombo_->currentIndex();
+    if (index < 0 || index >= currentManifestBlocks_.size()) {
+        componentDiagnostics_->setPlainText(tr("Select a manifest block first."));
+        return;
+    }
+
+    const auto& block = currentManifestBlocks_[index];
+    QSet<QString> suggested;
+    switch (block.kind) {
+    case ViewModels::PluginManifestBlock::Kind::Interface:
+    case ViewModels::PluginManifestBlock::Kind::Router:
+        suggested = ViewModels::Validation::PluginKeywords::interfaceModifiers();
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Microservice:
+        suggested = ViewModels::Validation::PluginKeywords::microserviceModifiers();
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Target:
+        suggested = ViewModels::Validation::PluginKeywords::targetModifiers();
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Tool:
+    case ViewModels::PluginManifestBlock::Kind::Widget:
+        suggested = ViewModels::Validation::PluginKeywords::toolModifiers();
+        break;
+    case ViewModels::PluginManifestBlock::Kind::Variable:
+        componentDiagnostics_->setPlainText(tr("VARIABLE does not take modifier lines."));
+        return;
+    }
+
+    Dialogs::PluginManifestModifierDialog dialog(suggested, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    insertManifestModifierAfterBlock(index, dialog.generatedLine());
+}
+
+void PluginView::onDeleteManifestModifierClicked()
+{
+    const auto selected = manifestTable_->selectionModel()->selectedRows();
+    if (selected.isEmpty()) {
+        componentDiagnostics_->setPlainText(tr("Select a modifier row first."));
+        return;
+    }
+
+    const auto* lineCell = manifestTable_->item(selected.first().row(), 0);
+    if (!lineCell || !lineCell->data(Qt::UserRole + 1).toBool()) {
+        componentDiagnostics_->setPlainText(tr("Select a modifier row (not a block header) first."));
+        return;
+    }
+
+    const int lineNumber = lineCell->data(Qt::UserRole).toInt();
+    const QString modifierText = manifestTable_->item(selected.first().row(), 1)
+        ? manifestTable_->item(selected.first().row(), 1)->text().trimmed()
+        : tr("modifier");
+    const auto answer = QMessageBox::question(
+        this,
+        tr("Delete Modifier"),
+        tr("Delete modifier '%1' from this plugin.txt?").arg(modifierText),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+    if (answer != QMessageBox::Yes)
+        return;
+
+    deleteEditorLine(lineNumber);
+    refreshManifestTable();
+    componentDiagnostics_->setPlainText(tr("Deleted modifier '%1'. Save the file to keep it.")
+        .arg(modifierText));
+}
+
+void PluginView::onManifestCellChanged(int row, int column)
+{
+    if (updatingManifestTable_ || !isPluginManifestFile(currentComponentPath_))
+        return;
+    if (column != 1 && column != 2)
+        return;
+
+    auto* lineCell = manifestTable_->item(row, 0);
+    if (!lineCell || !lineCell->data(Qt::UserRole + 1).toBool())
+        return; // block header rows aren't editable here (see Apply Block above)
+
+    const int lineNumber = lineCell->data(Qt::UserRole).toInt();
+    if (lineNumber <= 0)
+        return;
+
+    const QString keyword = manifestTable_->item(row, 1)
+        ? manifestTable_->item(row, 1)->text().trimmed().toUpper() : QString();
+    const QString args = manifestTable_->item(row, 2)
+        ? manifestTable_->item(row, 2)->text().trimmed() : QString();
+
+    if (keyword.isEmpty()) {
+        componentDiagnostics_->setPlainText(tr("Keyword is required."));
+        refreshManifestTable();
+        return;
+    }
+
+    const QString newLine = args.isEmpty()
+        ? QString("  %1").arg(keyword) : QString("  %1 %2").arg(keyword, args);
+    replaceEditorLine(lineNumber, newLine);
+    componentDiagnostics_->setPlainText(tr("Applied modifier change to line %1. Save the file to keep it.")
+        .arg(lineNumber));
+    refreshManifestTable();
 }
 
 void PluginView::refreshBlockEditor()
@@ -2468,6 +2835,22 @@ void PluginView::setCmdTlmActionsVisible(bool visible)
         guideGroup_->setVisible(visible && toggleReferenceBtn_ && toggleReferenceBtn_->isChecked());
     }
     updateGroupedActionState();
+}
+
+void PluginView::setManifestActionsVisible(bool visible)
+{
+    if (manifestMenuBtn_)
+        manifestMenuBtn_->setVisible(visible);
+    if (applyManifestBlockBtn_)
+        applyManifestBlockBtn_->setVisible(visible);
+    if (manifestBlockSelectorCombo_)
+        manifestBlockSelectorCombo_->setVisible(visible);
+
+    if (componentEditorTabs_) {
+        componentEditorTabs_->setTabEnabled(2, visible); // Manifest
+        if (!visible)
+            componentEditorTabs_->setCurrentIndex(0); // Source
+    }
 }
 
 void PluginView::updateGroupedActionState()

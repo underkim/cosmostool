@@ -22,6 +22,7 @@ add_library(opencosmos_ui STATIC
     dialogs/PluginWizard.cpp
     dialogs/AddTargetDialog.cpp
     dialogs/CmdTlmFieldDialog.cpp
+    dialogs/PluginManifestModifierDialog.cpp
     styles/ThemeManager.cpp
 )
 
