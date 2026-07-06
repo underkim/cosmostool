@@ -214,6 +214,8 @@ void PluginView::setupUi()
         tr("Select a plugin, edit CMD/TLM files, validate, build, and install."), this);
     subtitle->setObjectName("SubLabel");
     subtitle->setWordWrap(true);
+    pageTitleLabel_ = title;
+    pageSubtitleLabel_ = subtitle;
     titleBlock->addWidget(title);
     titleBlock->addWidget(subtitle);
     headerRow->addLayout(titleBlock, 1);
@@ -908,6 +910,19 @@ void PluginView::setStepStripMode(StepStripMode mode)
     stepStripMode_ = mode;
     for (int i = 0; i < wizardStepButtons_.size(); ++i)
         wizardStepButtons_[i]->setVisible(stepVisibleInCurrentMode(i));
+
+    if (pageTitleLabel_ && pageSubtitleLabel_) {
+        if (stepStripMode_ == StepStripMode::CheckBuild) {
+            pageTitleLabel_->setText(tr("Check & Build"));
+            pageSubtitleLabel_->setText(
+                tr("Validate the plugin you're editing in Workspace, then build and install it."));
+        } else {
+            pageTitleLabel_->setText(tr("Workspace"));
+            pageSubtitleLabel_->setText(
+                tr("Select a plugin, edit CMD/TLM files, validate, build, and install."));
+        }
+    }
+
     // Re-clamps currentWizardStep_ into the new mode's range below - none of
     // currentPluginRoot_/currentComponentPath_/componentEditor_'s contents
     // are touched, so an open file's edits survive the mode switch.

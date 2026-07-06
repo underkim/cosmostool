@@ -256,6 +256,8 @@ private:
     QPushButton*           wizardNextBtn_{nullptr};
     int                    currentWizardStep_{kWizardStepPlugin};
     QLabel*                breadcrumbLabel_{nullptr};
+    QLabel*                pageTitleLabel_{nullptr};
+    QLabel*                pageSubtitleLabel_{nullptr};
     StepStripMode          stepStripMode_{StepStripMode::Creation};
 
     // Phase 6: forward gating - returns the furthest step reachable given
