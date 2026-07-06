@@ -13,6 +13,7 @@ add_executable(opencosmos_tests
     unit/viewmodels/PluginTemplateEngineTest.cpp
     unit/viewmodels/ScreenParserTest.cpp
     unit/viewmodels/PluginConfigParserTest.cpp
+    unit/viewmodels/PluginManifestParserTest.cpp
     unit/viewmodels/ConfigValidatorTest.cpp
     unit/viewmodels/CommandValidatorTest.cpp
     unit/viewmodels/TelemetryValidatorTest.cpp
