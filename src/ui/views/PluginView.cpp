@@ -880,10 +880,21 @@ void PluginView::goToWizardStep(int step)
 
 void PluginView::updateWizardStepStrip()
 {
+    const int maxReachable = maxReachableWizardStep();
+
+    // A prerequisite met earlier can be lost later (e.g. the plugin
+    // selection is cleared by a refresh that doesn't land on the same
+    // plugin) while currentWizardStep_ still points deeper into the wizard.
+    // Snap back rather than leaving the user stranded on a step whose page
+    // now shows "no plugin/file selected" with no way forward.
+    if (currentWizardStep_ > maxReachable) {
+        currentWizardStep_ = maxReachable;
+        wizardStack_->setCurrentIndex(currentWizardStep_);
+    }
+
     if (currentWizardStep_ >= 0 && currentWizardStep_ < wizardStepButtons_.size())
         wizardStepButtons_[currentWizardStep_]->setChecked(true);
 
-    const int maxReachable = maxReachableWizardStep();
     wizardBackBtn_->setEnabled(currentWizardStep_ > kWizardStepPlugin);
     wizardNextBtn_->setEnabled(currentWizardStep_ < kWizardStepBuild
         && currentWizardStep_ < maxReachable);
