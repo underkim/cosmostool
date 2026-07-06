@@ -17,6 +17,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStatusBar>
+#include <QVector>
 
 class QAction;
 
@@ -91,6 +92,13 @@ private:
     QWidget*        centralWidget_{nullptr};
     QListWidget*    navRail_{nullptr};
     QStackedWidget* contentStack_{nullptr};
+
+    // Maps nav-rail row index -> contentStack_ page index. Most rows map to
+    // their own dedicated page, but the "Check & Build" row shares the same
+    // PluginView page as "Workspace" (steps 4-5 vs. 1-3 of the same wizard),
+    // so row index and page index are no longer interchangeable. Built once
+    // in setupViews().
+    QVector<int> rowToStackPage_;
 
     // Clickable: opens the connection dialog from anywhere in the app.
     QPushButton* connectionButton_{nullptr};

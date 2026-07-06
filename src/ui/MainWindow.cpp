@@ -31,8 +31,9 @@
 namespace OpenC3::UI {
 
 namespace {
-// Row/stack indices for the navigation rail. Kept in one place so the rail,
-// the content stack, and the quick-action handlers cannot drift apart.
+// Nav rail row indices. NavCheckBuild is a second nav entry onto the *same*
+// PluginView page as NavWorkspace (steps 4-5 vs. 1-3) - row index and content
+// stack page index are therefore no longer 1:1; see rowToStackPage_.
 enum NavIndex {
     NavHome = 0,
     NavWorkspace,
@@ -41,6 +42,7 @@ enum NavIndex {
     NavValidator,
     NavPacketTools,
     NavLogs,
+    NavCheckBuild,
 };
 } // namespace
 
@@ -113,6 +115,7 @@ void MainWindow::setupUi()
     navPanelLayout->addWidget(modeToggleBtn_);
 
     contentStack_ = new QStackedWidget(this);
+    contentStack_->setObjectName("contentStack");
     setupViews();
 
     auto* splitter = new QSplitter(Qt::Horizontal, this);
@@ -174,6 +177,7 @@ void MainWindow::setupNavigation()
     addItem(tr("Validator"), tr("Run offline checks on CMD/TLM, screens, and plugin.txt")); // 4  (Ctrl+5)
     addItem(tr("Packet Tools"), tr("Simulate and inspect packet payloads"));              // 5  (Ctrl+6)
     addItem(tr("Logs"), tr("Inspect toolkit and OpenC3 logs"));                            // 6  (Ctrl+7)
+    addItem(tr("Check & Build"), tr("Check, build, and install the plugin open in Workspace")); // 7  (Ctrl+8)
 
     navRail_->setCurrentRow(0);
     navRail_->setObjectName("navRail");
@@ -235,7 +239,7 @@ void MainWindow::setAppMode(AppMode mode)
     // setRowHidden doesn't move the current selection on its own.
     if (!rowVisibleInMode(navRail_->currentRow(), appMode_)) {
         navRail_->setCurrentRow(NavHome);
-        contentStack_->setCurrentIndex(NavHome);
+        contentStack_->setCurrentIndex(rowToStackPage_[NavHome]);
     }
 
     QSettings windowSettings;
@@ -297,7 +301,7 @@ void MainWindow::setupViews()
             setAppMode(appMode_ == AppMode::PluginCreation
                 ? AppMode::ConnectOperate : AppMode::PluginCreation);
         navRail_->setCurrentRow(row);   // also switches the stack via the signal
-        contentStack_->setCurrentIndex(row);
+        contentStack_->setCurrentIndex(rowToStackPage_[row]);
     };
 
     auto toValidator = [this, goTo, validatorView](const QString& content) {
@@ -329,7 +333,9 @@ void MainWindow::setupViews()
     connect(dashboardView, &Views::DashboardView::openLogsRequested,
             this, [goTo] { goTo(NavLogs); });
 
-    // Keep this order aligned with NavIndex and the navRail_ addItem calls in setupNavigation().
+    // Keep this order aligned with NavIndex and the navRail_ addItem calls in setupNavigation(),
+    // for the rows that map 1:1 onto their own page (NavCheckBuild is the one exception -
+    // it shares NavWorkspace's page, handled via rowToStackPage_ below).
     contentStack_->addWidget(dashboardView);                                    // 0 Home
     contentStack_->addWidget(pluginView);                                       // 1 Workspace (plugins + CMD/TLM)
     contentStack_->addWidget(new Views::SettingsView(settingsVm_, this));       // 2 Settings
@@ -337,6 +343,10 @@ void MainWindow::setupViews()
     contentStack_->addWidget(validatorView);                                    // 4 Validator
     contentStack_->addWidget(new Views::PacketToolsView(packetToolsVm_, this)); // 5 Packets
     contentStack_->addWidget(new Views::LogViewerView(logViewerVm_, this));     // 6 Logs
+
+    rowToStackPage_ = { NavHome, NavWorkspace, NavSettings, NavEnvironment,
+                        NavValidator, NavPacketTools, NavLogs,
+                        /* NavCheckBuild shares Workspace's page */ NavWorkspace };
 }
 
 void MainWindow::showConnectionDialog()
@@ -479,7 +489,8 @@ void MainWindow::connectSignals()
 
 void MainWindow::onNavItemSelected(int index)
 {
-    contentStack_->setCurrentIndex(index);
+    if (index >= 0 && index < rowToStackPage_.size())
+        contentStack_->setCurrentIndex(rowToStackPage_[index]);
 }
 
 void MainWindow::onConnectionStatusChanged()
