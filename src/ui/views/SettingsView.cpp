@@ -714,6 +714,10 @@ void SettingsView::updateActionHints(Services::ConnectionState state)
     connectBtn_->setToolTip(!hasProfile ? profileReason
         : (connecting ? tr("Connection is already in progress.") : tr("Connect to the selected OpenC3 environment.")));
     disconnectBtn_->setToolTip(connected ? tr("Disconnect from the current OpenC3 environment.") : connectReason);
+    // Only the tooltip was ever updated here - the button itself stayed
+    // enabled with nothing selected, so clicking it (onDeleteProfile()'s own
+    // isValid() guard aside) silently did nothing despite looking clickable.
+    deleteBtn_->setEnabled(hasProfile);
     deleteBtn_->setToolTip(hasProfile ? tr("Delete the selected connection profile.") : profileReason);
     quickWslBtn_->setToolTip(tr("Auto-detect WSL and create a /cosmos profile."));
     saveProfileBtn_->setToolTip(tr("Save the current connection profile settings."));
