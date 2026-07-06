@@ -10,6 +10,7 @@ add_library(opencosmos_viewmodels STATIC
     settings/SettingsViewModel.cpp
     plugin/PluginViewModel.cpp
     plugin/PluginTemplateEngine.cpp
+    plugin/PluginManifestParser.cpp
     cmdtlm/CmdTlmViewModel.cpp
     cmdtlm/CmdTlmParser.cpp
     validation/Diagnostic.cpp
