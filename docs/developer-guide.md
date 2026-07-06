@@ -82,49 +82,67 @@ place and every module below is registered in `Application.cpp` and reachable
 from `MainWindow`'s navigation rail. The table reflects the current state of
 each area rather than the original phase plan.
 
-The navigation rail has a **Simple/Advanced mode toggle** (View menu, or the
-"Show More / Show Less" button under the rail), persisted across restarts and
-defaulting to **Simple mode**. In Simple mode only **Home, Workspace,
-Settings** are visible; toggling Advanced mode reveals **Environment**
-(Doctor/Docker/Infra grouped under one entry - all about the health/config of
-the connected environment), **Validator** (standalone offline CMD/TLM/screens/
-plugin.txt checker - promoted out of the old "Tools" grouping since it's a
-genuinely separate, often-offline workflow), **Packet Tools**, and **Logs**.
-No feature is removed by hiding these; everything remains reachable, and
-navigating to a hidden page programmatically (e.g. Home's "Run Doctor" quick
-action) transparently reveals Advanced mode rather than landing on an
-invisible-in-rail page. Workspace walks plugin management and CMD/TLM editing
-as a 5-step wizard - **1. Plugin → 2. File → 3. Edit → 4. Check → 5. Build &
-Install** - rather than a single flat screen: a step strip above the content
-area lets you jump directly to any step already reachable (no plugin selected
-caps navigation at Plugin, no file open caps it at File; Back is always free),
-selecting a plugin or opening a file auto-advances to the next step, and a
-persistent breadcrumb ("plugin › file") above the strip keeps you oriented
-regardless of which step is active. The collapsible log-streaming terminal and
-the Quick Reference panel remain global, toggleable from any step. This
-replaced an earlier single-page layout (all steps' controls visible
-simultaneously) that user feedback found cluttered and hard to sequence. The
-**Home** page summarises Connection / Docker / OpenC3 status and offers
-one-click quick actions (Connect, Run Doctor, Workspace, Validator, Packet
-Tools, Logs).
+The app has two top-level **modes** (a toggle button under the nav rail, or
+the View menu's exclusive Plugin Creation / Connect & Operate actions),
+persisted across restarts and defaulting to **Plugin Creation**:
 
-Note for anyone with muscle memory for the old layout: the nav rail's Ctrl+N
-shortcuts are positional, so reordering rows to group Environment/Validator/
-Packet Tools/Logs together means e.g. Ctrl+4 no longer opens the same page it
-used to - check the rail's tooltips (hover any row) for the current mapping.
+- **Plugin Creation mode** shows only **Home, Workspace, Settings** in the
+  nav rail. This mode is meant to feel like a dedicated plugin-creation
+  editor (comparable to opening a project in an IDE): it never blocks on a
+  manual "Connect" step - `MainWindow::autoConnectIfNeeded()` silently
+  connects in the background using the default saved profile, the first
+  saved profile, or (if none exist yet) a freshly created Quick-WSL profile,
+  the same one-click sequence `ConnectionDialog` already offers, just
+  headless. A connection failure never pops a blocking dialog either; it
+  just leaves the status-bar connection button showing the error, which
+  doubles as the click-to-configure recovery path. Workspace in this mode
+  only shows wizard steps **1. Plugin → 2. File → 3. Edit**.
+- **Connect & Operate mode** shows **Home, Settings, Environment, Validator,
+  Packet Tools, Logs, Check & Build**. This is the traditional
+  connected-environment surface, and it keeps the original startup
+  `ConnectionDialog` behavior (an explicit, user-confirmed connection is
+  expected here). "Check & Build" is a *second* nav entry onto the exact
+  same `PluginView` page Workspace uses - `PluginView::setStepStripMode()`
+  just filters which step range is visible (steps **4. Check → 5. Build &
+  Install** here) - so switching between Workspace and Check & Build never
+  loses an open file's edits; it's the same widget instance throughout.
+
+No feature is removed by hiding rows for the inactive mode; everything
+remains reachable, and navigating to a page hidden by the current mode
+programmatically (e.g. Home's "Run Doctor" quick action, or a Ctrl+N
+shortcut) transparently switches mode first rather than landing on an
+invisible-in-rail page. Workspace/Check & Build together walk plugin
+management and CMD/TLM editing as a 5-step wizard - a step strip above the
+content area lets you jump directly to any step already reachable within the
+current mode's range (no plugin selected caps navigation at Plugin, no file
+open caps it at File; Back is always free), selecting a plugin or opening a
+file auto-advances to the next step, and a persistent breadcrumb
+("plugin › file") above the strip keeps you oriented regardless of which step
+is active. The collapsible log-streaming terminal and the Quick Reference
+panel remain global, toggleable from any step. The **Home** page's guidance
+is mode-aware too: Plugin Creation mode collapses to a single "Open
+Workspace" entry point (no numbered "Connect" step, since connecting is
+transparent); Connect & Operate mode keeps the original 3-step-card
+guidance (Connect → Run Doctor → Open Check & Build).
+
+Note for anyone with muscle memory for an older layout: the nav rail's Ctrl+N
+shortcuts are positional within the rail's fixed row order (not the currently
+visible subset), and a nav row's index no longer always matches its content
+page index one-to-one (Workspace and Check & Build intentionally share one
+page) - check the rail's tooltips (hover any row) for the current mapping.
 
 | Module          | Status         | Notes                                                              |
 |-----------------|----------------|--------------------------------------------------------------------|
 | Architecture    | Implemented    | Layered app -> ui -> viewmodels -> services -> core/models         |
-| Home (Dashboard)| Implemented    | Status summary, quick actions, Connection / Docker / system metrics |
-| Docker Manager  | Implemented    | Under the Environment nav entry (Advanced mode). Container list/control; shell commands built via the `shellQuote` helper (`src/core/connection/ShellQuote.h`) |
-| Infra Manager   | Implemented    | Under the Environment nav entry (Advanced mode). ENV/Compose editing, volume overrides, plugin scaffolding |
-| Doctor          | Implemented    | Under the Environment nav entry (Advanced mode). Health checks run against the connected profile's configured COSMOS root, falling back to `/cosmos` only when nothing is connected |
-| Workspace       | Implemented    | 5-step wizard (Plugin -> File -> Edit -> Check -> Build & Install) over plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse |
-| Validator       | Implemented    | Standalone nav entry (Advanced mode) - offline checks for CMD/TLM, screens, plugin.txt |
-| Packet Tools    | Partial        | Advanced mode. Packet log file analysis                            |
-| Log Viewer      | Implemented    | Advanced mode. Real-time log streaming                             |
-| Settings        | Implemented    | Profile CRUD, WSL/SSH detection, JSON persistence                  |
+| Home (Dashboard)| Implemented    | Mode-aware status summary and quick actions; Connection / Docker / system metrics |
+| Docker Manager  | Implemented    | Under the Environment nav entry (Connect & Operate mode). Container list/control; shell commands built via the `shellQuote` helper (`src/core/connection/ShellQuote.h`) |
+| Infra Manager   | Implemented    | Under the Environment nav entry (Connect & Operate mode). ENV/Compose editing, volume overrides, plugin scaffolding |
+| Doctor          | Implemented    | Under the Environment nav entry (Connect & Operate mode). Health checks run against the connected profile's configured COSMOS root, falling back to `/cosmos` only when nothing is connected |
+| Workspace       | Implemented    | 5-step wizard (Plugin -> File -> Edit -> Check -> Build & Install) over plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse. Steps 1-3 live under the Workspace nav entry (Plugin Creation mode); steps 4-5 live under the Check & Build nav entry (Connect & Operate mode) - same underlying page, filtered by `PluginView::setStepStripMode()` |
+| Validator       | Implemented    | Standalone nav entry (Connect & Operate mode) - offline checks for CMD/TLM, screens, plugin.txt |
+| Packet Tools    | Partial        | Connect & Operate mode. Packet log file analysis                   |
+| Log Viewer      | Implemented    | Connect & Operate mode. Real-time log streaming                    |
+| Settings        | Implemented    | Profile CRUD, WSL/SSH detection, JSON persistence. Visible in both modes |
 | Release packaging | Implemented  | NSIS installer + `windeployqt` packaging scripts                   |
 
 > The shell-quoting and Doctor path-hardcoding hardening tracked in the
