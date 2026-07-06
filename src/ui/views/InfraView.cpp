@@ -281,7 +281,10 @@ void InfraView::bindViewModel()
         suppressTableSignal_ = true;
         applySecretMasking();
         suppressTableSignal_ = false;
+        syncTableToRaw();
+        updateRawEditAvailability();
     });
+    updateRawEditAvailability();
 
     // Compose tab
     connect(composeLoadBtn_, &QPushButton::clicked, this, &InfraView::onComposeLoad);
@@ -329,8 +332,11 @@ void InfraView::bindViewModel()
     connect(&vm_, &ViewModels::InfraViewModel::envLoaded,
             this, [this](const QString& path, const QString& content) {
                 envPathEdit_->setText(path);
-                envRawEdit_->setPlainText(content);
                 loadEnvIntoTable(content);
+                // Populate the raw view from the now-masked table rather than
+                // the raw file content, so a hidden secret never appears in
+                // cleartext on the Raw side while "Show secrets" is off.
+                syncTableToRaw();
             });
 
     connect(&vm_, &ViewModels::InfraViewModel::composeLoaded,
@@ -396,8 +402,10 @@ void InfraView::onEnvLoad()
 
 void InfraView::onEnvSave()
 {
-    syncTableToRaw();
-    vm_.saveEnvFile(envPathEdit_->text().trimmed(), envRawEdit_->toPlainText());
+    // Builds the saved content straight from the table's real values
+    // (collectTableToEnv() below), independent of what's currently shown in
+    // the Raw view - which may be masked while "Show secrets" is off.
+    vm_.saveEnvFile(envPathEdit_->text().trimmed(), collectTableToEnv());
 }
 
 void InfraView::onComposeLoad()
@@ -580,14 +588,51 @@ QString InfraView::collectTableToEnv() const
     return result;
 }
 
+QString InfraView::collectTableToEnvForDisplay() const
+{
+    QString result;
+    for (int row = 0; row < envTable_->rowCount(); ++row) {
+        const auto* keyItem = envTable_->item(row, 0);
+        const auto* valItem = envTable_->item(row, 1);
+        const auto* cmtItem = envTable_->item(row, 2);
+        if (!keyItem) continue;
+
+        const QString comment = cmtItem ? cmtItem->text() : QString{};
+        if (!comment.isEmpty())
+            result += "# " + comment + "\n";
+        // Uses whatever the table currently displays (masked dots or the
+        // real value) rather than always resolving secrets, so the Raw view
+        // never shows a hidden secret in cleartext behind the "Show
+        // secrets" checkbox's back.
+        result += keyItem->text() + "=" + (valItem ? valItem->text() : QString{}) + "\n";
+    }
+    return result;
+}
+
 void InfraView::syncTableToRaw()
 {
-    envRawEdit_->setPlainText(collectTableToEnv());
+    envRawEdit_->setPlainText(collectTableToEnvForDisplay());
 }
 
 void InfraView::syncRawToTable()
 {
     loadEnvIntoTable(envRawEdit_->toPlainText());
+}
+
+void InfraView::updateRawEditAvailability()
+{
+    // While secrets are hidden, the Raw view shows masked placeholders
+    // ("••••••••") for secret values instead of the real ones. Editing or
+    // re-parsing that text back into the table (Raw -> Table) would
+    // overwrite the real secret with the literal placeholder, so both are
+    // disabled until "Show secrets" is checked.
+    const bool reveal = showSecretsCheck_->isChecked();
+    envRawEdit_->setReadOnly(!reveal);
+    envSyncToTableBtn_->setEnabled(reveal);
+    envSyncToTableBtn_->setToolTip(reveal
+        ? tr("Apply raw-text edits to the table")
+        : tr("Check \"Show secrets\" first - otherwise this would overwrite "
+             "hidden secret values with the masked placeholder text"));
 }
 
 } // namespace OpenC3::UI::Views

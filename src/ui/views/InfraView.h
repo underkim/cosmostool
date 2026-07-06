@@ -43,9 +43,11 @@ private:
 
     void loadEnvIntoTable(const QString& content);
     QString collectTableToEnv() const;
+    QString collectTableToEnvForDisplay() const;
     void syncTableToRaw();
     void syncRawToTable();
     void applySecretMasking();
+    void updateRawEditAvailability();
 
     ViewModels::InfraViewModel& vm_;
 
