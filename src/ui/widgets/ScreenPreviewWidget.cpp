@@ -78,6 +78,7 @@ QWidget* ScreenPreviewWidget::buildLeaf(const ScreenWidgetNode& node)
 
     if (kw == "TITLE") {
         auto* label = new QLabel(joinedArgs(node), this);
+        label->setWordWrap(true);
         QFont f = label->font();
         f.setBold(true);
         f.setPointSize(f.pointSize() + 4);
@@ -85,13 +86,20 @@ QWidget* ScreenPreviewWidget::buildLeaf(const ScreenWidgetNode& node)
         return label;
     }
     if (kw == "LABEL") {
-        return new QLabel(joinedArgs(node), this);
+        auto* label = new QLabel(joinedArgs(node), this);
+        label->setWordWrap(true);
+        return label;
     }
     if (kw == "VALUE" || kw == "LABELVALUE") {
         auto* box = new QFrame(this);
         auto* layout = new QHBoxLayout(box);
         layout->setContentsMargins(0, 0, 0, 0);
         auto* nameLabel = new QLabel(joinedArgs(node), box);
+        // Real COSMOS target/packet/item names can run long (this is a
+        // three-token join, e.g. "MYSAT VERY_LONG_PACKET_NAME
+        // VERY_LONG_ITEM_NAME") - wrap instead of silently widening the
+        // whole Preview tab and forcing horizontal scrolling.
+        nameLabel->setWordWrap(true);
         QFont f = nameLabel->font();
         f.setItalic(true);
         nameLabel->setFont(f);
@@ -157,6 +165,7 @@ QWidget* ScreenPreviewWidget::buildPlaceholder(const ScreenWidgetNode& node)
         : QString("[%1 %2]").arg(node.keyword, joinedArgs(node));
     auto* label = new QLabel(text, this);
     label->setObjectName("ScreenPreviewPlaceholder");
+    label->setWordWrap(true);
     label->setFrameShape(QFrame::Box);
     label->setStyleSheet("QLabel#ScreenPreviewPlaceholder { "
                           "border: 1px dashed palette(mid); "
