@@ -1,4 +1,5 @@
 #include "viewmodels/plugin/PluginTemplateEngine.h"
+#include "viewmodels/plugin/PluginManifestParser.h"
 #include "viewmodels/cmdtlm/CmdTlmParser.h"
 
 #include <gtest/gtest.h>
@@ -33,6 +34,32 @@ TEST(PluginTemplateEngineTest, PluginTxtSubstitutesNamesAndDescription)
     EXPECT_TRUE(plugin.contains("TARGET FSW"));
     // Hyphen in the plugin name is normalised to underscore for the variable.
     EXPECT_TRUE(plugin.contains("VARIABLE my_plugin_target_name"));
+}
+
+TEST(PluginTemplateEngineTest, PluginTxtIncludesCommentedRouterMicroserviceToolWidgetExamples)
+{
+    // Commented (not active) - a fresh plugin must never silently register a
+    // non-functional ROUTER/MICROSERVICE, but the Manifest tab's "New Block"
+    // workflow benefits from having a ready-made, correctly-shaped example to
+    // uncomment and adjust rather than starting from a blank line.
+    const auto files =
+        PluginTemplateEngine::buildFiles("my-plugin", "fsw", "My description", 0);
+    const QString plugin = files.value("plugin.txt");
+
+    EXPECT_TRUE(plugin.contains("# ROUTER FSW_ROUTER generic_router.rb"));
+    EXPECT_TRUE(plugin.contains("# MICROSERVICE FSW_MICRO FSW_HEALTH_CHECK"));
+    EXPECT_TRUE(plugin.contains("# TOOL FSW_tool"));
+    EXPECT_TRUE(plugin.contains("# WIDGET FSW_widget"));
+
+    // Must stay inactive: PluginManifestParser skips comment lines, so none
+    // of these should surface as a real block until uncommented by hand.
+    const auto parsed = PluginManifestParser::parse(plugin);
+    for (const auto& block : parsed.blocks) {
+        EXPECT_NE(block.kind, PluginManifestBlock::Kind::Router);
+        EXPECT_NE(block.kind, PluginManifestBlock::Kind::Microservice);
+        EXPECT_NE(block.kind, PluginManifestBlock::Kind::Tool);
+        EXPECT_NE(block.kind, PluginManifestBlock::Kind::Widget);
+    }
 }
 
 TEST(PluginTemplateEngineTest, GemspecCarriesGemName)

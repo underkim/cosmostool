@@ -158,6 +158,21 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
         "TARGET %4 <%= %3_target_name %>\n"
         "INTERFACE <%= %3_target_name %>_INT %5\n"
         "  MAP_TARGET <%= %3_target_name %>\n"
+        "\n"
+        "# Additional plugin.txt block kinds, editable via the Manifest tab -\n"
+        "# uncomment (and adjust) whichever this plugin needs:\n"
+        "\n"
+        "# ROUTER %4_ROUTER generic_router.rb\n"
+        "#   MAP_TARGET %4\n"
+        "\n"
+        "# MICROSERVICE %4_MICRO %4_HEALTH_CHECK\n"
+        "#   CMD ruby health_check.rb\n"
+        "\n"
+        "# TOOL %4_tool\n"
+        "#   URL /tools/%4_tool\n"
+        "\n"
+        "# WIDGET %4_widget\n"
+        "#   URL /widgets/%4_widget\n"
     ).arg(pluginName, description, varPfx, tgt, ifaceLine);
 
     files[gem + ".gemspec"] = QString(
