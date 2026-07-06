@@ -1,5 +1,6 @@
 #include "PluginView.h"
 #include "ui/dialogs/AddTargetDialog.h"
+#include "ui/dialogs/NewScriptDialog.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/dialogs/PluginManifestInterfaceDialog.h"
 #include "ui/dialogs/PluginManifestModifierDialog.h"
@@ -45,6 +46,7 @@ namespace {
 using OpenC3::UI::Widgets::CmdTlmSnippets::isCmdTlmFile;
 using OpenC3::UI::Widgets::CmdTlmSnippets::isPluginManifestFile;
 using OpenC3::UI::Widgets::CmdTlmSnippets::isScreenFile;
+using OpenC3::UI::Widgets::CmdTlmSnippets::isScriptFile;
 
 // Matches `dir` as a path component regardless of whether `path` is
 // plugin-root-relative (e.g. "cmd_tlm/foo.txt", no leading separator - what
@@ -284,10 +286,14 @@ void PluginView::setupUi()
     // of as always-visible buttons - same slots, less toolbar clutter.
     moreMenuBtn_ = new QToolButton(this);
     moreMenuBtn_->setText(tr("More") + " " + QString::fromUtf8("▾"));
-    moreMenuBtn_->setToolTip(tr("Add a target, or remove this plugin."));
+    moreMenuBtn_->setToolTip(tr("Add a target or script, or remove this plugin."));
     moreMenuBtn_->setPopupMode(QToolButton::InstantPopup);
     auto* moreMenu = new QMenu(moreMenuBtn_);
     addTargetAction_ = moreMenu->addAction(tr("Add Target"));
+    addScriptAction_ = moreMenu->addAction(tr("Add Script"));
+    addScriptAction_->setToolTip(tr(
+        "Add a procedures/<name>.rb script to an existing target - a beginner "
+        "starter with a cmd()/wait_check() example."));
     removeAction_    = moreMenu->addAction(tr("Remove"));
     moreMenuBtn_->setMenu(moreMenu);
     moreMenuBtn_->setVisible(false);
@@ -545,6 +551,7 @@ void PluginView::setupUi()
     startCmdTlmEditBtn_ = new QPushButton(tr("Edit CMD/TLM"), editorPane);
     insertCmdBtn_ = new QPushButton(tr("+ COMMAND"), editorPane);
     insertTlmBtn_ = new QPushButton(tr("+ TELEMETRY"), editorPane);
+    insertScriptBtn_ = new QPushButton(tr("+ SCRIPT STEP"), editorPane);
     addFieldBtn_ = new QPushButton(tr("Add Field"), editorPane);
     addStructureFieldBtn_ = new QPushButton(tr("Add Row"), editorPane);
     deleteStructureFieldBtn_ = new QPushButton(tr("Delete Row"), editorPane);
@@ -591,6 +598,7 @@ void PluginView::setupUi()
     insertCmdAction_ = insertMenu->addAction(tr("COMMAND"));
     insertTlmAction_ = insertMenu->addAction(tr("TELEMETRY"));
     addFieldAction_ = insertMenu->addAction(tr("Add Field"));
+    insertScriptAction_ = insertMenu->addAction(tr("Script Step (cmd/wait_check)"));
     insertMenuBtn_->setMenu(insertMenu);
 
     structureMenuBtn_ = new QToolButton(editorPane);
@@ -618,6 +626,7 @@ void PluginView::setupUi()
     startCmdTlmEditBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
+    insertScriptBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     addStructureFieldBtn_->setEnabled(false);
     deleteStructureFieldBtn_->setEnabled(false);
@@ -1153,6 +1162,7 @@ void PluginView::bindViewModel()
     connect(scaffoldBtn_, &QPushButton::clicked, this, &PluginView::onScaffoldClicked);
     connect(addTargetBtn_, &QPushButton::clicked, this, &PluginView::onAddTargetClicked);
     connect(addTargetAction_, &QAction::triggered, this, &PluginView::onAddTargetClicked);
+    connect(addScriptAction_, &QAction::triggered, this, &PluginView::onAddScriptClicked);
     connect(openComponentBtn_, &QPushButton::clicked, this, &PluginView::onOpenComponentClicked);
     connect(browseGoBtn_, &QPushButton::clicked, this, &PluginView::onBrowseGoClicked);
     connect(browseList_, &QListWidget::itemDoubleClicked, this, &PluginView::onBrowseItemDoubleClicked);
@@ -1165,6 +1175,8 @@ void PluginView::bindViewModel()
     connect(insertCmdAction_, &QAction::triggered, this, &PluginView::onInsertCmdClicked);
     connect(insertTlmBtn_, &QPushButton::clicked, this, &PluginView::onInsertTlmClicked);
     connect(insertTlmAction_, &QAction::triggered, this, &PluginView::onInsertTlmClicked);
+    connect(insertScriptBtn_, &QPushButton::clicked, this, &PluginView::onInsertScriptClicked);
+    connect(insertScriptAction_, &QAction::triggered, this, &PluginView::onInsertScriptClicked);
     connect(addFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddFieldClicked);
     connect(addFieldAction_, &QAction::triggered, this, &PluginView::onAddFieldClicked);
     connect(addStructureFieldBtn_, &QPushButton::clicked, this, &PluginView::onAddStructureFieldClicked);
@@ -1257,6 +1269,20 @@ void PluginView::bindViewModel()
             });
 
     connect(&infraVm_, &ViewModels::InfraViewModel::targetAdded,
+            this, [this](const QString&, bool success, const QString& detail) {
+                detailTabs_->setCurrentIndex(0);
+                detailEdit_->setPlainText(detail);
+                if (success) {
+                    preRefreshPluginRoot_ = currentPluginRoot_;
+                    refreshingPluginList_ = true;
+                    vm_.refresh();
+                    const QString root = selectedPluginRoot();
+                    if (!root.isEmpty())
+                        cmdTlmVm_.listPluginFiles(root);
+                }
+            });
+
+    connect(&infraVm_, &ViewModels::InfraViewModel::scriptAdded,
             this, [this](const QString&, bool success, const QString& detail) {
                 detailTabs_->setCurrentIndex(0);
                 detailEdit_->setPlainText(detail);
@@ -1399,10 +1425,12 @@ void PluginView::bindViewModel()
                 const bool cmdTlm = isCmdTlmFile(path);
                 const bool manifest = isPluginManifestFile(path);
                 const bool screen = isScreenFile(path);
+                const bool script = isScriptFile(path);
                 validateComponentBtn_->setEnabled(cmdTlm);
                 validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
                 insertCmdBtn_->setEnabled(cmdTlm);
                 insertTlmBtn_->setEnabled(cmdTlm);
+                insertScriptBtn_->setEnabled(script);
                 addFieldBtn_->setEnabled(cmdTlm);
                 addStructureFieldBtn_->setEnabled(cmdTlm);
                 deleteStructureFieldBtn_->setEnabled(false);
@@ -1573,6 +1601,50 @@ void PluginView::onAddTargetClicked()
     dlg.exec();
 }
 
+void PluginView::onAddScriptClicked()
+{
+    const QString root = selectedPluginRoot();
+    if (root.isEmpty()) {
+        QMessageBox::information(this, tr("Add Script"),
+            tr("Select a plugin folder before adding a script."));
+        return;
+    }
+    if (componentDirty_) {
+        QMessageBox::information(this, tr("Add Script"),
+            tr("Save the open file before adding a script."));
+        return;
+    }
+
+    // Derive the known target names from two sources, since either may be
+    // unavailable depending on what the user has opened so far: the
+    // plugin.txt TARGET blocks already parsed into currentManifestBlocks_
+    // (if plugin.txt has been opened this session, same source
+    // onNewManifestInterfaceOrRouter() uses for its MAP_TARGET combo), and
+    // the plugin's own file list ("targets/<NAME>/...", the directory
+    // layout PluginTemplateEngine actually generates).
+    QSet<QString> targetSet;
+    for (const auto& block : currentManifestBlocks_)
+        if (block.kind == ViewModels::PluginManifestBlock::Kind::Target && !block.name.isEmpty())
+            targetSet.insert(block.name);
+    static const QRegularExpression targetDirPattern("^targets/([^/]+)/");
+    for (int i = 0; i < componentList_->count(); ++i) {
+        const QString relPath = componentList_->item(i)->data(Qt::UserRole + 1).toString();
+        const auto match = targetDirPattern.match(relPath);
+        if (match.hasMatch())
+            targetSet.insert(match.captured(1));
+    }
+    QStringList knownTargets(targetSet.constBegin(), targetSet.constEnd());
+    knownTargets.sort(Qt::CaseInsensitive);
+
+    // Neither source above is guaranteed (plugin.txt may not have been
+    // opened yet this session, and not every plugin nests cmd_tlm/screens/
+    // procedures under targets/<NAME>/) - the dialog's target combo is
+    // editable either way, so an empty list just means the user types the
+    // target name themselves instead of picking one, same as AddTargetDialog.
+    Dialogs::NewScriptDialog dlg(infraVm_, root, knownTargets, this);
+    dlg.exec();
+}
+
 void PluginView::onValidateClicked()
 {
     const QString root = selectedPluginRoot();
@@ -1675,6 +1747,7 @@ void PluginView::onTableSelectionChanged()
     startCmdTlmEditBtn_->setEnabled(false);
     insertCmdBtn_->setEnabled(false);
     insertTlmBtn_->setEnabled(false);
+    insertScriptBtn_->setEnabled(false);
     addFieldBtn_->setEnabled(false);
     addStructureFieldBtn_->setEnabled(false);
     deleteStructureFieldBtn_->setEnabled(false);
@@ -1844,6 +1917,11 @@ void PluginView::onInsertTlmClicked()
 {
     insertTextAtCursor(Widgets::CmdTlmSnippets::telemetry());
     refreshStructureTable();
+}
+
+void PluginView::onInsertScriptClicked()
+{
+    insertTextAtCursor(Widgets::CmdTlmSnippets::scriptStep());
 }
 
 void PluginView::onAddFieldClicked()
@@ -2029,6 +2107,9 @@ void PluginView::updateActionHints()
     validateOfflineBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : tr("Run the full per-rule offline validator on this file."));
     insertCmdBtn_->setToolTip(!cmdTlm ? fileReason : tr("Insert a COMMAND template."));
     insertTlmBtn_->setToolTip(!cmdTlm ? fileReason : tr("Insert a TELEMETRY template."));
+    insertScriptBtn_->setToolTip(!isScriptFile(currentComponentPath_)
+        ? tr("Open a procedures/*.rb script file first.")
+        : tr("Insert a cmd()/wait_check() script step."));
     addFieldBtn_->setToolTip(!cmdTlm ? fileReason : tr("Add a CMD/TLM field at the cursor."));
     addStructureFieldBtn_->setToolTip(!cmdTlm ? fileReason : tr("Add a CMD/TLM structure row."));
     deleteStructureFieldBtn_->setToolTip(structureTable_->selectedItems().isEmpty()
@@ -3028,6 +3109,8 @@ void PluginView::updateGroupedActionState()
         moreMenuBtn_->setVisible(hasPlugin);
     if (addTargetAction_)
         addTargetAction_->setEnabled(addTargetBtn_ && addTargetBtn_->isEnabled());
+    if (addScriptAction_)
+        addScriptAction_->setEnabled(addTargetBtn_ && addTargetBtn_->isEnabled());
     if (removeAction_)
         removeAction_->setEnabled(removeBtn_ && removeBtn_->isEnabled());
 
@@ -3042,10 +3125,13 @@ void PluginView::updateGroupedActionState()
         insertTlmAction_->setEnabled(insertTlmBtn_ && insertTlmBtn_->isEnabled());
     if (addFieldAction_)
         addFieldAction_->setEnabled(addFieldBtn_ && addFieldBtn_->isEnabled());
+    if (insertScriptAction_)
+        insertScriptAction_->setEnabled(insertScriptBtn_ && insertScriptBtn_->isEnabled());
 
     const bool anyInsertEnabled = (insertCmdAction_ && insertCmdAction_->isEnabled())
         || (insertTlmAction_ && insertTlmAction_->isEnabled())
-        || (addFieldAction_ && addFieldAction_->isEnabled());
+        || (addFieldAction_ && addFieldAction_->isEnabled())
+        || (insertScriptAction_ && insertScriptAction_->isEnabled());
     if (insertMenuBtn_)
         insertMenuBtn_->setEnabled(anyInsertEnabled);
 

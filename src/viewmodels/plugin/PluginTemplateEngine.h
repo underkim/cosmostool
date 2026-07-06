@@ -48,6 +48,14 @@ public:
     /// duplicating COSMOS's interface class/argument conventions.
     [[nodiscard]] static QString buildInterfaceArgs(
         int ifaceType, const QString& host, const QString& port);
+
+    /// Returns a single-file map  { "targets/<TARGET>/procedures/<name>.rb" →
+    /// content }  - a beginner-oriented script boilerplate (cmd/wait_check
+    /// pair wrapped in a method, matching the same style as the checkout
+    /// script buildTargetFiles() already generates) for the Manifest tab's
+    /// "Add Script" guided creation flow.
+    [[nodiscard]] static QMap<QString, QString> buildScriptFile(
+        const QString& targetName, const QString& scriptName);
 };
 
 } // namespace OpenC3::ViewModels

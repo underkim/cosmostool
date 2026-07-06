@@ -75,4 +75,26 @@ inline bool isScreenFile(const QString& path)
         || path.startsWith(QStringLiteral("screens\\"), Qt::CaseInsensitive);
 }
 
+// True when the path lives under a COSMOS procedures directory (Ruby script
+// files) - directory-based like isScreenFile()/isCmdTlmFile() above.
+inline bool isScriptFile(const QString& path)
+{
+    return path.contains(QStringLiteral("/procedures/"), Qt::CaseInsensitive)
+        || path.contains(QStringLiteral("\\procedures\\"), Qt::CaseInsensitive)
+        || path.startsWith(QStringLiteral("procedures/"), Qt::CaseInsensitive)
+        || path.startsWith(QStringLiteral("procedures\\"), Qt::CaseInsensitive);
+}
+
+// A single cmd()/wait_check() step - the smallest unit of a COSMOS script,
+// insertable at the cursor into an existing procedure without needing to
+// rewrite the whole method (unlike the full boilerplate
+// PluginTemplateEngine::buildScriptFile() generates for a brand-new file).
+inline const QString& scriptStep()
+{
+    static const QString s =
+        "cmd('TARGET_NAME COMMAND_NAME with PARAM1 1.0')\n"
+        "wait_check('TARGET_NAME PACKET_NAME ITEM1 == 1.0', 5)\n";
+    return s;
+}
+
 } // namespace OpenC3::UI::Widgets::CmdTlmSnippets

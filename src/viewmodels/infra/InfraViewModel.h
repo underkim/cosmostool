@@ -80,6 +80,13 @@ public slots:
         const QString& pluginNamespace,
         int            templateType);
 
+    // Writes a single new procedures/<name>.rb script file for an existing
+    // target - the single-file counterpart to addTargetToPlugin() above.
+    void addScriptToPlugin(
+        const QString& pluginRoot,   // e.g. /cosmos/plugins/cosmos-my-plugin
+        const QString& targetName,
+        const QString& scriptName);
+
 signals:
     void connectionChanged();
     void busyChanged();
@@ -93,6 +100,7 @@ signals:
     void overrideApplied(bool ok, const QString& hostPath);
     void scaffoldComplete(const QString& rootPath, bool success, const QString& detail);
     void targetAdded(const QString& targetName, bool success, const QString& detail);
+    void scriptAdded(const QString& scriptName, bool success, const QString& detail);
 
 private:
     [[nodiscard]] QString infraRootPath() const noexcept;

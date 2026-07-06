@@ -417,4 +417,55 @@ void InfraViewModel::addTargetToPlugin(
     }));
 }
 
+// ── Add script to existing target ────────────────────────────────────────────
+
+void InfraViewModel::addScriptToPlugin(
+    const QString& pluginRoot,
+    const QString& targetName,
+    const QString& scriptName)
+{
+    if (!connected_) { setStatus("Not connected"); return; }
+    setBusy(true);
+    setStatus("Adding script…");
+
+    auto* watcher = new QFutureWatcher<void>(this);
+    connect(watcher, &QFutureWatcher<void>::finished, watcher, &QObject::deleteLater);
+
+    watcher->setFuture(QtConcurrent::run([this,
+        root  = pluginRoot,
+        tname = targetName,
+        sname = scriptName] {
+
+            const QMap<QString, QString> allFiles =
+                PluginTemplateEngine::buildScriptFile(tname, sname);
+
+            int created = 0;
+            QStringList failed;
+
+            for (auto it = allFiles.cbegin(); it != allFiles.cend(); ++it) {
+                const std::string fullPath = (root + "/" + it.key()).toStdString();
+                const std::string dirPath  =
+                    fullPath.substr(0, fullPath.rfind('/'));
+                [[maybe_unused]] const std::string mkdirOut =
+                    fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
+
+                if (fs_.writeFile(fullPath, it.value().toStdString()))
+                    ++created;
+                else
+                    failed << it.key();
+            }
+
+            const bool    ok     = failed.isEmpty();
+            const QString detail = ok
+                ? QString("Script %1: %2 file(s) created").arg(sname).arg(created)
+                : QString("Failed: ") + failed.join(", ");
+
+            QMetaObject::invokeMethod(this, [this, sname, ok, detail] {
+                setBusy(false);
+                setStatus(detail);
+                emit scriptAdded(sname, ok, detail);
+            }, Qt::QueuedConnection);
+    }));
+}
+
 } // namespace OpenC3::ViewModels

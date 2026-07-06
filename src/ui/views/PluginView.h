@@ -60,6 +60,8 @@ private slots:
     void onBuildClicked();
     void onScaffoldClicked();
     void onAddTargetClicked();
+    void onAddScriptClicked();
+    void onInsertScriptClicked();
     void onTableSelectionChanged();
     void restoreSelectionAfterRefresh();
     void onComponentItemDoubleClicked(QListWidgetItem* item);
@@ -152,6 +154,7 @@ private:
     QPushButton* addTargetBtn_{nullptr};
     QToolButton* moreMenuBtn_{nullptr};
     QAction*     addTargetAction_{nullptr};
+    QAction*     addScriptAction_{nullptr};
     QAction*     removeAction_{nullptr};
     QProgressBar* progressBar_{nullptr};
     QLabel*      statusLabel_{nullptr};
@@ -205,6 +208,8 @@ private:
     QAction*     insertCmdAction_{nullptr};
     QAction*     insertTlmAction_{nullptr};
     QAction*     addFieldAction_{nullptr};
+    QPushButton* insertScriptBtn_{nullptr};
+    QAction*     insertScriptAction_{nullptr};
     QPushButton* addStructureFieldBtn_{nullptr};
     QPushButton* deleteStructureFieldBtn_{nullptr};
     QPushButton* refreshStructureBtn_{nullptr};

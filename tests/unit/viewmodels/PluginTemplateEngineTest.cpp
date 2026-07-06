@@ -126,6 +126,21 @@ TEST(PluginTemplateEngineTest, BuildTargetFilesOnlyEmitsTargetTree)
     EXPECT_TRUE(files.contains("targets/FSW/cmd_tlm/fsw_cmds.txt"));
 }
 
+TEST(PluginTemplateEngineTest, BuildScriptFileEmitsSingleProcedureUnderUppercaseTarget)
+{
+    const auto files = PluginTemplateEngine::buildScriptFile("fsw", "MyCheck");
+
+    ASSERT_EQ(files.size(), 1);
+    ASSERT_TRUE(files.contains("targets/FSW/procedures/mycheck.rb"));
+
+    const QString content = files.value("targets/FSW/procedures/mycheck.rb");
+    EXPECT_TRUE(content.contains("def mycheck"));
+    EXPECT_TRUE(content.contains("cmd('FSW PING')"));
+    EXPECT_TRUE(content.contains("wait_check('FSW STATUS STATUS == \"RUNNING\"', 5)"));
+    // The method is invoked at the bottom so running the script actually does something.
+    EXPECT_TRUE(content.trimmed().endsWith("mycheck"));
+}
+
 namespace {
 QString diagnosticsText(const CmdTlmParseResult& result)
 {

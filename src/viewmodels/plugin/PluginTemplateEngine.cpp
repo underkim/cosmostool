@@ -215,4 +215,27 @@ QString PluginTemplateEngine::buildInterfaceArgs(
     }
 }
 
+QMap<QString, QString> PluginTemplateEngine::buildScriptFile(
+    const QString& targetName, const QString& scriptName)
+{
+    const QString tgt  = targetName.toUpper();
+    const QString name = scriptName.toLower();
+
+    QMap<QString, QString> files;
+    files["targets/" + tgt + "/procedures/" + name + ".rb"] = QString(
+        "# %1 %2 procedure\n\n"
+        "def %2\n"
+        "  puts 'Starting %1 %2...'\n"
+        "  cmd('%1 PING')\n"
+        "  wait_check('%1 STATUS STATUS == \"RUNNING\"', 5)\n"
+        "  puts '%1 %2 PASSED'\n"
+        "rescue => e\n"
+        "  puts \"FAILED: #{e.message}\"\n"
+        "  raise\n"
+        "end\n\n"
+        "%2\n"
+    ).arg(tgt, name);
+    return files;
+}
+
 } // namespace OpenC3::ViewModels
