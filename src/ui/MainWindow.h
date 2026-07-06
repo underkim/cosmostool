@@ -23,7 +23,7 @@
 
 class QAction;
 
-namespace OpenC3::UI::Views { class PluginView; }
+namespace OpenC3::UI::Views { class PluginView; class DashboardView; }
 
 namespace OpenC3::UI {
 
@@ -104,6 +104,7 @@ private:
     QListWidget*    navRail_{nullptr};
     QStackedWidget* contentStack_{nullptr};
     Views::PluginView* pluginView_{nullptr};
+    Views::DashboardView* dashboardView_{nullptr};
 
     // Maps nav-rail row index -> contentStack_ page index. Most rows map to
     // their own dedicated page, but the "Check & Build" row shares the same

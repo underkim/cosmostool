@@ -267,6 +267,7 @@ void MainWindow::setAppMode(AppMode mode)
     }
 
     applyNavVisibility();
+    if (dashboardView_) dashboardView_->setAppMode(appMode_);
 
     if (appMode_ == AppMode::PluginCreation) {
         autoConnectAttempted_ = false;
@@ -323,6 +324,8 @@ void MainWindow::setupViews()
     auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
     pluginView_ = pluginView;
+    dashboardView_ = dashboardView;
+    dashboardView_->setAppMode(appMode_);
     // Matches the default AppMode::PluginCreation - without this, the step
     // strip would show all 5 steps (PluginView's own construction-time
     // default) until the user's first nav switch called setStepStripMode.
@@ -388,6 +391,8 @@ void MainWindow::setupViews()
             });
     connect(dashboardView, &Views::DashboardView::openWorkspaceRequested,
             this, [goTo] { goTo(NavWorkspace); });
+    connect(dashboardView, &Views::DashboardView::openCheckBuildRequested,
+            this, [goTo] { goTo(NavCheckBuild); });
     connect(dashboardView, &Views::DashboardView::openValidatorRequested,
             this, [goTo] { goTo(NavValidator); });
     connect(dashboardView, &Views::DashboardView::openPacketToolsRequested,

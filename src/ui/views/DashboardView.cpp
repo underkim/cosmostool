@@ -11,6 +11,7 @@
 #include <QStyle>
 
 #include <cstddef>
+#include <functional>
 
 namespace OpenC3::UI::Views {
 
@@ -59,15 +60,20 @@ void DashboardView::setupUi()
     auto* actionsLayout = new QVBoxLayout(actionsGroup);
     actionsLayout->setSpacing(12);
 
-    auto* stepLayout = new QHBoxLayout;
+    // Wrapped in its own container (rather than adding the QHBoxLayout
+    // directly) so the whole row of 3 cards can be hidden as one unit in
+    // Plugin Creation mode - a bare QLayout has no setVisible() of its own.
+    stepCardsRow_ = new QFrame(actionsGroup);
+    auto* stepLayout = new QHBoxLayout(stepCardsRow_);
+    stepLayout->setContentsMargins(0, 0, 0, 0);
     stepLayout->setSpacing(12);
 
     auto addStepCard = [&](std::size_t index,
                            const QString& step,
                            const QString& cardTitle,
                            const QString& description,
-                           auto signal) {
-        auto* card = new QFrame(actionsGroup);
+                           std::function<void()> onClick) {
+        auto* card = new QFrame(stepCardsRow_);
         card->setObjectName("StepCard");
         card->setAttribute(Qt::WA_StyledBackground, true);
         card->setMinimumWidth(190);
@@ -79,24 +85,24 @@ void DashboardView::setupUi()
         auto* stepLabel = new QLabel(step, card);
         stepLabel->setObjectName("StepEyebrow");
 
-        auto* titleLabel = new QLabel(cardTitle, card);
-        QFont titleFont = titleLabel->font();
+        stepTitleLabels_[index] = new QLabel(cardTitle, card);
+        QFont titleFont = stepTitleLabels_[index]->font();
         titleFont.setBold(true);
-        titleLabel->setFont(titleFont);
-        titleLabel->setObjectName("StepTitle");
+        stepTitleLabels_[index]->setFont(titleFont);
+        stepTitleLabels_[index]->setObjectName("StepTitle");
 
-        auto* descriptionLabel = new QLabel(description, card);
-        descriptionLabel->setObjectName("SubLabel");
-        descriptionLabel->setWordWrap(true);
+        stepDescLabels_[index] = new QLabel(description, card);
+        stepDescLabels_[index]->setObjectName("SubLabel");
+        stepDescLabels_[index]->setWordWrap(true);
 
         stepBadges_[index] = new Widgets::StatusBadge(
             tr("Pending"), Widgets::BadgeStyle::Neutral, card);
         stepButtons_[index] = new QPushButton(cardTitle, card);
-        connect(stepButtons_[index], &QPushButton::clicked, this, signal);
+        connect(stepButtons_[index], &QPushButton::clicked, this, onClick);
 
         cardLayout->addWidget(stepLabel);
-        cardLayout->addWidget(titleLabel);
-        cardLayout->addWidget(descriptionLabel);
+        cardLayout->addWidget(stepTitleLabels_[index]);
+        cardLayout->addWidget(stepDescLabels_[index]);
         cardLayout->addStretch();
         cardLayout->addWidget(stepBadges_[index], 0, Qt::AlignLeft);
         cardLayout->addWidget(stepButtons_[index]);
@@ -105,15 +111,22 @@ void DashboardView::setupUi()
 
     addStepCard(0, tr("Step 1"), tr("Connect to OpenC3"),
                 tr("Choose a profile and verify the toolkit can reach OpenC3."),
-                &DashboardView::connectRequested);
+                [this] { emit connectRequested(); });
     addStepCard(1, tr("Step 2"), tr("Run Doctor"),
                 tr("Check Docker, containers, and the local OpenC3 environment."),
-                &DashboardView::runDoctorRequested);
+                [this] { emit runDoctorRequested(); });
+    // Step 3's label/description get overwritten by updateHomeGuidance() to
+    // read "Open Check & Build" - Workspace-proper isn't reachable from
+    // Connect & Operate mode, the only mode this card row is ever shown in.
     addStepCard(2, tr("Step 3"), tr("Open Workspace"),
                 tr("Manage plugins and start editing once the environment is ready."),
-                &DashboardView::openWorkspaceRequested);
+                [this] { emit openCheckBuildRequested(); });
     stepLayout->addStretch();
-    actionsLayout->addLayout(stepLayout);
+    actionsLayout->addWidget(stepCardsRow_);
+    // Matches the default appMode_ (PluginCreation) - setAppMode() only
+    // re-applies this on later *changes*, so the initial state needs setting
+    // here explicitly, same reasoning as MainWindow's modeToggleBtn_ text.
+    stepCardsRow_->setVisible(false);
 
     auto* toolsRow = new QHBoxLayout;
     toolsRow->setSpacing(8);
@@ -229,8 +242,43 @@ void DashboardView::bindViewModel()
     updateMetrics();
 }
 
+void DashboardView::setAppMode(AppMode mode)
+{
+    if (mode == appMode_)
+        return;
+    appMode_ = mode;
+
+    // The 3-step "Connect -> Doctor -> Check & Build" funnel only makes
+    // sense in Connect & Operate mode. Plugin Creation mode connects
+    // transparently in the background (MainWindow::autoConnectIfNeeded()),
+    // so presenting "Connect" as something the user must do first would
+    // contradict that - it collapses to a single entry point instead,
+    // matching a dedicated editor's "just open your project" feel.
+    if (stepCardsRow_)
+        stepCardsRow_->setVisible(appMode_ == AppMode::ConnectOperate);
+
+    if (stepTitleLabels_[2]) stepTitleLabels_[2]->setText(tr("Open Check & Build"));
+    if (stepDescLabels_[2])
+        stepDescLabels_[2]->setText(tr("Validate and build the plugin you're editing in Workspace."));
+    // QPushButton::setText() treats a single "&" as a mnemonic marker
+    // (stripped/underlined, not shown literally) - unlike the QLabel title
+    // above, which has no buddy and so displays "&" as-is. Escape here to
+    // actually render "Open Check & Build" instead of "Open Check _Build".
+    if (stepButtons_[2]) stepButtons_[2]->setText(tr("Open Check && Build"));
+
+    updateHomeGuidance();
+}
+
 void DashboardView::updateHomeGuidance()
 {
+    if (appMode_ == AppMode::PluginCreation) {
+        guidanceLabel_->setText(tr(
+            "Open the Workspace to select or create a plugin and start editing "
+            "CMD/TLM files."));
+        recommendedActionBtn_->setText(tr("Open Workspace"));
+        return;
+    }
+
     const bool connected = vm_.connectionState() == Services::ConnectionState::Connected;
     const bool dockerRunning = vm_.isDockerRunning();
 
@@ -256,7 +304,7 @@ void DashboardView::updateHomeGuidance()
     if (!connected) {
         guidanceLabel_->setText(tr(
             "Start by connecting to an OpenC3 environment. After connection, "
-            "run Doctor to verify Docker before opening the Workspace."));
+            "run Doctor to verify Docker before checking and building plugins."));
         recommendedActionBtn_->setText(tr("Connect to OpenC3"));
         return;
     }
@@ -264,20 +312,25 @@ void DashboardView::updateHomeGuidance()
     if (!dockerRunning) {
         guidanceLabel_->setText(tr(
             "Connection is ready. Run Doctor next to check Docker, containers, "
-            "and OpenC3 before editing plugins."));
+            "and OpenC3 before checking and building plugins."));
         recommendedActionBtn_->setText(tr("Run Doctor"));
         return;
     }
 
     guidanceLabel_->setText(tr(
-        "Environment checks look good. Open the Workspace to manage plugins "
-        "and edit CMD/TLM files; Validator, Packet Tools, and Logs are "
-        "available under More tools."));
-    recommendedActionBtn_->setText(tr("Open Workspace"));
+        "Environment checks look good. Open Check & Build to validate and "
+        "build the plugin you're editing in Workspace; Validator, Packet "
+        "Tools, and Logs are available under More tools."));
+    recommendedActionBtn_->setText(tr("Open Check && Build"));
 }
 
 void DashboardView::onRecommendedActionClicked()
 {
+    if (appMode_ == AppMode::PluginCreation) {
+        emit openWorkspaceRequested();
+        return;
+    }
+
     const bool connected = vm_.connectionState() == Services::ConnectionState::Connected;
     const bool dockerRunning = vm_.isDockerRunning();
 
@@ -286,7 +339,7 @@ void DashboardView::onRecommendedActionClicked()
     } else if (!dockerRunning) {
         emit runDoctorRequested();
     } else {
-        emit openWorkspaceRequested();
+        emit openCheckBuildRequested();
     }
 }
 
