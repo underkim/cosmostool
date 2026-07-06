@@ -191,7 +191,7 @@ void PluginView::setupUi()
     headerRow->setSpacing(12);
     auto* titleBlock = new QVBoxLayout;
     titleBlock->setSpacing(2);
-    auto* title = new QLabel(tr("Plugin Manager"), this);
+    auto* title = new QLabel(tr("Workspace"), this);
     QFont titleFont = title->font();
     titleFont.setPointSize(18);
     titleFont.setBold(true);
@@ -1094,7 +1094,7 @@ void PluginView::bindViewModel()
                 }
                 detailEdit_->setPlainText(summary);
                 if (!valid)
-                    QMessageBox::warning(this, tr("Plugin Manager"), summary);
+                    QMessageBox::warning(this, tr("Workspace"), summary);
             });
 
     connect(&vm_, &ViewModels::PluginViewModel::actionCompleted,
@@ -1110,7 +1110,7 @@ void PluginView::bindViewModel()
                     return;
                 }
                 if (!ok)
-                    QMessageBox::warning(this, tr("Plugin Manager"),
+                    QMessageBox::warning(this, tr("Workspace"),
                         tr("Action failed for: %1").arg(name));
             });
 
