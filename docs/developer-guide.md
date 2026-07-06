@@ -117,9 +117,9 @@ used to - check the rail's tooltips (hover any row) for the current mapping.
 |-----------------|----------------|--------------------------------------------------------------------|
 | Architecture    | Implemented    | Layered app -> ui -> viewmodels -> services -> core/models         |
 | Home (Dashboard)| Implemented    | Status summary, quick actions, Connection / Docker / system metrics |
-| Docker Manager  | Needs hardening| Under the Environment nav entry (Advanced mode). Container list/control works; shell commands built by string concat |
+| Docker Manager  | Implemented    | Under the Environment nav entry (Advanced mode). Container list/control; shell commands built via the `shellQuote` helper (`src/core/connection/ShellQuote.h`) |
 | Infra Manager   | Implemented    | Under the Environment nav entry (Advanced mode). ENV/Compose editing, volume overrides, plugin scaffolding |
-| Doctor          | Needs hardening| Under the Environment nav entry (Advanced mode). Health checks run; some OpenC3 paths are hardcoded (e.g. `/cosmos`) |
+| Doctor          | Implemented    | Under the Environment nav entry (Advanced mode). Health checks run against the connected profile's configured COSMOS root, falling back to `/cosmos` only when nothing is connected |
 | Workspace       | Implemented    | 5-step wizard (Plugin -> File -> Edit -> Check -> Build & Install) over plugin install/remove/verify/scaffolding + CMD/TLM browse/read/write/parse |
 | Validator       | Implemented    | Standalone nav entry (Advanced mode) - offline checks for CMD/TLM, screens, plugin.txt |
 | Packet Tools    | Partial        | Advanced mode. Packet log file analysis                            |
@@ -127,9 +127,9 @@ used to - check the rail's tooltips (hover any row) for the current mapping.
 | Settings        | Implemented    | Profile CRUD, WSL/SSH detection, JSON persistence                  |
 | Release packaging | Implemented  | NSIS installer + `windeployqt` packaging scripts                   |
 
-> "Needs hardening" items are tracked in the project work plan
-> (`CLAUDE_TASKS.md`): shell-command quoting and reducing Doctor path
-> hardcoding.
+> The shell-quoting and Doctor path-hardcoding hardening tracked in the
+> project work plan (`CLAUDE_TASKS.md`) has since landed - see that file's
+> own "Definition of Done" notes for what was changed.
 
 ## Code Quality
 
