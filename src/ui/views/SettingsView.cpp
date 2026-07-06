@@ -327,10 +327,18 @@ void SettingsView::bindViewModel()
     connect(connectBtn_,     &QPushButton::clicked, this, &SettingsView::onConnectClicked);
     connect(disconnectBtn_,  &QPushButton::clicked, this, &SettingsView::onDisconnectClicked);
     connect(saveProfileBtn_, &QPushButton::clicked, this, [this] {
+        if (nameEdit_->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, tr("Save Profile"), tr("Enter a profile name first."));
+            return;
+        }
         vm_.saveProfile(collectProfileForm());
         updateProfileSelectionUi();
     });
     connect(saveAndConnectBtn_, &QPushButton::clicked, this, [this] {
+        if (nameEdit_->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, tr("Save Profile"), tr("Enter a profile name first."));
+            return;
+        }
         const auto profile = collectProfileForm();
         const QString id = QString::fromStdString(profile.id);
         vm_.saveProfile(profile);
