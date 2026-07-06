@@ -7,20 +7,14 @@
 // inserts (PluginView.cpp's onAddManifestBlockClicked-style flow) - TARGET is
 // deliberately excluded here since it already has its own dedicated creation
 // flow (AddTargetDialog, wired to "Add Target"), which also scaffolds the
-// target's folder structure, not just a plugin.txt line. INTERFACE/ROUTER are
-// also excluded - unlike these plain-text snippets, they're beginner-unfriendly
-// enough (connection type, host/port, class file conventions) to warrant a
-// guided dialog instead (PluginManifestInterfaceDialog), not a raw template.
+// target's folder structure, not just a plugin.txt line. INTERFACE/ROUTER and
+// MICROSERVICE are also excluded - unlike these plain-text snippets, they're
+// beginner-unfriendly enough (connection type/host/port/class file
+// conventions for Interface/Router; folder/name/cmd for Microservice) to
+// warrant a guided dialog instead (PluginManifestInterfaceDialog,
+// NewMicroserviceDialog), not a raw template.
 
 namespace OpenC3::UI::Widgets::PluginManifestSnippets {
-
-inline const QString& microserviceBlock()
-{
-    static const QString s =
-        "\nMICROSERVICE NEW_FOLDER NEW_MICROSERVICE\n"
-        "  CMD ruby new_microservice.rb\n";
-    return s;
-}
 
 inline const QString& toolBlock()
 {

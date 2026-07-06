@@ -3,6 +3,7 @@
 #include "ui/dialogs/NewScriptDialog.h"
 #include "ui/dialogs/CmdTlmFieldDialog.h"
 #include "ui/dialogs/PluginManifestInterfaceDialog.h"
+#include "ui/dialogs/NewMicroserviceDialog.h"
 #include "ui/dialogs/PluginManifestModifierDialog.h"
 #include "ui/dialogs/ScreenWidgetDialog.h"
 #include "ui/dialogs/PluginWizard.h"
@@ -854,8 +855,7 @@ void PluginView::setupUi()
     auto* newVariableAction = newBlockMenu->addAction(tr("Variable"));
     connect(newInterfaceAction, &QAction::triggered, this, [this] { onNewManifestInterfaceOrRouter(false); });
     connect(newRouterAction, &QAction::triggered, this, [this] { onNewManifestInterfaceOrRouter(true); });
-    connect(newMicroserviceAction, &QAction::triggered, this, [this] {
-        appendManifestBlockSnippet(Widgets::PluginManifestSnippets::microserviceBlock()); });
+    connect(newMicroserviceAction, &QAction::triggered, this, &PluginView::onNewManifestMicroservice);
     connect(newToolAction, &QAction::triggered, this, [this] {
         if (confirmAdvancedFrontendBlock(tr("Tool")))
             appendManifestBlockSnippet(Widgets::PluginManifestSnippets::toolBlock()); });
@@ -2555,6 +2555,18 @@ void PluginView::onNewManifestInterfaceOrRouter(bool isRouter)
             knownTargets << block.name;
 
     Dialogs::PluginManifestInterfaceDialog dialog(isRouter, knownTargets, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    appendManifestBlockSnippet(dialog.generatedBlock());
+}
+
+void PluginView::onNewManifestMicroservice()
+{
+    if (!isPluginManifestFile(currentComponentPath_))
+        return;
+
+    Dialogs::NewMicroserviceDialog dialog(this);
     if (dialog.exec() != QDialog::Accepted)
         return;
 

@@ -116,6 +116,7 @@ private:
     void appendManifestBlockSnippet(const QString& snippet);
     [[nodiscard]] bool confirmAdvancedFrontendBlock(const QString& kind);
     void onNewManifestInterfaceOrRouter(bool isRouter);
+    void onNewManifestMicroservice();
     void onAddScreenWidgetClicked();
     void setManifestActionsVisible(bool visible);
     void refreshScreenPreview();
