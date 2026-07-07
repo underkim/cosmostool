@@ -18,6 +18,19 @@ bool isValidScriptName(const QString& name)
     static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
     return pattern.match(name).hasMatch();
 }
+
+// Target is also a remote file-path segment (targets/<name>/procedures/...)
+// - it's editable (the combo can hold typed-in text, not just a known
+// target from the list), so it needs the same guard AddTargetDialog
+// applies to its own target-name field; without it, a value like
+// "../../etc" would write outside the plugin's own target folder instead
+// of failing loudly here (mkdir -p/writeFile shell-quote the path string,
+// but that doesn't stop ".." from escaping the intended directory).
+bool isValidTargetToken(const QString& name)
+{
+    static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+    return pattern.match(name).hasMatch();
+}
 } // namespace
 
 NewScriptDialog::NewScriptDialog(
@@ -139,6 +152,12 @@ void NewScriptDialog::onCreate()
 
     if (tgt.isEmpty()) {
         QMessageBox::warning(this, tr("Invalid Input"), tr("Choose or enter a target name."));
+        return;
+    }
+    if (!isValidTargetToken(tgt)) {
+        QMessageBox::warning(this, tr("Invalid Input"),
+            tr("Target names may only contain letters, numbers, and underscores, "
+               "and must start with a letter or underscore."));
         return;
     }
     if (name.isEmpty()) {

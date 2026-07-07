@@ -422,71 +422,71 @@ You can fine-tune it later under Settings.</source>
 <context>
     <name>OpenC3::UI::Dialogs::NewScriptDialog</name>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="32"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="88"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="106"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="45"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="101"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="119"/>
         <source>Add Script</source>
         <translation>스크립트 추가</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="40"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="53"/>
         <source>Add a script (procedure) to a target in this plugin:
 &lt;small&gt;%1&lt;/small&gt;</source>
         <translation>이 플러그인의 타겟에 스크립트(프로시저)를 추가합니다:
 &lt;small&gt;%1&lt;/small&gt;</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="47"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="60"/>
         <source>Script Info</source>
         <translation>스크립트 정보</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="58"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="71"/>
         <source>Target name, e.g. MYSAT</source>
         <translation>타겟 이름, 예: MYSAT</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="62"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="75"/>
         <source>lowercase, e.g. my_check</source>
         <translation>소문자, 예: my_check</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="67"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="80"/>
         <source>Target:</source>
         <translation>타겟:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="68"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="81"/>
         <source>Script name:</source>
         <translation>스크립트 이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="69"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="82"/>
         <source>Created path:</source>
         <translation>생성 경로:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="72"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="85"/>
         <source>Generates a starter script with a cmd()/wait_check() example you can edit and run against a live target - this is the same pattern used when a new target is first created.</source>
         <translation>수정하고 실행할 수 있는 cmd()/wait_check() 예제가 포함된 시작 스크립트를 생성합니다 - 새 타겟을 처음 만들 때 사용하는 것과 동일한 패턴입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="89"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="102"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="106"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="119"/>
         <source>Adding…</source>
         <translation>추가 중…</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="113"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="126"/>
         <source>Script Added</source>
         <translation>스크립트 추가됨</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="114"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="127"/>
         <source>Script &apos;%1&apos; was added.
 
 %2</source>
@@ -495,39 +495,45 @@ You can fine-tune it later under Settings.</source>
 %2</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="117"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="130"/>
         <source>Add Script Failed</source>
         <translation>스크립트 추가 실패</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="141"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="145"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="149"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="154"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="158"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="164"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="168"/>
         <source>Invalid Input</source>
         <translation>잘못된 입력</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="141"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="154"/>
         <source>Choose or enter a target name.</source>
         <translation>타겟 이름을 선택하거나 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="145"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="159"/>
+        <source>Target names may only contain letters, numbers, and underscores, and must start with a letter or underscore.</source>
+        <translation>타겟 이름은 문자, 숫자, 밑줄만 포함할 수 있으며 문자나 밑줄로 시작해야 합니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="164"/>
         <source>Enter a script name.</source>
         <translation>스크립트 이름을 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="150"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="169"/>
         <source>Script names may only contain letters, numbers, and underscores, and must start with a letter or underscore.</source>
         <translation>스크립트 이름은 문자나 밑줄로 시작해야 하며, 문자/숫자/밑줄만 포함할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="155"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="174"/>
         <source>Confirm Add Script</source>
         <translation>스크립트 추가 확인</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="156"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="175"/>
         <source>Script &apos;%1&apos; will be added at:
 %2/targets/%3/procedures/%1.rb
 
