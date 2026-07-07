@@ -2559,6 +2559,31 @@ void PluginView::onApplyManifestBlockClicked()
     const QString folder = manifestClassOrFolderEdit_->text().trimmed();
     const QString args   = manifestArgsEdit_->text().trimmed();
 
+    // Unlike the guided "New Block" dialogs (PluginManifestInterfaceDialog,
+    // NewMicroserviceDialog), which already validate Name/Folder with this
+    // same pattern, this path edits an *existing* block's header line
+    // directly - Name and Folder/Class become bare, whitespace-tokenized
+    // positional fields here too, so the same guard is needed or a space
+    // would silently shift the rest of the line when it's re-parsed.
+    const bool needsName   = block.kind != ViewModels::PluginManifestBlock::Kind::Tool
+                           && block.kind != ViewModels::PluginManifestBlock::Kind::Widget;
+    const bool needsFolder = block.kind == ViewModels::PluginManifestBlock::Kind::Target
+                           || block.kind == ViewModels::PluginManifestBlock::Kind::Interface
+                           || block.kind == ViewModels::PluginManifestBlock::Kind::Router
+                           || block.kind == ViewModels::PluginManifestBlock::Kind::Microservice;
+    if (needsName && !name.isEmpty() && !isValidFieldName(name)) {
+        componentDiagnostics_->setPlainText(tr(
+            "Name must start with a letter or underscore and contain only "
+            "letters, numbers, and underscores (no spaces or punctuation)."));
+        return;
+    }
+    if (needsFolder && !folder.isEmpty() && !isValidFieldName(folder)) {
+        componentDiagnostics_->setPlainText(tr(
+            "Folder/Class must start with a letter or underscore and contain only "
+            "letters, numbers, and underscores (no spaces or punctuation)."));
+        return;
+    }
+
     QString line;
     switch (block.kind) {
     case ViewModels::PluginManifestBlock::Kind::Target:
