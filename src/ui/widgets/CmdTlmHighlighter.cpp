@@ -85,11 +85,66 @@ CmdTlmHighlighter::CmdTlmHighlighter(QTextDocument* parent)
         f.setFontItalic(true);
         add(R"(#[^\n]*)", f);
     }
+
+    // ── Ruby ruleset (procedures/*.rb scripts) ────────────────────────────────
+    auto addRuby = [this](const QString& pattern, const QTextCharFormat& fmt) {
+        rubyRules_.append({ QRegularExpression(pattern), fmt });
+    };
+
+    // Ruby keywords — blue bold, matching the COSMOS DSL block-keyword style.
+    {
+        QTextCharFormat f;
+        f.setForeground(QColor("#569CD6"));
+        f.setFontWeight(QFont::Bold);
+        addRuby(R"(\b(def|end|if|elsif|else|unless|while|until|do|class|module|)"
+                R"(return|begin|rescue|ensure|raise|require|require_relative|)"
+                R"(then|case|when|break|next|yield|self|nil|true|false|and|or|not)\b)", f);
+    }
+
+    // COSMOS script API calls — green, the same weight this app already gives
+    // COSMOS-specific identifiers (APPEND_ITEM etc.) elsewhere in this file.
+    {
+        QTextCharFormat f;
+        f.setForeground(QColor("#4EC994"));
+        addRuby(R"(\b(cmd|cmd_no_hazardous_check|cmd_no_range_check|tlm|tlm_variable|)"
+                R"(wait|wait_check|wait_check_expression|check|check_expression|)"
+                R"(check_tolerance|puts|print)\b(?=\s*\()", f);
+    }
+
+    // Strings (both quote styles Ruby accepts) — warm-cream.
+    {
+        QTextCharFormat f;
+        f.setForeground(QColor("#D69D85"));
+        addRuby(R"("[^"]*"|'[^']*')", f);
+    }
+
+    // Numbers — pale green.
+    {
+        QTextCharFormat f;
+        f.setForeground(QColor("#B5CEA8"));
+        addRuby(R"(\b-?\d+\.?\d*([eE][+-]?\d+)?\b)", f);
+    }
+
+    // Line comments (#…) — muted green italic (applied LAST to override all).
+    {
+        QTextCharFormat f;
+        f.setForeground(QColor("#6A9955"));
+        f.setFontItalic(true);
+        addRuby(R"(#[^\n]*)", f);
+    }
+}
+
+void CmdTlmHighlighter::setRubyMode(bool on)
+{
+    if (rubyMode_ == on)
+        return;
+    rubyMode_ = on;
+    rehighlight();
 }
 
 void CmdTlmHighlighter::highlightBlock(const QString& text)
 {
-    for (const auto& rule : rules_) {
+    for (const auto& rule : (rubyMode_ ? rubyRules_ : rules_)) {
         auto it = rule.pattern.globalMatch(text);
         while (it.hasNext()) {
             const auto m = it.next();

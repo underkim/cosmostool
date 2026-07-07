@@ -1448,6 +1448,8 @@ void PluginView::bindViewModel()
                 const bool manifest = isPluginManifestFile(path);
                 const bool screen = isScreenFile(path);
                 const bool script = isScriptFile(path);
+                if (highlighter_)
+                    highlighter_->setRubyMode(script);
                 validateComponentBtn_->setEnabled(cmdTlm);
                 validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
                 insertCmdBtn_->setEnabled(cmdTlm);
