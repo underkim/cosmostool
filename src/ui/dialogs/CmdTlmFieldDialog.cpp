@@ -50,6 +50,7 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     modeCombo_->addItem(tr("Telemetry item"), "item");
 
     idFieldCheck_ = new QCheckBox(tr("Identifier field"), this);
+    isArrayCheck_ = new QCheckBox(tr("Array"), this);
 
     nameEdit_ = new QLineEdit(this);
     nameEdit_->setPlaceholderText("TEMP, CMD_ID, COUNTER");
@@ -69,6 +70,11 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     // whole form-field column - a lone oversized spinner next to otherwise
     // compact rows.
     bitSizeSpin_->setMaximumWidth(100);
+
+    arrayBitsSpin_ = new QSpinBox(this);
+    arrayBitsSpin_->setRange(1, 65535);
+    arrayBitsSpin_->setValue(128);
+    arrayBitsSpin_->setMaximumWidth(100);
 
     typeCombo_ = new QComboBox(this);
     typeCombo_->addItems({
@@ -90,8 +96,10 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
 
     form->addRow(tr("Kind"), modeCombo_);
     form->addRow("", idFieldCheck_);
+    form->addRow("", isArrayCheck_);
     form->addRow(tr("Name"), nameEdit_);
     form->addRow(tr("Bit size"), bitSizeSpin_);
+    form->addRow(tr("Array Bits"), arrayBitsSpin_);
     form->addRow(tr("Type"), typeCombo_);
     form->addRow(tr("Minimum"), minEdit_);
     form->addRow(tr("Maximum"), maxEdit_);
@@ -107,8 +115,19 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
             this, [this] { updateMode(); });
     connect(typeCombo_, &QComboBox::currentIndexChanged,
             this, [this] { updateMode(); });
-    connect(idFieldCheck_, &QCheckBox::toggled,
-            this, [this] { updateMode(); });
+    // ID and Array are mutually exclusive - CmdTlmParser's kItemKeywords has
+    // no combined "ID_ARRAY" variant (only APPEND_ID_* and APPEND_ARRAY_*
+    // separately), so letting both be checked at once would generate a
+    // keyword the parser can't recognise, silently misfiling every column
+    // after it as an unknown-keyword row instead of a real field.
+    connect(idFieldCheck_, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked) isArrayCheck_->setChecked(false);
+        updateMode();
+    });
+    connect(isArrayCheck_, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked) idFieldCheck_->setChecked(false);
+        updateMode();
+    });
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         const QString name = nameEdit_->text().trimmed();
         if (name.isEmpty()) {
@@ -201,26 +220,49 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
 QString CmdTlmFieldDialog::generatedLine() const
 {
     const bool parameter = modeCombo_->currentData().toString() == "parameter";
+    const bool isArray   = isArrayCheck_->isChecked();
+    // ID and Array are mutually exclusive (enforced by the toggled
+    // connections above) - CmdTlmParser's kItemKeywords has no combined
+    // "ID_ARRAY" variant, only APPEND_ID_* and APPEND_ARRAY_* separately.
     const QString keyword = parameter
-        ? (idFieldCheck_->isChecked() ? "APPEND_ID_PARAMETER" : "APPEND_PARAMETER")
-        : (idFieldCheck_->isChecked() ? "APPEND_ID_ITEM" : "APPEND_ITEM");
+        ? (isArray ? "APPEND_ARRAY_PARAMETER"
+                   : (idFieldCheck_->isChecked() ? "APPEND_ID_PARAMETER" : "APPEND_PARAMETER"))
+        : (isArray ? "APPEND_ARRAY_ITEM"
+                   : (idFieldCheck_->isChecked() ? "APPEND_ID_ITEM" : "APPEND_ITEM"));
 
     const QString name = nameEdit_->text().trimmed().toUpper();
     const QString type = typeCombo_->currentText();
     const QString desc = quotedDescription(descriptionEdit_->text().trimmed());
+    // Matches CmdTlmParser's own column layout: the array bit size token
+    // comes right after TYPE, before MIN/MAX/DEFAULT/id_value
+    // (`if (item.isArray && idx < toks.size()) { item.arrayBitSize = ...`).
+    const QString arrayBits = QString::number(arrayBitsSpin_->value());
 
     if (parameter) {
         // Must match CmdTlmParser's own strBlock check (STRING/BLOCK only):
         // those types have no MIN/MAX slots in APPEND_PARAMETER, only
-        // <NAME> <BIT_SIZE> <TYPE> <DEFAULT> "description". Emitting MIN/MAX
-        // tokens anyway would shift every field after them and silently
-        // corrupt the description when the line is re-parsed.
+        // <NAME> <BIT_SIZE> <TYPE> [<ARRAY_BITS>] <DEFAULT> "description".
+        // Emitting MIN/MAX tokens anyway would shift every field after them
+        // and silently corrupt the description when the line is re-parsed.
         const bool strBlock = (type == "STRING" || type == "BLOCK");
         if (strBlock) {
+            if (isArray) {
+                return QString("  %1 %2 %3 %4 %5 %6 %7\n")
+                    .arg(keyword, name)
+                    .arg(bitSizeSpin_->value())
+                    .arg(type, arrayBits, defaultEdit_->text().trimmed(), desc);
+            }
             return QString("  %1 %2 %3 %4 %5 %6\n")
                 .arg(keyword, name)
                 .arg(bitSizeSpin_->value())
                 .arg(type, defaultEdit_->text().trimmed(), desc);
+        }
+        if (isArray) {
+            return QString("  %1 %2 %3 %4 %5 %6 %7 %8 %9\n")
+                .arg(keyword, name)
+                .arg(bitSizeSpin_->value())
+                .arg(type, arrayBits, minEdit_->text().trimmed(), maxEdit_->text().trimmed(),
+                     defaultEdit_->text().trimmed(), desc);
         }
         return QString("  %1 %2 %3 %4 %5 %6 %7 %8\n")
             .arg(keyword, name)
@@ -239,6 +281,12 @@ QString CmdTlmFieldDialog::generatedLine() const
             .arg(bitSizeSpin_->value())
             .arg(type, defaultEdit_->text().trimmed(), desc);
     }
+    if (isArray) {
+        return QString("  %1 %2 %3 %4 %5 %6\n")
+            .arg(keyword, name)
+            .arg(bitSizeSpin_->value())
+            .arg(type, arrayBits, desc);
+    }
     return QString("  %1 %2 %3 %4 %5\n")
         .arg(keyword, name)
         .arg(bitSizeSpin_->value())
@@ -256,6 +304,12 @@ void CmdTlmFieldDialog::updateMode()
     // A telemetry item has no Default of its own, but an ID item still
     // needs this field to supply its id_value (see generatedLine()).
     defaultEdit_->setEnabled(parameter || idFieldCheck_->isChecked());
+    arrayBitsSpin_->setEnabled(isArrayCheck_->isChecked());
+    // ID doesn't apply to Array items (see the mutual-exclusivity comment on
+    // the toggled connections above) - disable it as a visible hint rather
+    // than only rejecting it silently after the fact.
+    idFieldCheck_->setEnabled(!isArrayCheck_->isChecked());
+    isArrayCheck_->setEnabled(!idFieldCheck_->isChecked());
 }
 
 } // namespace OpenC3::UI::Dialogs

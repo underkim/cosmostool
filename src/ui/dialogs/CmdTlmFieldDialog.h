@@ -22,8 +22,10 @@ private:
 
     QComboBox* modeCombo_{nullptr};
     QCheckBox* idFieldCheck_{nullptr};
+    QCheckBox* isArrayCheck_{nullptr};
     QLineEdit* nameEdit_{nullptr};
     QSpinBox* bitSizeSpin_{nullptr};
+    QSpinBox* arrayBitsSpin_{nullptr};
     QComboBox* typeCombo_{nullptr};
     QLineEdit* minEdit_{nullptr};
     QLineEdit* maxEdit_{nullptr};
