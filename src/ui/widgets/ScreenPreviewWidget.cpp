@@ -40,6 +40,18 @@ void ScreenPreviewWidget::setLayoutTree(const ScreenLayoutResult& result)
         delete item;
     }
 
+    if (result.roots.isEmpty()) {
+        // Without this, an empty/just-created screen file renders as a bare
+        // gray panel below the banner - indistinguishable from "broken" or
+        // "still loading" to a first-time user, instead of "there's nothing
+        // here yet, use Add Widget."
+        auto* empty = new QLabel(tr("No widgets yet - use \"Add Widget\" to add one."), this);
+        empty->setObjectName("SubLabel");
+        empty->setAlignment(Qt::AlignCenter);
+        rootLayout_->addWidget(empty);
+        return;
+    }
+
     for (const auto& node : result.roots)
         rootLayout_->addWidget(buildNode(node));
 }
