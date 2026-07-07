@@ -106,9 +106,15 @@ CmdTlmHighlighter::CmdTlmHighlighter(QTextDocument* parent)
     {
         QTextCharFormat f;
         f.setForeground(QColor("#4EC994"));
-        addRuby(R"(\b(cmd|cmd_no_hazardous_check|cmd_no_range_check|tlm|tlm_variable|)"
-                R"(wait|wait_check|wait_check_expression|check|check_expression|)"
-                R"(check_tolerance|puts|print)\b(?=\s*\()", f);
+        // Custom raw-string delimiter (R"rx(...)rx") - the pattern's own
+        // trailing `\()"` would otherwise be misread as the plain R"(...)"
+        // terminator, silently truncating the lookahead's closing paren and
+        // leaving highlightBlock() running an invalid QRegularExpression on
+        // every Ruby line (only surfaced via the Korean screenshot smoke
+        // test, which is the only path that actually opens a .rb file).
+        addRuby(R"rx(\b(cmd|cmd_no_hazardous_check|cmd_no_range_check|tlm|tlm_variable|)rx"
+                R"rx(wait|wait_check|wait_check_expression|check|check_expression|)rx"
+                R"rx(check_tolerance|puts|print)\b(?=\s*\())rx", f);
     }
 
     // Strings (both quote styles Ruby accepts) — warm-cream.

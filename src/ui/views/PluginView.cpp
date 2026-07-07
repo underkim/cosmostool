@@ -1443,13 +1443,19 @@ void PluginView::bindViewModel()
                     currentComponentDisplayPath_ = currentComponentDisplayPath_.mid(currentPluginRoot_.size() + 1);
                 componentPathLabel_->setToolTip(path);
                 componentEditor_->setPlainText(content);
-                setComponentDirty(false);
                 const bool cmdTlm = isCmdTlmFile(path);
                 const bool manifest = isPluginManifestFile(path);
                 const bool screen = isScreenFile(path);
                 const bool script = isScriptFile(path);
+                // setRubyMode()'s rehighlight() re-applies character formats,
+                // which fires componentEditor_'s textChanged same as a real
+                // edit would - reset the dirty flag after it runs (not
+                // before), otherwise opening any .rb file leaves it falsely
+                // marked dirty and the next file-open pops a spurious
+                // "unsaved changes" prompt despite zero user edits.
                 if (highlighter_)
                     highlighter_->setRubyMode(script);
+                setComponentDirty(false);
                 validateComponentBtn_->setEnabled(cmdTlm);
                 validateOfflineBtn_->setEnabled(true); // offline rules cover all config kinds
                 insertCmdBtn_->setEnabled(cmdTlm);
@@ -2428,6 +2434,20 @@ void PluginView::refreshManifestTable()
             manifestTable_->setItem(row, 3, modKindItem);
             ++row;
         }
+    }
+
+    if (row == 0) {
+        // Beginner UX: an empty manifest table with no other explanation
+        // reads as "this feature is broken" - point at the concrete next
+        // action (the Manifest menu above the table) instead of a blank grid.
+        manifestTable_->insertRow(0);
+        auto* emptyItem = new QTableWidgetItem(tr(
+            "No TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/WIDGET/VARIABLE blocks yet - "
+            "use the \"Manifest\" menu above to add one."));
+        emptyItem->setFlags(emptyItem->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
+        emptyItem->setForeground(manifestTable_->palette().color(QPalette::PlaceholderText));
+        manifestTable_->setSpan(0, 0, 1, 4);
+        manifestTable_->setItem(0, 0, emptyItem);
     }
     updatingManifestTable_ = false;
 }
