@@ -145,6 +145,9 @@ bool PluginService::install(
     auto r = executor_.execute(
         "cp " + shellQuote(gemFilePath) + " " +
         shellQuote(root + "/plugins/") + " 2>&1");
+    if (!r)
+        Logging::Logger::warn("[PluginService] Install failed for {}: {}",
+                               gemFilePath, r.stdOut.empty() ? r.errorMessage : r.stdOut);
     return static_cast<bool>(r);
 }
 
@@ -156,6 +159,9 @@ bool PluginService::remove(
     auto r = executor_.execute(
         "rm -f " + shellQuote(root + "/plugins/" + pluginName + ".gem") +
         " 2>&1");
+    if (!r)
+        Logging::Logger::warn("[PluginService] Remove failed for {}: {}",
+                               pluginName, r.stdOut.empty() ? r.errorMessage : r.stdOut);
     return static_cast<bool>(r);
 }
 
