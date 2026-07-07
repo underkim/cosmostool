@@ -24,7 +24,9 @@ public:
     [[nodiscard]] virtual QString label() const = 0;
 
     // Best-effort guess of whether this validator is the natural fit for the
-    // given file/content (used by auto-detect). path may be empty.
+    // given file/content. Not currently called by ConfigValidator's own
+    // auto-detect (see RuleValidatorRegistry.h) - implemented for future use
+    // and to keep each validator self-describing. path may be empty.
     [[nodiscard]] virtual bool appliesTo(const QString& path,
                                          const QString& content) const = 0;
 
