@@ -243,9 +243,19 @@ void InfraViewModel::applyVolumeOverride(
         hostPath = hostSavePath.toStdString(),
         data     = content.toStdString()] {
 
-            const std::string dirPath = hostPath.substr(0, hostPath.rfind('/'));
-            [[maybe_unused]] const std::string mkdirOut =
-                fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
+            // Unlike writePluginFiles()'s fullPath (always pluginDir + "/" +
+            // relativePath, so rfind('/') can never miss), hostPath here is a
+            // single free-text field the user can type without any
+            // separator at all (e.g. "override.yaml") - substr(0, npos)
+            // would then return the *whole* path as dirPath, mkdir'ing a
+            // directory at the exact spot the file itself needs to go and
+            // making the writeFile() below fail.
+            const auto        slash   = hostPath.rfind('/');
+            const std::string dirPath = (slash == std::string::npos) ? std::string{}
+                                                                       : hostPath.substr(0, slash);
+            [[maybe_unused]] const std::string mkdirOut = dirPath.empty()
+                ? std::string{}
+                : fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
             const bool ok = fs_.writeFile(hostPath, data);
 
