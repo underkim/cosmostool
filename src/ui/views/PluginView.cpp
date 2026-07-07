@@ -444,9 +444,9 @@ void PluginView::setupUi()
     tableView_->horizontalHeader()->setStretchLastSection(false);
     tableView_->horizontalHeader()->setSectionResizeMode(ViewModels::PluginTableModel::Name, QHeaderView::Stretch);
     tableView_->horizontalHeader()->setSectionResizeMode(ViewModels::PluginTableModel::Status, QHeaderView::ResizeToContents);
-    tableView_->horizontalHeader()->setSectionResizeMode(ViewModels::PluginTableModel::Author, QHeaderView::ResizeToContents);
+    tableView_->horizontalHeader()->setSectionResizeMode(ViewModels::PluginTableModel::TargetCount, QHeaderView::ResizeToContents);
     tableView_->setColumnWidth(ViewModels::PluginTableModel::Status, 96);
-    tableView_->setColumnWidth(ViewModels::PluginTableModel::Author, 58);
+    tableView_->setColumnWidth(ViewModels::PluginTableModel::TargetCount, 58);
     pluginListLayout->addWidget(tableView_, 1);
 
     // Wizard Phase 1/6: New Plugin/Refresh/More(Add Target/Remove) + the

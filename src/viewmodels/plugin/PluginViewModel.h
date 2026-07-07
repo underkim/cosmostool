@@ -14,7 +14,10 @@ namespace OpenC3::ViewModels {
 class PluginTableModel final : public QAbstractTableModel {
     Q_OBJECT
 public:
-    enum Column { Name = 0, Version, Status, Author, ColCount };
+    // Named TargetCount, not Author, even though Plugin now carries a real
+    // author field (from PluginService's gemspec parsing) - this column's
+    // header and data have always been the plugin's target count.
+    enum Column { Name = 0, Version, Status, TargetCount, ColCount };
 
     explicit PluginTableModel(QObject* parent = nullptr);
 

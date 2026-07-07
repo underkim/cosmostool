@@ -46,7 +46,7 @@ QVariant PluginTableModel::data(const QModelIndex& idx, int role) const
         switch (idx.column()) {
         case Name:    return QString::fromStdString(p.name);
         case Version: return QString::fromStdString(p.version);
-        case Author:  return QString::number(static_cast<int>(p.targets.size()));
+        case TargetCount: return QString::number(static_cast<int>(p.targets.size()));
         case Status:
             switch (p.status) {
             case Models::PluginStatus::Installed:        return "Ready";
@@ -83,7 +83,7 @@ QVariant PluginTableModel::headerData(int section,
     case Name:    return "Plugin Folder";
     case Version: return "Version";
     case Status:  return "Status";
-    case Author:  return "Targets";
+    case TargetCount: return "Targets";
     default:      return {};
     }
 }
