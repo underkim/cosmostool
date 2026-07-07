@@ -169,105 +169,117 @@ Continue?</source>
 <context>
     <name>OpenC3::UI::Dialogs::CmdTlmFieldDialog</name>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="29"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="41"/>
         <source>Add CMD/TLM Field</source>
         <translation>CMD/TLM 필드 추가</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="37"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="49"/>
         <source>Command parameter</source>
         <translation>명령 파라미터</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="38"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="50"/>
         <source>Telemetry item</source>
         <translation>텔레메트리 항목</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="40"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="52"/>
         <source>Identifier field</source>
         <translation>식별자 필드</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="70"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="82"/>
         <source>Short field description</source>
         <translation>짧은 필드 설명</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="72"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="84"/>
         <source>Kind</source>
         <translation>종류</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="74"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="86"/>
         <source>Name</source>
         <translation>이름</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="75"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="87"/>
         <source>Bit size</source>
         <translation>비트 크기</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="76"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="88"/>
         <source>Type</source>
         <translation>타입</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="77"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="89"/>
         <source>Minimum</source>
         <translation>최소값</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="78"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="90"/>
         <source>Maximum</source>
         <translation>최대값</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="79"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="91"/>
         <source>Default / ID Value</source>
         <translation>기본값 / ID 값</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="144"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="151"/>
+        <source>Minimum and Maximum must not contain spaces.</source>
+        <translation>Minimum과 Maximum에는 공백을 포함할 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="162"/>
         <source>An ID value is required for identifier fields.</source>
         <translation>식별자 필드에는 ID 값이 필요합니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="171"/>
+        <source>Default / ID Value must not contain spaces.</source>
+        <translation>기본값 / ID 값에는 공백을 포함할 수 없습니다.</translation>
     </message>
     <message>
         <source>Default</source>
         <translation type="vanished">기본값</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="80"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="92"/>
         <source>Description</source>
         <translation>설명</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="96"/>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="105"/>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="121"/>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="132"/>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="143"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="108"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="117"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="133"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="144"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="150"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="161"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="170"/>
         <source>Add Field</source>
         <translation>필드 추가</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="96"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="108"/>
         <source>Name is required.</source>
         <translation>이름은 필수입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="106"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="118"/>
         <source>Name must start with a letter or underscore and contain only letters, numbers, and underscores (no spaces or punctuation).</source>
         <translation>이름은 문자나 밑줄로 시작해야 하며 문자, 숫자, 밑줄만 포함할 수 있습니다 (공백이나 구두점 불가).</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="122"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="134"/>
         <source>Minimum, Maximum, and Default are required for this type.</source>
         <translation>이 타입에는 최소값, 최대값, 기본값이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="133"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="145"/>
         <source>Minimum must not be greater than Maximum.</source>
         <translation>최소값은 최대값보다 클 수 없습니다.</translation>
     </message>

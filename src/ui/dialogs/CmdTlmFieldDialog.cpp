@@ -21,6 +21,18 @@ QString quotedDescription(QString value)
     return '"' + value + '"';
 }
 
+// Min/Max/Default are deliberately freeform (hex literals, MIN/MAX
+// keywords, signed/float values), so unlike Name they can't be pinned to
+// one strict pattern - but they're still written as bare, unquoted
+// positional tokens in generatedLine(), so embedded whitespace (e.g. a
+// pasted "0 1") would silently split into an extra token and shift
+// everything after it, the same hazard Name is already guarded against.
+bool hasNoEmbeddedWhitespace(const QString& value)
+{
+    static const QRegularExpression whitespace("\\s");
+    return !value.contains(whitespace);
+}
+
 } // namespace
 
 CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
@@ -133,6 +145,12 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
                     tr("Minimum must not be greater than Maximum."));
                 return;
             }
+            if (!hasNoEmbeddedWhitespace(minEdit_->text().trimmed())
+                || !hasNoEmbeddedWhitespace(maxEdit_->text().trimmed())) {
+                QMessageBox::warning(this, tr("Add Field"),
+                    tr("Minimum and Maximum must not contain spaces."));
+                return;
+            }
         }
         // Telemetry item's APPEND_ID_ITEM needs its own id_value token
         // (unlike plain APPEND_ITEM) - see generatedLine() below. Without
@@ -142,6 +160,15 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
             && defaultEdit_->text().trimmed().isEmpty()) {
             QMessageBox::warning(this, tr("Add Field"),
                 tr("An ID value is required for identifier fields."));
+            return;
+        }
+        // Default doubles as the id_value token for ID items and is always
+        // written unquoted (see generatedLine()) whenever it's enabled -
+        // same embedded-whitespace hazard as Min/Max above.
+        if (defaultEdit_->isEnabled()
+            && !hasNoEmbeddedWhitespace(defaultEdit_->text().trimmed())) {
+            QMessageBox::warning(this, tr("Add Field"),
+                tr("Default / ID Value must not contain spaces."));
             return;
         }
 
