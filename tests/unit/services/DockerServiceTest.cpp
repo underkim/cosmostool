@@ -117,3 +117,35 @@ TEST_F(DockerServiceTest, GetStatsHandlesCpuWithoutPercentSign)
     EXPECT_DOUBLE_EQ(stats.cpuPercent, 0.0);
     EXPECT_DOUBLE_EQ(stats.memUsageMb, 100.0);
 }
+
+TEST_F(DockerServiceTest, ListComposeServicesParsesEachJsonLine)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker compose ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"Service":"web","Image":"nginx","State":"running"})"
+            "\n"
+            R"({"Service":"db","Image":"postgres","State":"exited"})"
+            "\n")));
+
+    const auto services = sut_.listComposeServices("/cosmos/plugin");
+    ASSERT_EQ(services.size(), 2u);
+    EXPECT_EQ(services[0].name, "web");
+    EXPECT_EQ(services[0].image, "nginx");
+    EXPECT_EQ(services[1].name, "db");
+}
+
+TEST_F(DockerServiceTest, ListComposeServicesSkipsMalformedLineWithoutDroppingOthers)
+{
+    // A truncated/corrupted line from `docker compose ps --format json` must
+    // not abort parsing of the remaining, well-formed lines.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker compose ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"Service":"web","Image":"nginx","State":"running")"  // truncated, missing closing brace
+            "\n"
+            R"({"Service":"db","Image":"postgres","State":"exited"})"
+            "\n")));
+
+    const auto services = sut_.listComposeServices("/cosmos/plugin");
+    ASSERT_EQ(services.size(), 1u);
+    EXPECT_EQ(services[0].name, "db");
+}

@@ -141,7 +141,9 @@ DockerService::listComposeServices(const std::string& composeDir)
             svc.statusText = j.value("State", "");
             svc.status     = parseStatus(svc.statusText);
             services.push_back(std::move(svc));
-        } catch (...) {}
+        } catch (const std::exception& e) {
+            Logging::Logger::warn("[DockerService] listComposeServices parse error: {}", e.what());
+        }
     }
     return services;
 }
