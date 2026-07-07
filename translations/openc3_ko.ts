@@ -235,11 +235,16 @@ Continue?</source>
     </message>
     <message>
         <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="162"/>
+        <source>Default is required for this type.</source>
+        <translation>이 타입에는 Default가 필요합니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="172"/>
         <source>An ID value is required for identifier fields.</source>
         <translation>식별자 필드에는 ID 값이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="171"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="181"/>
         <source>Default / ID Value must not contain spaces.</source>
         <translation>기본값 / ID 값에는 공백을 포함할 수 없습니다.</translation>
     </message>
@@ -259,7 +264,8 @@ Continue?</source>
         <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="144"/>
         <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="150"/>
         <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="161"/>
-        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="170"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="171"/>
+        <location filename="../src/ui/dialogs/CmdTlmFieldDialog.cpp" line="180"/>
         <source>Add Field</source>
         <translation>필드 추가</translation>
     </message>

@@ -151,6 +151,16 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
                     tr("Minimum and Maximum must not contain spaces."));
                 return;
             }
+        } else if (parameter && strBlock && defaultEdit_->text().trimmed().isEmpty()) {
+            // STRING/BLOCK parameters skip MIN/MAX but still have a Default
+            // positional token in generatedLine() - leaving it empty doesn't
+            // just look wrong, it drops a token from the line entirely, so
+            // the quoted description silently shifts into the default-value
+            // slot on re-parse and the description is lost with no error
+            // ever raised (STRING types don't need quotes to look valid).
+            QMessageBox::warning(this, tr("Add Field"),
+                tr("Default is required for this type."));
+            return;
         }
         // Telemetry item's APPEND_ID_ITEM needs its own id_value token
         // (unlike plain APPEND_ITEM) - see generatedLine() below. Without
