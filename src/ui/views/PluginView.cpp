@@ -1934,6 +1934,11 @@ void PluginView::onRunScriptClicked()
             tr("Connect to an OpenC3 environment first."));
         return;
     }
+    if (logViewerVm_.isStreaming()) {
+        QMessageBox::information(this, tr("Run Script"),
+            tr("A command is already streaming to the Terminal panel - stop it before running another."));
+        return;
+    }
     if (componentDirty_) {
         QMessageBox::information(this, tr("Run Script"),
             tr("Save the script before running it."));
@@ -1964,6 +1969,11 @@ void PluginView::onCheckScriptSyntaxClicked()
     if (!logViewerVm_.isConnected()) {
         QMessageBox::information(this, tr("Check Syntax"),
             tr("Connect to an OpenC3 environment first."));
+        return;
+    }
+    if (logViewerVm_.isStreaming()) {
+        QMessageBox::information(this, tr("Check Syntax"),
+            tr("A command is already streaming to the Terminal panel - stop it before running another."));
         return;
     }
     if (componentDirty_) {
