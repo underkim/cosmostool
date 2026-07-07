@@ -196,8 +196,11 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             int idx = 1;
             if (idx < toks.size()) item.name = toks[idx++].toUpper();
 
+            bool    offsetOk = true;
+            QString offsetTok;
             if (!isAppend && idx < toks.size()) {
-                item.bitOffset = toks[idx].toInt();
+                offsetTok      = toks[idx];
+                item.bitOffset = toks[idx].toInt(&offsetOk);
                 ++idx;
             }
 
@@ -211,8 +214,11 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
 
             if (idx < toks.size()) item.dataType = toks[idx++].toUpper();
 
+            bool    arrayBitOk = true;
+            QString arrayBitTok;
             if (item.isArray && idx < toks.size()) {
-                item.arrayBitSize = toks[idx].toInt();
+                arrayBitTok      = toks[idx];
+                item.arrayBitSize = toks[idx].toInt(&arrayBitOk);
                 ++idx;
             }
 
@@ -241,6 +247,27 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                     CmdTlmDiagnostic::Severity::Error, lineNo,
                     QString("Unknown data type '%1' for '%2'")
                         .arg(item.dataType).arg(item.name),
+                    scopeOf(currentBlock->kind)
+                });
+            }
+
+            // ── Bit offset / array bit size sanity ────────────────────────────
+            // Mirrors the bit_size check below - a non-numeric token here
+            // previously fell through toInt()'s silent-zero default with no
+            // diagnostic at all, unlike bit_size which already caught this.
+            if (!offsetTok.isEmpty() && !offsetOk) {
+                result.diagnostics.append({
+                    CmdTlmDiagnostic::Severity::Error, lineNo,
+                    QString("Bit offset '%1' for '%2' is not an integer")
+                        .arg(offsetTok).arg(item.name),
+                    scopeOf(currentBlock->kind)
+                });
+            }
+            if (!arrayBitTok.isEmpty() && !arrayBitOk) {
+                result.diagnostics.append({
+                    CmdTlmDiagnostic::Severity::Error, lineNo,
+                    QString("Array bit size '%1' for '%2' is not an integer")
+                        .arg(arrayBitTok).arg(item.name),
                     scopeOf(currentBlock->kind)
                 });
             }

@@ -199,6 +199,26 @@ TEST(CmdTlmParserTest, LimitsWrongArgumentCountProducesError)
     EXPECT_GE(result.errorCount(), 1);
 }
 
+TEST(CmdTlmParserTest, NonIntegerBitOffsetProducesError)
+{
+    const QString src =
+        "COMMAND TGT C BIG_ENDIAN \"d\"\n"
+        "  PARAMETER P notanumber 16 UINT 0 100 5 \"x\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_GE(result.errorCount(), 1);
+}
+
+TEST(CmdTlmParserTest, NonIntegerArrayBitSizeProducesError)
+{
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ARRAY_ITEM ARR 16 UINT notanumber \"x\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_GE(result.errorCount(), 1);
+}
+
 TEST(CmdTlmParserTest, ArrayItemIsAccepted)
 {
     const QString src =
