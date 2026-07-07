@@ -639,31 +639,36 @@ Continue?</source>
     </message>
     <message>
         <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="99"/>
+        <source>Target must not contain spaces.</source>
+        <translation>대상(Target)에는 공백을 포함할 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="103"/>
         <source>Host and Port are both required.</source>
         <translation>Host와 Port는 모두 필수입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="104"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="108"/>
         <source>Host and Port must not contain spaces.</source>
         <translation>Host와 Port에는 공백을 포함할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="121"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="125"/>
         <source>/dev/ttyUSB0</source>
         <translation>/dev/ttyUSB0</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="122"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="126"/>
         <source>baud</source>
         <translation>보드레이트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="124"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="128"/>
         <source>localhost</source>
         <translation>localhost</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="125"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="129"/>
         <source>port</source>
         <translation>포트</translation>
     </message>

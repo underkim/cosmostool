@@ -95,6 +95,10 @@ PluginManifestInterfaceDialog::PluginManifestInterfaceDialog(
             QMessageBox::warning(this, windowTitle(), tr("Select or enter a target to map to."));
             return;
         }
+        if (!hasNoEmbeddedWhitespace(targetCombo_->currentText().trimmed())) {
+            QMessageBox::warning(this, windowTitle(), tr("Target must not contain spaces."));
+            return;
+        }
         if (hostEdit_->text().trimmed().isEmpty() || portEdit_->text().trimmed().isEmpty()) {
             QMessageBox::warning(this, windowTitle(), tr("Host and Port are both required."));
             return;
