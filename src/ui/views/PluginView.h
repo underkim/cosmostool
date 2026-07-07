@@ -86,6 +86,7 @@ private slots:
     void onApplyManifestBlockClicked();
     void onAddManifestModifierClicked();
     void onDeleteManifestModifierClicked();
+    void onDeleteManifestBlockClicked();
     void onManifestCellChanged(int row, int column);
     void onToggleReferenceClicked();
     void onBrowseGoClicked();
@@ -282,6 +283,7 @@ private:
     QToolButton* manifestMenuBtn_{nullptr};
     QAction*     addManifestModifierAction_{nullptr};
     QAction*     deleteManifestModifierAction_{nullptr};
+    QAction*     deleteManifestBlockAction_{nullptr};
     QAction*     refreshManifestAction_{nullptr};
 
     // ── Preview tab (screens/*.txt static layout preview) ──────────────────

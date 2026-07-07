@@ -15,6 +15,8 @@
 #include "viewmodels/screen/ScreenLayoutParser.h"
 #include "core/connection/ShellQuote.h"
 
+#include <algorithm>
+
 #include <QAbstractItemView>
 #include <QColor>
 #include <QFileDialog>
@@ -900,6 +902,7 @@ void PluginView::setupUi()
     manifestMenu->addSeparator();
     addManifestModifierAction_ = manifestMenu->addAction(tr("Add Modifier"));
     deleteManifestModifierAction_ = manifestMenu->addAction(tr("Delete Modifier"));
+    deleteManifestBlockAction_ = manifestMenu->addAction(tr("Delete Block"));
     refreshManifestAction_ = manifestMenu->addAction(tr("Refresh"));
     manifestMenuBtn_->setMenu(manifestMenu);
     auto* manifestMenuRow = new QHBoxLayout;
@@ -1230,6 +1233,7 @@ void PluginView::bindViewModel()
             this, &PluginView::onManifestBlockSelectionChanged);
     connect(addManifestModifierAction_, &QAction::triggered, this, &PluginView::onAddManifestModifierClicked);
     connect(deleteManifestModifierAction_, &QAction::triggered, this, &PluginView::onDeleteManifestModifierClicked);
+    connect(deleteManifestBlockAction_, &QAction::triggered, this, &PluginView::onDeleteManifestBlockClicked);
     connect(refreshManifestAction_, &QAction::triggered, this, &PluginView::refreshManifestTable);
     connect(manifestTable_, &QTableWidget::cellChanged, this, &PluginView::onManifestCellChanged);
     connect(componentEditorTabs_, &QTabWidget::currentChanged, this, [this](int index) {
@@ -2793,6 +2797,61 @@ void PluginView::onDeleteManifestModifierClicked()
     refreshManifestTable();
     componentDiagnostics_->setPlainText(tr("Deleted modifier '%1'. Save the file to keep it.")
         .arg(modifierText));
+}
+
+void PluginView::onDeleteManifestBlockClicked()
+{
+    const auto selected = manifestTable_->selectionModel()->selectedRows();
+    if (selected.isEmpty()) {
+        componentDiagnostics_->setPlainText(tr("Select a manifest block first."));
+        return;
+    }
+
+    const auto* lineCell = manifestTable_->item(selected.first().row(), 0);
+    if (!lineCell || lineCell->data(Qt::UserRole + 1).toBool()) {
+        componentDiagnostics_->setPlainText(tr("Select a block header row (not a modifier) first."));
+        return;
+    }
+
+    const int blockLineNumber = lineCell->data(Qt::UserRole).toInt();
+    const auto blockIt = std::find_if(currentManifestBlocks_.cbegin(), currentManifestBlocks_.cend(),
+        [blockLineNumber](const auto& b) { return b.lineNumber == blockLineNumber; });
+    if (blockIt == currentManifestBlocks_.cend())
+        return;
+
+    const QString blockLabel = manifestTable_->item(selected.first().row(), 1)
+        ? manifestTable_->item(selected.first().row(), 1)->text()
+        : tr("block");
+    const int modifierCount = static_cast<int>(blockIt->modifiers.size());
+    const auto answer = QMessageBox::question(
+        this,
+        tr("Delete Block"),
+        modifierCount > 0
+            ? tr("Delete block '%1' and its %2 modifier line(s) from this plugin.txt?")
+                  .arg(blockLabel).arg(modifierCount)
+            : tr("Delete block '%1' from this plugin.txt?").arg(blockLabel),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+    if (answer != QMessageBox::Yes)
+        return;
+
+    // A block's modifier lines aren't guaranteed to be consecutive with its
+    // header - PluginManifestParser doesn't treat a blank line as ending a
+    // block, only the next top-level keyword does, so a beginner could have
+    // left a blank line between modifiers. Delete each specific line number
+    // (not an assumed contiguous range), highest first, so removing one
+    // line never shifts the still-to-be-deleted ones above it.
+    QList<int> lineNumbers;
+    lineNumbers << blockIt->lineNumber;
+    for (const auto& mod : blockIt->modifiers)
+        lineNumbers << mod.lineNumber;
+    std::sort(lineNumbers.begin(), lineNumbers.end(), std::greater<int>());
+    for (const int ln : lineNumbers)
+        deleteEditorLine(ln);
+
+    refreshManifestTable();
+    componentDiagnostics_->setPlainText(tr("Deleted block '%1' (%2 line(s)). Save the file to keep it.")
+        .arg(blockLabel).arg(lineNumbers.size()));
 }
 
 void PluginView::onManifestCellChanged(int row, int column)
