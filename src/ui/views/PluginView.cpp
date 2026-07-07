@@ -2807,6 +2807,18 @@ void PluginView::onManifestCellChanged(int row, int column)
         refreshManifestTable();
         return;
     }
+    // Keyword is a bare token at the start of the generated line, same as
+    // the guided Add Modifier dialog's own Keyword field (which already
+    // rejects this) - editing the cell directly bypassed that check, so a
+    // space here would silently shift into the Arguments column instead
+    // of failing loudly.
+    if (!isValidFieldName(keyword)) {
+        componentDiagnostics_->setPlainText(tr(
+            "Keyword must start with a letter or underscore and contain only "
+            "letters, numbers, and underscores (no spaces or punctuation)."));
+        refreshManifestTable();
+        return;
+    }
 
     const QString newLine = args.isEmpty()
         ? QString("  %1").arg(keyword) : QString("  %1 %2").arg(keyword, args);
