@@ -33,6 +33,20 @@ bool isValidPluginName(const QString& name)
     static const QRegularExpression pattern("^[A-Za-z][A-Za-z0-9_-]*$");
     return pattern.match(name).hasMatch();
 }
+
+// Host/Port become bare, unquoted, space-separated tokens inside
+// PluginTemplateEngine::buildInterfaceArgs()'s output, spliced straight
+// into the scaffolded plugin.txt's INTERFACE line - but nothing validates
+// that trailing "rest of line" args text when the file is later Checked,
+// only the block's own required leading tokens. A space here wouldn't
+// even be caught by Check - it would silently scaffold a plugin.txt that
+// looks completely valid but hands the wrong number of constructor
+// arguments to the real Ruby interface class at COSMOS runtime.
+bool hasNoEmbeddedWhitespace(const QString& value)
+{
+    static const QRegularExpression whitespace("\\s");
+    return !value.contains(whitespace);
+}
 } // namespace
 
 // ── Constructor ───────────────────────────────────────────────────────────────
@@ -321,6 +335,15 @@ void PluginWizard::onNext()
             QMessageBox::warning(this, tr("Invalid Input"),
                 tr("Enter a target name using only letters, numbers, and underscores, "
                    "starting with a letter or underscore - e.g. \"MYSAT\"."));
+            return;
+        }
+        if (ifaceHostEdit_->text().trimmed().isEmpty() || ifacePortEdit_->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, tr("Invalid Input"), tr("Host and Port are both required."));
+            return;
+        }
+        if (!hasNoEmbeddedWhitespace(ifaceHostEdit_->text().trimmed())
+            || !hasNoEmbeddedWhitespace(ifacePortEdit_->text().trimmed())) {
+            QMessageBox::warning(this, tr("Invalid Input"), tr("Host and Port must not contain spaces."));
             return;
         }
     }

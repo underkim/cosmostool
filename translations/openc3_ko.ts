@@ -706,49 +706,49 @@ Continue?</source>
 <context>
     <name>OpenC3::UI::Dialogs::PluginWizard</name>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="44"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="58"/>
         <source>New OpenC3 Plugin Wizard</source>
         <translation>새 OpenC3 플러그인 마법사</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="53"/>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="284"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="67"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="298"/>
         <source>1 / 3  -  Plugin Basics</source>
         <translation>1 / 3  -  플러그인 기본 정보</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="82"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="96"/>
         <source>&lt; Back</source>
         <translation>&lt; 뒤로</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="83"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="97"/>
         <source>Next &gt;</source>
         <translation>다음 &gt;</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="84"/>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="103"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="98"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="117"/>
         <source>Create</source>
         <translation>생성</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="86"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="100"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="103"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="117"/>
         <source>Creating…</source>
         <translation>생성 중…</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="110"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="124"/>
         <source>Plugin Created</source>
         <translation>플러그인 생성됨</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="111"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="125"/>
         <source>The plugin was created at:
 %1
 
@@ -759,185 +759,197 @@ Continue?</source>
 %2</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="114"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="128"/>
         <source>Create Failed</source>
         <translation>생성 실패</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="135"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="149"/>
         <source>Plugin Info</source>
         <translation>플러그인 정보</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="148"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="162"/>
         <source>lowercase-hyphen, e.g. my-satellite</source>
         <translation>소문자-하이픈, 예: my-satellite</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="149"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="163"/>
         <source>My satellite target plugin</source>
         <translation>내 위성 타겟 플러그인</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="156"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="170"/>
         <source>Plugin name:</source>
         <translation>플러그인 이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="157"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="171"/>
         <source>Description:</source>
         <translation>설명:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="158"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="172"/>
         <source>Create in:</source>
         <translation>생성 위치:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="159"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="173"/>
         <source>Gem name:</source>
         <translation>Gem 이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="177"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="191"/>
         <source>Target Info</source>
         <translation>타겟 정보</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="184"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="198"/>
         <source>UPPERCASE, e.g. MYSAT</source>
         <translation>대문자, 예: MYSAT</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="186"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="200"/>
         <source>CamelCase, e.g. MySat</source>
         <translation>카멜케이스, 예: MySat</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="191"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="205"/>
         <source>Target name:</source>
         <translation>타겟 이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="192"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="206"/>
         <source>Namespace:</source>
         <translation>네임스페이스:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="193"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="207"/>
         <source>Path preview:</source>
         <translation>경로 미리보기:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="199"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="213"/>
         <source>Interface</source>
         <translation>인터페이스</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="205"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="219"/>
         <source>TCP/IP Client</source>
         <translation>TCP/IP 클라이언트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="205"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="219"/>
         <source>TCP/IP Server</source>
         <translation>TCP/IP 서버</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="205"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="219"/>
         <source>UDP</source>
         <translation>UDP</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="205"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="219"/>
         <source>Serial</source>
         <translation>시리얼</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="212"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="226"/>
         <source>Port:</source>
         <translation>포트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="215"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="229"/>
         <source>Type:</source>
         <translation>타입:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="216"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="230"/>
         <source>Host:Port:</source>
         <translation>호스트:포트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="222"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="236"/>
         <source>/dev/ttyUSB0</source>
         <translation>/dev/ttyUSB0</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="223"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="237"/>
         <source>baud</source>
         <translation>보드레이트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="225"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="239"/>
         <source>localhost</source>
         <translation>localhost</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="226"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="240"/>
         <source>port</source>
         <translation>포트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="231"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="245"/>
         <source>CMD/TLM Template</source>
         <translation>CMD/TLM 템플릿</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="234"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="248"/>
         <source>Generic  (basic structure)</source>
         <translation>일반  (기본 구조)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="235"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="249"/>
         <source>CCSDS Satellite  (Primary/Secondary Header)</source>
         <translation>CCSDS 위성  (기본/보조 헤더)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="236"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="250"/>
         <source>GSE Interface  (TCP/IP ground support equipment)</source>
         <translation>GSE 인터페이스  (TCP/IP 지상 지원 장비)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="260"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="274"/>
         <source>Preview and edit the files that will be created. Each tab&apos;s content is written directly to the remote.</source>
         <translation>생성될 파일을 미리 보고 편집합니다. 각 탭의 내용은 원격에 그대로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="285"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="299"/>
         <source>2 / 3  -  Target &amp; Interface</source>
         <translation>2 / 3  -  타겟 및 인터페이스</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="286"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="300"/>
         <source>3 / 3  -  Preview &amp; Edit Files</source>
         <translation>3 / 3  -  파일 미리보기 및 편집</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="313"/>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="321"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="327"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="335"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="341"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="346"/>
         <source>Invalid Input</source>
         <translation>잘못된 입력</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="314"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="328"/>
         <source>Enter the plugin name in lowercase-hyphen form (letters, numbers, and hyphens only, starting with a letter) - e.g. &quot;my-satellite&quot;.</source>
         <translation>소문자-하이픈 형식(문자, 숫자, 하이픈만 사용하고 문자로 시작)으로 플러그인 이름을 입력하세요 - 예: &quot;my-satellite&quot;.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="322"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="336"/>
         <source>Enter a target name using only letters, numbers, and underscores, starting with a letter or underscore - e.g. &quot;MYSAT&quot;.</source>
         <translation>문자, 숫자, 밑줄만 사용하고 문자나 밑줄로 시작하는 타겟 이름을 입력하세요 - 예: &quot;MYSAT&quot;.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="341"/>
+        <source>Host and Port are both required.</source>
+        <translation>Host와 Port는 모두 필수입니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="346"/>
+        <source>Host and Port must not contain spaces.</source>
+        <translation>Host와 Port에는 공백을 포함할 수 없습니다.</translation>
     </message>
     <message>
         <source>Enter the plugin name in lowercase-hyphen form, without spaces or single quotes.</source>
@@ -948,12 +960,12 @@ Continue?</source>
         <translation type="vanished">타겟 이름을 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="332"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="355"/>
         <source>Confirm Create</source>
         <translation>생성 확인</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="333"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="356"/>
         <source>The plugin will be created at:
 
 %1/%2
@@ -966,12 +978,12 @@ Continue?</source>
 계속하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="355"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="378"/>
         <source>&lt;b&gt;cosmos-%1&lt;/b&gt;</source>
         <translation>&lt;b&gt;cosmos-%1&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="363"/>
+        <location filename="../src/ui/dialogs/PluginWizard.cpp" line="386"/>
         <source>targets/%1/cmd_tlm/%2_cmds.txt …</source>
         <translation>targets/%1/cmd_tlm/%2_cmds.txt …</translation>
     </message>
