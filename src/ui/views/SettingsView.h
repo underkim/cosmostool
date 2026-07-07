@@ -40,6 +40,12 @@ private:
     void bindViewModel();
     void populateProfileForm(const Models::ConnectionProfile& p);
     Models::ConnectionProfile collectProfileForm() const;
+    // Only relevant when modeCombo_ selects SSH: Host must be non-empty and
+    // Port must be a complete, valid integer - the QIntValidator on portEdit_
+    // only blocks keystrokes that can never become valid, it does not stop a
+    // cleared/incomplete field from being submitted, which would otherwise
+    // silently collect as port 0 via QString::toInt().
+    bool isSshFormValid() const;
     void updateConnectionButtons(Services::ConnectionState state);
     void updateProfileSelectionUi();
     void updateActionHints(Services::ConnectionState state);

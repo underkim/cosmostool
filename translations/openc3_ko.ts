@@ -4020,7 +4020,7 @@ Add the declaration anyway?</source>
     </message>
     <message>
         <location filename="../src/ui/views/SettingsView.cpp" line="83"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="730"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="746"/>
         <source>Auto-detect WSL and create a /cosmos profile.</source>
         <translation>WSL을 자동 감지하여 /cosmos 프로필을 생성합니다.</translation>
     </message>
@@ -4036,7 +4036,7 @@ Add the declaration anyway?</source>
     </message>
     <message>
         <location filename="../src/ui/views/SettingsView.cpp" line="100"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="541"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="550"/>
         <source>Create Custom Profile</source>
         <translation>사용자 지정 프로필 생성</translation>
     </message>
@@ -4053,7 +4053,7 @@ Add the declaration anyway?</source>
     <message>
         <location filename="../src/ui/views/SettingsView.cpp" line="125"/>
         <location filename="../src/ui/views/SettingsView.cpp" line="139"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="720"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="736"/>
         <source>Select a connection profile first.</source>
         <translation>먼저 연결 프로필을 선택하세요.</translation>
     </message>
@@ -4074,7 +4074,7 @@ Add the declaration anyway?</source>
     </message>
     <message>
         <location filename="../src/ui/views/SettingsView.cpp" line="140"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="719"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="735"/>
         <source>Connect to an OpenC3 environment first.</source>
         <translation>먼저 OpenC3 환경에 연결하세요.</translation>
     </message>
@@ -4114,13 +4114,13 @@ OpenC3 디렉터리나 openc3.sh 전체 경로를 입력하세요.
     </message>
     <message>
         <location filename="../src/ui/views/SettingsView.cpp" line="173"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="482"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="491"/>
         <source>Detect</source>
         <translation>감지</translation>
     </message>
     <message>
         <location filename="../src/ui/views/SettingsView.cpp" line="174"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="402"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="411"/>
         <source>Search the selected WSL distro for openc3.sh</source>
         <translation>선택한 WSL 배포판에서 openc3.sh를 검색합니다</translation>
     </message>
@@ -4155,237 +4155,245 @@ OpenC3 디렉터리나 openc3.sh 전체 경로를 입력하세요.
         <translation>&lt;small style=&apos;color:#858585&apos;&gt;Windows에 설치된 WSL 배포판이 여기에 자동으로 표시됩니다.&lt;br&gt;목록이 비어 있으면 ↻ 버튼을 누르거나 &lt;code&gt;wsl --install Ubuntu&lt;/code&gt;로 설치하세요.&lt;/small&gt;</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="236"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="237"/>
         <source>Password</source>
         <translation>비밀번호</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="236"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="237"/>
         <source>Public Key</source>
         <translation>공개 키</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="241"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="242"/>
         <source>SSH password</source>
         <translation>SSH 비밀번호</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="252"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="253"/>
         <source>Select a private key file</source>
         <translation>개인 키 파일 선택</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="260"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="261"/>
         <source>Leave blank if the key has no passphrase</source>
         <translation>키에 암호가 없으면 비워 두세요</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="262"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="263"/>
         <source>SSH Host:</source>
         <translation>SSH 호스트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="263"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="264"/>
         <source>SSH Port:</source>
         <translation>SSH 포트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="264"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="265"/>
         <source>Username:</source>
         <translation>사용자 이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="265"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="266"/>
         <source>Auth Method:</source>
         <translation>인증 방법:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="266"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="267"/>
         <source>Password:</source>
         <translation>비밀번호:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="267"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="268"/>
         <source>Key Path:</source>
         <translation>키 경로:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="268"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="269"/>
         <source>Key Passphrase:</source>
         <translation>키 암호:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="273"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="274"/>
         <source>Select Private Key File</source>
         <translation>개인 키 파일 선택</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="275"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="276"/>
         <source>Key files (*.pem *.key id_rsa id_ed25519 *);;All files (*)</source>
         <translation>키 파일 (*.pem *.key id_rsa id_ed25519 *);;모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="296"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="331"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="339"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="297"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="332"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="336"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="344"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="348"/>
         <source>Save Profile</source>
         <translation>프로필 저장</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="298"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="299"/>
         <source>Save &amp;&amp; Connect</source>
         <translation>저장 &amp;&amp; 연결</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="331"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="339"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="332"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="344"/>
         <source>Enter a profile name first.</source>
         <translation>먼저 프로필 이름을 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="369"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="380"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="336"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="348"/>
+        <source>Enter a valid Host and Port first.</source>
+        <translation>먼저 유효한 호스트와 포트를 입력하세요.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/views/SettingsView.cpp" line="378"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="389"/>
         <source>Status:</source>
         <translation>상태:</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="403"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="412"/>
         <source>Select WSL mode to detect the OpenC3 path automatically.</source>
         <translation>WSL 모드를 선택하면 OpenC3 경로를 자동으로 감지합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="414"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="440"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="423"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="449"/>
         <source>Ubuntu</source>
         <translation>Ubuntu</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="454"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="461"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="487"/>
-        <location filename="../src/ui/views/SettingsView.cpp" line="501"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="463"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="470"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="496"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="510"/>
         <source>OpenC3 path detection</source>
         <translation>OpenC3 경로 감지</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="455"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="464"/>
         <source>Automatic detection is currently available for WSL profiles.</source>
         <translation>자동 감지는 현재 WSL 프로필에서만 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="462"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="471"/>
         <source>Select a WSL distro first.</source>
         <translation>먼저 WSL 배포판을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="467"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="476"/>
         <source>Detecting...</source>
         <translation>감지 중...</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="488"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="497"/>
         <source>Timed out while searching for openc3.sh.</source>
         <translation>openc3.sh 검색 시간이 초과되었습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="502"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="511"/>
         <source>Could not find openc3.sh in the selected WSL distro.
 Enter the OpenC3 directory or openc3.sh path manually.</source>
         <translation>선택한 WSL 배포판에서 openc3.sh를 찾을 수 없습니다.
 OpenC3 디렉터리나 openc3.sh 경로를 직접 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="517"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="526"/>
         <source>New Profile</source>
         <translation>새 프로필</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="535"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="544"/>
         <source>No WSL Distro Detected</source>
         <translation>WSL 배포판 감지 안 됨</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="536"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="545"/>
         <source>Could not detect any installed WSL distribution.</source>
         <translation>설치된 WSL 배포판을 감지할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="538"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="547"/>
         <source>You can proceed with &quot;%1&quot; as a guess, create a custom profile instead, or cancel.</source>
         <translation>&quot;%1&quot;을(를) 추정값으로 진행하거나, 사용자 지정 프로필을 만들거나, 취소할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="540"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="549"/>
         <source>Use %1 Defaults</source>
         <translation>%1 기본값 사용</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="576"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="585"/>
         <source>Status: WSL profile created for %1 — review it, then Save &amp; Connect.</source>
         <translation>상태: %1에 대한 WSL 프로필이 생성되었습니다 — 검토 후 저장 &amp; 연결하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="588"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="597"/>
         <source>Delete Profile</source>
         <translation>프로필 삭제</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="589"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="598"/>
         <source>Delete this profile?</source>
         <translation>이 프로필을 삭제할까요?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="695"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="711"/>
         <source>Select a saved profile before connecting.</source>
         <translation>연결하기 전에 저장된 프로필을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="697"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="713"/>
         <source>A connection attempt is already in progress.</source>
         <translation>이미 연결 시도가 진행 중입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="723"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="739"/>
         <source>Connection is already in progress.</source>
         <translation>연결이 이미 진행 중입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="723"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="739"/>
         <source>Connect to the selected OpenC3 environment.</source>
         <translation>선택한 OpenC3 환경에 연결합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="724"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="740"/>
         <source>Disconnect from the current OpenC3 environment.</source>
         <translation>현재 OpenC3 환경 연결을 해제합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="729"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="745"/>
         <source>Delete the selected connection profile.</source>
         <translation>선택한 연결 프로필을 삭제합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="731"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="747"/>
         <source>Save the current connection profile settings.</source>
         <translation>현재 연결 프로필 설정을 저장합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="735"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="751"/>
         <source>Profile selected. Review it, save changes if needed, then connect.</source>
         <translation>프로필이 선택되었습니다. 검토 후 필요하면 변경 사항을 저장하고 연결하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="736"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="752"/>
         <source>New here? Use Quick WSL for local OpenC3, or Custom for SSH/advanced setup.</source>
         <translation>처음이신가요? 로컬 OpenC3는 빠른 WSL을, SSH/고급 설정은 사용자 지정을 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="740"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="756"/>
         <source>Status: Disconnected — choose Quick WSL or Custom, then connect.</source>
         <translation>상태: 연결 안 됨 — 빠른 WSL 또는 사용자 지정을 선택한 다음 연결하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/SettingsView.cpp" line="742"/>
+        <location filename="../src/ui/views/SettingsView.cpp" line="758"/>
         <source>Status: Disconnected — connect when ready.</source>
         <translation>상태: 연결 안 됨 — 준비되면 연결하세요.</translation>
     </message>

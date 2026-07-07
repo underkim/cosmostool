@@ -225,6 +225,7 @@ void SettingsView::setupUi()
     hostEdit_       = new QLineEdit(sshPage);
     hostEdit_->setPlaceholderText("192.168.1.100 or hostname");
     portEdit_       = new QLineEdit("22", sshPage);
+    portEdit_->setObjectName("SshPortEdit");
     portEdit_->setFixedWidth(80);
     portEdit_->setValidator(new QIntValidator(1, 65535, portEdit_));
     usernameEdit_   = new QLineEdit(sshPage);
@@ -331,12 +332,20 @@ void SettingsView::bindViewModel()
             QMessageBox::warning(this, tr("Save Profile"), tr("Enter a profile name first."));
             return;
         }
+        if (!isSshFormValid()) {
+            QMessageBox::warning(this, tr("Save Profile"), tr("Enter a valid Host and Port first."));
+            return;
+        }
         vm_.saveProfile(collectProfileForm());
         updateProfileSelectionUi();
     });
     connect(saveAndConnectBtn_, &QPushButton::clicked, this, [this] {
         if (nameEdit_->text().trimmed().isEmpty()) {
             QMessageBox::warning(this, tr("Save Profile"), tr("Enter a profile name first."));
+            return;
+        }
+        if (!isSshFormValid()) {
+            QMessageBox::warning(this, tr("Save Profile"), tr("Enter a valid Host and Port first."));
             return;
         }
         const auto profile = collectProfileForm();
@@ -648,6 +657,13 @@ void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
     passwordEdit_->setText(QString::fromStdString(p.password));
     keyPathEdit_->setText(QString::fromStdString(p.privateKeyPath));
     passphraseEdit_->setText(QString::fromStdString(p.passphrase));
+}
+
+bool SettingsView::isSshFormValid() const
+{
+    if (modeCombo_->currentIndex() != static_cast<int>(Models::ConnectionMode::SSH))
+        return true;
+    return !hostEdit_->text().trimmed().isEmpty() && portEdit_->hasAcceptableInput();
 }
 
 Models::ConnectionProfile SettingsView::collectProfileForm() const
