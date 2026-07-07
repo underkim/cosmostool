@@ -1466,7 +1466,7 @@ void PluginView::bindViewModel()
                 componentDiagnostics_->setPlainText(
                     cmdTlm ? tr("Loaded CMD/TLM definition.") : tr("Loaded text file."));
                 diagnosticList_->clear();
-                diagnosticListEmptyLabel_->setVisible(true);
+                showDiagnosticsEmptyState(false);
                 refreshStructureTable();
                 refreshManifestTable();
                 refreshScreenPreview();
@@ -1520,7 +1520,10 @@ void PluginView::bindViewModel()
                     li->setData(Qt::UserRole, d.line);
                     li->setForeground(isError ? QColor("#F44747") : QColor("#CCA700"));
                 }
-                diagnosticListEmptyLabel_->setVisible(diagnosticList_->count() == 0);
+                if (diagnosticList_->count() == 0)
+                    showDiagnosticsEmptyState(true);
+                else
+                    diagnosticListEmptyLabel_->setVisible(false);
 
                 if (detailTabs_)
                     detailTabs_->setCurrentIndex(1);
@@ -1559,7 +1562,10 @@ void PluginView::bindViewModel()
                     case Severity::Info:    li->setForeground(QColor("#9A9A9A")); break;
                     }
                 }
-                diagnosticListEmptyLabel_->setVisible(diagnosticList_->count() == 0);
+                if (diagnosticList_->count() == 0)
+                    showDiagnosticsEmptyState(true);
+                else
+                    diagnosticListEmptyLabel_->setVisible(false);
 
                 if (detailTabs_)
                     detailTabs_->setCurrentIndex(1);
@@ -1731,7 +1737,7 @@ void PluginView::onTableSelectionChanged()
     componentEditor_->clear();
     componentDiagnostics_->clear();
     diagnosticList_->clear();
-    diagnosticListEmptyLabel_->setVisible(true);
+    showDiagnosticsEmptyState(false);
     structureTable_->setRowCount(0);
     currentBlocks_.clear();
     refreshBlockEditor();
@@ -2153,6 +2159,14 @@ void PluginView::setComponentHint(const QString& text)
 {
     if (componentHintLabel_)
         componentHintLabel_->setText(text);
+}
+
+void PluginView::showDiagnosticsEmptyState(bool justChecked)
+{
+    diagnosticListEmptyLabel_->setText(justChecked
+        ? tr("No issues found - looks good!")
+        : tr("No diagnostics yet - check the file to see issues here."));
+    diagnosticListEmptyLabel_->setVisible(true);
 }
 
 void PluginView::updateActionHints()

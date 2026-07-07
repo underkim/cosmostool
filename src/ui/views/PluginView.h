@@ -105,6 +105,12 @@ private:
     void updateWizardStepStrip();
     void populateComponentList(const QStringList& files, const QString& pluginRootPath);
     void setComponentHint(const QString& text);
+    // Shows diagnosticListEmptyLabel_ with wording appropriate to *why* the
+    // list is empty - "not checked yet" (file just opened/reset) reads as a
+    // false "all clear" if reused after a check that actually ran and found
+    // nothing, so callers must say which case applies instead of getting a
+    // single default message for both.
+    void showDiagnosticsEmptyState(bool justChecked);
     void openSelectedComponent(QListWidgetItem* item);
     void openBrowsePath(const QString& remotePath);
     void insertTextAtCursor(const QString& text);

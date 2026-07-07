@@ -2356,15 +2356,15 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="238"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1594"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1600"/>
         <source>New Plugin</source>
         <translation>새 플러그인</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="239"/>
         <location filename="../src/ui/views/PluginView.cpp" line="294"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1610"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1617"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1616"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1623"/>
         <source>Add Target</source>
         <translation>타겟 추가</translation>
     </message>
@@ -2447,7 +2447,7 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="320"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1768"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1774"/>
         <source>Select a plugin folder to inspect and edit its files.</source>
         <translation>플러그인 폴더를 선택하여 파일을 검토하고 편집하세요.</translation>
     </message>
@@ -2466,7 +2466,7 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="256"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2180"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2194"/>
         <source>Check that this plugin folder has the expected files (plugin.txt, .gemspec, targets/).</source>
         <translation>이 플러그인 폴더에 필요한 파일(plugin.txt, .gemspec, targets/)이 있는지 확인합니다.</translation>
     </message>
@@ -2477,8 +2477,8 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="295"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1632"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1637"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1638"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1643"/>
         <source>Add Script</source>
         <translation>스크립트 추가</translation>
     </message>
@@ -2545,8 +2545,8 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="464"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1746"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1769"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1752"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1775"/>
         <source>Select a plugin first.</source>
         <translation>먼저 플러그인을 선택하세요.</translation>
     </message>
@@ -2582,9 +2582,9 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="552"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1743"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2142"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="3248"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1749"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2148"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3262"/>
         <source>Select a plugin file</source>
         <translation>플러그인 파일 선택</translation>
     </message>
@@ -2597,7 +2597,7 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="555"/>
         <location filename="../src/ui/views/PluginView.cpp" line="578"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="3103"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3117"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
@@ -2631,9 +2631,9 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="562"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1938"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1943"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1948"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1944"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1949"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1954"/>
         <source>Run Script</source>
         <translation>스크립트 실행</translation>
     </message>
@@ -2644,9 +2644,9 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="567"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1975"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1980"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1985"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1981"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1986"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1991"/>
         <source>Check Syntax</source>
         <translation>문법 검사</translation>
     </message>
@@ -2724,7 +2724,7 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="592"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2195"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2209"/>
         <source>Delete the selected structure row.</source>
         <translation>선택한 구조 행을 삭제합니다.</translation>
     </message>
@@ -2900,6 +2900,7 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="797"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2168"/>
         <source>No diagnostics yet - check the file to see issues here.</source>
         <translation>아직 진단 결과가 없습니다 - 파일을 검사하면 문제가 여기에 표시됩니다.</translation>
     </message>
@@ -3011,7 +3012,7 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="889"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2711"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2725"/>
         <source>Delete Modifier</source>
         <translation>수정자 삭제</translation>
     </message>
@@ -3204,121 +3205,121 @@ Check the build log in the Overview tab for the cause.</source>
         <translation>경고</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1536"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1539"/>
         <source>File check: %1   Source: %2</source>
         <translation>파일 검사: %1   소스: %2</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1544"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1547"/>
         <source>line %1</source>
         <translation>%1번 줄</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1545"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1548"/>
         <source>file</source>
         <translation>파일</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1551"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1554"/>
         <source>  Fix: %1</source>
         <translation>  수정: %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1572"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1578"/>
         <source>Select Plugin Gem</source>
         <translation>플러그인 Gem 선택</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1572"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1578"/>
         <source>Gem files (*.gem);;All files (*)</source>
         <translation>Gem 파일 (*.gem);;모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1581"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1587"/>
         <source>Confirm Remove</source>
         <translation>제거 확인</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1582"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1588"/>
         <source>Remove plugin: %1?</source>
         <translation>플러그인을 제거할까요: %1?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1595"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1601"/>
         <source>Save the open CMD/TLM file before creating a new plugin.</source>
         <translation>새 플러그인을 만들기 전에 열려 있는 CMD/TLM 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1611"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1617"/>
         <source>Select a plugin folder before adding a target.</source>
         <translation>타겟을 추가하기 전에 플러그인 폴더를 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1618"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1624"/>
         <source>Save the open CMD/TLM file before adding a target.</source>
         <translation>타겟을 추가하기 전에 열려 있는 CMD/TLM 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1633"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1639"/>
         <source>Select a plugin folder before adding a script.</source>
         <translation>스크립트를 추가하기 전에 플러그인 폴더를 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1638"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1644"/>
         <source>Save the open file before adding a script.</source>
         <translation>스크립트를 추가하기 전에 열려있는 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1661"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1667"/>
         <source>Select Plugin Directory or Gem</source>
         <translation>플러그인 디렉터리 또는 Gem 선택</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1661"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1667"/>
         <source>All files (*)</source>
         <translation>모든 파일 (*)</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1668"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1675"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1674"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1681"/>
         <source>Build Plugin</source>
         <translation>플러그인 빌드</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1669"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1675"/>
         <source>Save the open CMD/TLM file before building the plugin.</source>
         <translation>플러그인을 빌드하기 전에 열려 있는 CMD/TLM 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1676"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2167"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1682"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2181"/>
         <source>Select a plugin folder first.</source>
         <translation>먼저 플러그인 폴더를 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1681"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1687"/>
         <source>Building plugin...
 %1</source>
         <translation>플러그인 빌드 중...
 %1</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1743"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1749"/>
         <source>Loading plugin files</source>
         <translation>플러그인 파일 불러오는 중</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1745"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1751"/>
         <source>Loading plugin files. CMD/TLM files will appear grouped first.</source>
         <translation>플러그인 파일을 불러오는 중입니다. CMD/TLM 파일이 먼저 그룹으로 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1781"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1787"/>
         <source>%1  |  %2 target(s)  |  %3</source>
         <translation>%1  |  타겟 %2개  |  %3</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1786"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1792"/>
         <source>Selected Plugin
 Name:       %1
 Root:       %2
@@ -3369,89 +3370,89 @@ COSMOS:     %9
 3. 필드 추가, CMD/TLM 검증 후 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1807"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1813"/>
         <source>Ready</source>
         <translation>준비됨</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1807"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1813"/>
         <source>Needs attention</source>
         <translation>확인 필요</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1819"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1825"/>
         <source>  (none)</source>
         <translation>  (없음)</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1876"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1882"/>
         <source>CMD/TLM validation is available for cmd_tlm files.</source>
         <translation>CMD/TLM 검증은 cmd_tlm 파일에서 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1890"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1896"/>
         <source>Nothing to validate.</source>
         <translation>검증할 내용이 없습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1897"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1903"/>
         <source>Checking file...</source>
         <translation>파일 검사 중...</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1906"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1912"/>
         <source>No CMD/TLM definition file was found in this plugin.</source>
         <translation>이 플러그인에서 CMD/TLM 정의 파일을 찾을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1944"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1981"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1950"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1987"/>
         <source>A command is already streaming to the Terminal panel - stop it before running another.</source>
         <translation>이미 터미널 패널에 명령이 스트리밍되고 있습니다 - 다른 명령을 실행하기 전에 중지하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1949"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1955"/>
         <source>Save the script before running it.</source>
         <translation>실행하기 전에 스크립트를 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1967"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1973"/>
         <source>Running script - see Terminal panel for output.</source>
         <translation>스크립트 실행 중 - 출력은 터미널 패널에서 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1986"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1992"/>
         <source>Save the script before checking its syntax.</source>
         <translation>문법을 검사하기 전에 스크립트를 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2002"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2008"/>
         <source>Checking script syntax - see Terminal panel for output.</source>
         <translation>스크립트 문법 검사 중 - 출력은 터미널 패널에서 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2032"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2088"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2038"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2094"/>
         <source>Select a field row first.</source>
         <translation>먼저 필드 행을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2043"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2049"/>
         <source>field</source>
         <translation>필드</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2046"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2052"/>
         <source>Delete Field</source>
         <translation>필드 삭제</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2047"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2053"/>
         <source>Delete field &apos;%1&apos; from this CMD/TLM file?</source>
         <translation>이 CMD/TLM 파일에서 필드 &apos;%1&apos;을(를) 삭제할까요?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2075"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2081"/>
         <source>Deleted field &apos;%1&apos; (%2 line(s)). Save the file to keep it.</source>
         <translation>필드 &apos;%1&apos;을(를) 삭제했습니다 (%2줄). 유지하려면 파일을 저장하세요.</translation>
     </message>
@@ -3460,54 +3461,59 @@ COSMOS:     %9
         <translation type="vanished">필드 &apos;%1&apos;이(가) 삭제되었습니다. 유지하려면 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2141"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2147"/>
         <source>No plugin component files found</source>
         <translation>플러그인 구성 파일을 찾을 수 없음</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2144"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2150"/>
         <source>No editable plugin files were found. Check that plugin.txt, gemspec, and targets exist.</source>
         <translation>편집 가능한 플러그인 파일을 찾을 수 없습니다. plugin.txt, gemspec, targets가 있는지 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2145"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2151"/>
         <source>Found %1 file(s), including %2 CMD/TLM definition file(s). Use Edit CMD/TLM for the usual flow.</source>
         <translation>파일 %1개를 찾았으며(그중 CMD/TLM 정의 파일 %2개), 일반적인 흐름은 CMD/TLM 편집을 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="1939"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="1976"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2166"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1945"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="1982"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2180"/>
         <source>Connect to an OpenC3 environment first.</source>
         <translation>먼저 OpenC3 환경에 연결하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2168"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2167"/>
+        <source>No issues found - looks good!</source>
+        <translation>문제를 찾지 못했습니다 - 좋습니다!</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/views/PluginView.cpp" line="2182"/>
         <source>Open a CMD/TLM .txt file first.</source>
         <translation>먼저 CMD/TLM .txt 파일을 여세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2169"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2183"/>
         <source>Open a plugin file first.</source>
         <translation>먼저 플러그인 파일을 여세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2170"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2184"/>
         <source>Wait for the current plugin operation to finish.</source>
         <translation>현재 진행 중인 플러그인 작업이 끝날 때까지 기다리세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2177"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2191"/>
         <source>Add a target folder structure to this plugin.</source>
         <translation>이 플러그인에 타겟 폴더 구조를 추가합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2178"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2192"/>
         <source>Build this plugin into a gem.</source>
         <translation>이 플러그인을 gem으로 빌드합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2179"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2193"/>
         <source>Remove this plugin from OpenC3.</source>
         <translation>이 플러그인을 OpenC3에서 제거합니다.</translation>
     </message>
@@ -3516,87 +3522,87 @@ COSMOS:     %9
         <translation type="vanished">openc3cli로 이 플러그인을 검사합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2181"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2195"/>
         <source>Select a plugin file first.</source>
         <translation>먼저 플러그인 파일을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2181"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2195"/>
         <source>Open the selected plugin file.</source>
         <translation>선택한 플러그인 파일을 엽니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2182"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2196"/>
         <source>Open the first CMD/TLM definition and start editing.</source>
         <translation>첫 번째 CMD/TLM 정의를 열고 편집을 시작합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2183"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2197"/>
         <source>Save the open plugin file.</source>
         <translation>열려 있는 플러그인 파일을 저장합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2184"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2198"/>
         <source>Validate the open CMD/TLM .txt file.</source>
         <translation>열려 있는 CMD/TLM .txt 파일을 검증합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2185"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2199"/>
         <source>Run the full per-rule offline validator on this file.</source>
         <translation>이 파일에 대해 규칙별 전체 오프라인 검증기를 실행합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2186"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2200"/>
         <source>Insert a COMMAND template.</source>
         <translation>COMMAND 템플릿을 삽입합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2187"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2201"/>
         <source>Insert a TELEMETRY template.</source>
         <translation>TELEMETRY 템플릿을 삽입합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2189"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2203"/>
         <source>Open a procedures/*.rb script file first.</source>
         <translation>먼저 procedures/*.rb 스크립트 파일을 여세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2190"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2204"/>
         <source>Insert a cmd()/wait_check() script step.</source>
         <translation>cmd()/wait_check() 스크립트 단계를 삽입합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2191"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2205"/>
         <source>Add a CMD/TLM field at the cursor.</source>
         <translation>커서 위치에 CMD/TLM 필드를 추가합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2192"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2206"/>
         <source>Add a CMD/TLM structure row.</source>
         <translation>CMD/TLM 구조 행을 추가합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2194"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2208"/>
         <source>Select a structure row first.</source>
         <translation>먼저 구조 행을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2196"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2210"/>
         <source>Refresh the structure editor from the source text.</source>
         <translation>원본 텍스트로부터 구조 편집기를 새로고침합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2197"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2211"/>
         <source>Apply the selected structure row to the source text.</source>
         <translation>선택한 구조 행을 원본 텍스트에 적용합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2200"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2214"/>
         <source>Select a plugin to check, build, or install.</source>
         <translation>검사, 빌드, 설치할 플러그인을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2202"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2216"/>
         <source>Open a file, then edit and save. Advanced actions are in Check, Insert, and Fields.</source>
         <translation>파일을 열어 편집하고 저장하세요. 고급 작업은 검사, 삽입, 필드 메뉴에 있습니다.</translation>
     </message>
@@ -3633,64 +3639,64 @@ COSMOS:     %9
         <translation type="vanished">저장되었습니다. 준비되면 플러그인 작업으로 돌아가세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2323"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2337"/>
         <source>Structure loaded: %1 block(s), %2 field(s), %3 error(s), %4 warning(s).</source>
         <translation>구조를 불러왔습니다: 블록 %1개, 필드 %2개, 오류 %3개, 경고 %4개.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2410"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2708"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2424"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2722"/>
         <source>modifier</source>
         <translation>수정자</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2517"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="2658"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2531"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2672"/>
         <source>Select a manifest block first.</source>
         <translation>먼저 매니페스트 블록을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2530"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2544"/>
         <source>Folder/Class and Name are required for TARGET.</source>
         <translation>TARGET에는 폴더/클래스와 이름이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2538"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2552"/>
         <source>Name and Folder/Class are required.</source>
         <translation>이름과 폴더/클래스가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2547"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2561"/>
         <source>Folder/Class and Name are required for MICROSERVICE.</source>
         <translation>MICROSERVICE에는 폴더/클래스와 이름이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2560"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2574"/>
         <source>Name is required for VARIABLE.</source>
         <translation>VARIABLE에는 이름이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2570"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2584"/>
         <source>Updated block at line %1. Modifier lines were preserved. Save to keep it.</source>
         <translation>%1번째 줄의 블록을 업데이트했습니다. 수정자 줄은 유지되었습니다. 저장해야 반영됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2598"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2612"/>
         <source>Added modifier line. Save the file to keep it.</source>
         <translation>수정자 줄을 추가했습니다. 저장해야 반영됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2612"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2626"/>
         <source>Added new block at the end of the file. Edit its placeholder names, then save.</source>
         <translation>파일 끝에 새 블록을 추가했습니다. placeholder 이름을 수정한 후 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2622"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2636"/>
         <source>Add %1</source>
         <translation>%1 추가</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2623"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2637"/>
         <source>A %1 needs a real web frontend (Vue.js component) that you write yourself, outside this app - this only adds its plugin.txt declaration, not a working %1.
 
 Add the declaration anyway?</source>
@@ -3699,133 +3705,133 @@ Add the declaration anyway?</source>
 그래도 선언을 추가하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2680"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2694"/>
         <source>VARIABLE does not take modifier lines.</source>
         <translation>VARIABLE은 수정자 줄을 가질 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2695"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2709"/>
         <source>Select a modifier row first.</source>
         <translation>먼저 수정자 행을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2701"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2715"/>
         <source>Select a modifier row (not a block header) first.</source>
         <translation>먼저 (블록 헤더가 아닌) 수정자 행을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2712"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2726"/>
         <source>Delete modifier &apos;%1&apos; from this plugin.txt?</source>
         <translation>이 plugin.txt에서 수정자 &apos;%1&apos;을(를) 삭제하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2720"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2734"/>
         <source>Deleted modifier &apos;%1&apos;. Save the file to keep it.</source>
         <translation>수정자 &apos;%1&apos;을(를) 삭제했습니다. 저장해야 반영됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2745"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2759"/>
         <source>Keyword is required.</source>
         <translation>키워드는 필수입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2753"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2767"/>
         <source>Applied modifier change to line %1. Save the file to keep it.</source>
         <translation>%1번째 줄에 수정자 변경사항을 적용했습니다. 저장해야 반영됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2840"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2854"/>
         <source>Select a COMMAND/TELEMETRY block first.</source>
         <translation>먼저 COMMAND/TELEMETRY 블록을 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2853"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2867"/>
         <source>Target and Name are required for a block.</source>
         <translation>블록에는 타겟과 이름이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2863"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2877"/>
         <source>Updated %1 block at line %2. Comments and fields were preserved. Save to keep it.</source>
         <translation>%2번 줄의 %1 블록이 업데이트되었습니다. 주석과 필드는 그대로 유지됩니다. 저장하여 반영하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2952"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2966"/>
         <source>Name, Bits, and Type are required.</source>
         <translation>이름, 비트, 타입은 필수입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2956"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2970"/>
         <source>Field name must start with a letter or underscore and contain only letters, numbers, and underscores (no spaces or punctuation).</source>
         <translation>필드 이름은 문자나 밑줄로 시작해야 하며 문자, 숫자, 밑줄만 포함할 수 있습니다 (공백이나 구두점 불가).</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2962"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2976"/>
         <source>Offset is required for PARAMETER / ITEM rows.</source>
         <translation>PARAMETER / ITEM 행에는 오프셋이 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2966"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2980"/>
         <source>Array Bits is required for ARRAY rows.</source>
         <translation>ARRAY 행에는 배열 비트가 필요합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3010"/>
-        <location filename="../src/ui/views/PluginView.cpp" line="3073"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3024"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3087"/>
         <source>Could not find the selected line in the editor.</source>
         <translation>편집기에서 선택한 줄을 찾을 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3018"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3032"/>
         <source>Applied field change to line %1. Save the file to keep it.</source>
         <translation>%1번 줄에 필드 변경을 적용했습니다. 유지하려면 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3066"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3080"/>
         <source>Added field row. Save the file to keep it.</source>
         <translation>필드 행이 추가되었습니다. 유지하려면 파일을 저장하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3103"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3117"/>
         <source>Save Changes</source>
         <translation>변경 사항 저장</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3176"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3190"/>
         <source>Added widget at the end of the screen. Save the file to keep it.</source>
         <translation>화면 끝에 위젯을 추가했습니다. 저장해야 반영됩니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3253"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3267"/>
         <source>Unsaved</source>
         <translation>저장 안 됨</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3253"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3267"/>
         <source>Editing</source>
         <translation>편집 중</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3263"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3277"/>
         <source>Unsaved Changes</source>
         <translation>저장되지 않은 변경 사항</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3264"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3278"/>
         <source>This CMD/TLM file has unsaved changes. Open another file and discard them?</source>
         <translation>이 CMD/TLM 파일에 저장되지 않은 변경 사항이 있습니다. 다른 파일을 열고 변경 사항을 버릴까요?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3281"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3295"/>
         <source>Validation found %1 error(s). Save anyway?</source>
         <translation>검증에서 오류 %1개를 발견했습니다. 그래도 저장할까요?</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3287"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3301"/>
         <source>Line %1: %2</source>
         <translation>%1번 줄: %2</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="3295"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="3309"/>
         <source>Validate Before Save</source>
         <translation>저장 전 검증</translation>
     </message>
@@ -4390,7 +4396,7 @@ OpenC3 디렉터리나 openc3.sh 경로를 직접 입력하세요.</translation>
     <message>
         <location filename="../src/ui/widgets/ScreenPreviewWidget.cpp" line="48"/>
         <source>No widgets yet - use &quot;Add Widget&quot; to add one.</source>
-        <translation>아직 위젯이 없습니다 - "위젯 추가"를 사용해 하나 추가하세요.</translation>
+        <translation>아직 위젯이 없습니다 - &quot;위젯 추가&quot;를 사용해 하나 추가하세요.</translation>
     </message>
     <message>
         <location filename="../src/ui/widgets/ScreenPreviewWidget.cpp" line="144"/>
