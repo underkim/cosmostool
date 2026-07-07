@@ -136,6 +136,19 @@ bool isValidFieldName(const QString& name)
     return pattern.match(name).hasMatch();
 }
 
+// Offset/Bits/Type/Array Bits/Min/Max/Default are also bare, unquoted
+// positional tokens in the generated line, same as Field - but unlike
+// Field they're deliberately freeform (hex literals, MIN/MAX keywords,
+// signed/float values), matching CmdTlmFieldDialog's own Min/Max/Default
+// fields, so they can't be pinned to isValidFieldName()'s strict pattern.
+// Embedded whitespace still needs rejecting, or it silently splits into an
+// extra token and shifts every column after it.
+bool hasNoEmbeddedWhitespace(const QString& value)
+{
+    static const QRegularExpression whitespace("\\s");
+    return !value.contains(whitespace);
+}
+
 bool startsWithAnyKeyword(const QString& trimmed, const QStringList& keywords)
 {
     for (const QString& keyword : keywords) {
@@ -3050,6 +3063,13 @@ void PluginView::applyStructureRowToEditor(int row)
     if (isArray && arrayBits.isEmpty()) {
         componentDiagnostics_->setPlainText(tr("Array Bits is required for ARRAY rows."));
         return;
+    }
+    for (const QString& token : {offset, bits, type, arrayBits, textAt(7), textAt(8), textAt(9)}) {
+        if (!token.isEmpty() && !hasNoEmbeddedWhitespace(token)) {
+            componentDiagnostics_->setPlainText(tr(
+                "Offset, Bits, Type, Array Bits, Min, Max, and Default must not contain spaces."));
+            return;
+        }
     }
 
     QString replacement;
