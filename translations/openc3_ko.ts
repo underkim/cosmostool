@@ -411,8 +411,8 @@ You can fine-tune it later under Settings.</source>
     <name>OpenC3::UI::Dialogs::NewScriptDialog</name>
     <message>
         <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="32"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="86"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="104"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="88"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="106"/>
         <source>Add Script</source>
         <translation>스크립트 추가</translation>
     </message>
@@ -429,93 +429,98 @@ You can fine-tune it later under Settings.</source>
         <translation>스크립트 정보</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="60"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="58"/>
+        <source>Target name, e.g. MYSAT</source>
+        <translation>타겟 이름, 예: MYSAT</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="62"/>
         <source>lowercase, e.g. my_check</source>
         <translation>소문자, 예: my_check</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="65"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="67"/>
         <source>Target:</source>
         <translation>타겟:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="66"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="68"/>
         <source>Script name:</source>
         <translation>스크립트 이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="67"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="69"/>
         <source>Created path:</source>
         <translation>생성 경로:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="70"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="72"/>
         <source>Generates a starter script with a cmd()/wait_check() example you can edit and run against a live target - this is the same pattern used when a new target is first created.</source>
         <translation>수정하고 실행할 수 있는 cmd()/wait_check() 예제가 포함된 시작 스크립트를 생성합니다 - 새 타겟을 처음 만들 때 사용하는 것과 동일한 패턴입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="87"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="89"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="104"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="106"/>
         <source>Adding…</source>
         <translation>추가 중…</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="111"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="113"/>
         <source>Script Added</source>
         <translation>스크립트 추가됨</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="112"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="114"/>
         <source>Script &apos;%1&apos; was added.
 
 %2</source>
-        <translation>스크립트 '%1'이(가) 추가되었습니다.
+        <translation>스크립트 &apos;%1&apos;이(가) 추가되었습니다.
 
 %2</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="115"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="117"/>
         <source>Add Script Failed</source>
         <translation>스크립트 추가 실패</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="139"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="143"/>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="147"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="141"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="145"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="149"/>
         <source>Invalid Input</source>
         <translation>잘못된 입력</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="139"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="141"/>
         <source>Choose or enter a target name.</source>
         <translation>타겟 이름을 선택하거나 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="143"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="145"/>
         <source>Enter a script name.</source>
         <translation>스크립트 이름을 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="148"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="150"/>
         <source>Script names may only contain letters, numbers, and underscores, and must start with a letter or underscore.</source>
         <translation>스크립트 이름은 문자나 밑줄로 시작해야 하며, 문자/숫자/밑줄만 포함할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="153"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="155"/>
         <source>Confirm Add Script</source>
         <translation>스크립트 추가 확인</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="154"/>
+        <location filename="../src/ui/dialogs/NewScriptDialog.cpp" line="156"/>
         <source>Script &apos;%1&apos; will be added at:
 %2/targets/%3/procedures/%1.rb
 
 Continue?</source>
-        <translation>스크립트 '%1'이(가) 다음 위치에 추가됩니다:
+        <translation>스크립트 &apos;%1&apos;이(가) 다음 위치에 추가됩니다:
 %2/targets/%3/procedures/%1.rb
 
 계속하시겠습니까?</translation>
@@ -1915,7 +1920,7 @@ Example: /cosmos/overrides/cosmos/config/system.txt</source>
     <message>
         <location filename="../src/ui/views/InfraView.cpp" line="634"/>
         <source>Check &quot;Show secrets&quot; first - otherwise this would overwrite hidden secret values with the masked placeholder text</source>
-        <translation>먼저 "비밀값 표시"를 체크하세요 - 그렇지 않으면 숨겨진 비밀값이 마스킹된 placeholder 텍스트로 덮어써집니다</translation>
+        <translation>먼저 &quot;비밀값 표시&quot;를 체크하세요 - 그렇지 않으면 숨겨진 비밀값이 마스킹된 placeholder 텍스트로 덮어써집니다</translation>
     </message>
 </context>
 <context>
@@ -3699,12 +3704,12 @@ Add the declaration anyway?</source>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="2717"/>
         <source>Delete modifier &apos;%1&apos; from this plugin.txt?</source>
-        <translation>이 plugin.txt에서 수정자 '%1'을(를) 삭제하시겠습니까?</translation>
+        <translation>이 plugin.txt에서 수정자 &apos;%1&apos;을(를) 삭제하시겠습니까?</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="2725"/>
         <source>Deleted modifier &apos;%1&apos;. Save the file to keep it.</source>
-        <translation>수정자 '%1'을(를) 삭제했습니다. 저장해야 반영됩니다.</translation>
+        <translation>수정자 &apos;%1&apos;을(를) 삭제했습니다. 저장해야 반영됩니다.</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="2750"/>

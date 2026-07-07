@@ -54,6 +54,8 @@ NewScriptDialog::NewScriptDialog(
     targetCombo_->addItems(knownTargets);
     if (!knownTargets.isEmpty())
         targetCombo_->setCurrentIndex(0);
+    else
+        targetCombo_->setPlaceholderText(tr("Target name, e.g. MYSAT"));
 
     scriptNameEdit_ = new QLineEdit("my_check", grp);
     scriptNameEdit_->setObjectName("ScriptNameEdit");
