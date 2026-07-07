@@ -2,10 +2,23 @@
 #include "core/logging/Logger.h"
 #include "core/connection/ShellQuote.h"
 
+#include <charconv>
 #include <sstream>
-#include <regex>
 
 namespace OpenC3::Services {
+
+namespace {
+// Parses a double, leaving `out` untouched (at its caller-supplied default)
+// on any malformed input - top/df output can vary across distros/locales,
+// and a bad parse should just skip this one polling tick rather than throw.
+void parseDoubleOrLeaveDefault(const std::string& text, double& out)
+{
+    double parsed{};
+    const auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), parsed);
+    if (ec == std::errc{})
+        out = parsed;
+}
+} // namespace
 
 SystemService::SystemService(
     Core::Connection::ICommandExecutor& executor,
@@ -25,10 +38,8 @@ Models::SystemMetrics SystemService::getMetrics()
     {
         auto r = executor_.execute(
             "top -bn1 | grep 'Cpu(s)' | awk '{print $2+$4}'");
-        if (r && !r.stdOut.empty()) {
-            try { m.cpuPercent = std::stod(r.stdOut); }
-            catch (...) {}
-        }
+        if (r && !r.stdOut.empty())
+            parseDoubleOrLeaveDefault(r.stdOut, m.cpuPercent);
     }
 
     // ── Memory (free -m) ─────────────────────────────────────────────────────
@@ -58,12 +69,10 @@ Models::SystemMetrics SystemService::getMetrics()
                 s.erase(std::remove(s.begin(), s.end(), '%'), s.end());
             };
             strip(total); strip(used); strip(avail); strip(pct);
-            try {
-                disk.totalGb     = std::stod(total);
-                disk.usedGb      = std::stod(used);
-                disk.availableGb = std::stod(avail);
-                disk.usedPercent = std::stod(pct);
-            } catch (...) {}
+            parseDoubleOrLeaveDefault(total, disk.totalGb);
+            parseDoubleOrLeaveDefault(used,  disk.usedGb);
+            parseDoubleOrLeaveDefault(avail, disk.availableGb);
+            parseDoubleOrLeaveDefault(pct,   disk.usedPercent);
             m.disks.push_back(disk);
         }
     }
