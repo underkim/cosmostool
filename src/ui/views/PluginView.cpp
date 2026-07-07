@@ -509,7 +509,12 @@ void PluginView::setupUi()
     leftPane->setMinimumWidth(330);
 
     detailTabs_ = new QTabWidget(mainSplitter);
-    detailTabs_->setObjectName("PluginDetailTabs");
+    // Distinct from componentEditorTabs_'s "PluginDetailTabs" below (the
+    // actual per-file Source/Structure/Manifest/Preview tabs) - the two
+    // shared that name until now, forcing every findChild<QTabWidget*>
+    // lookup by name (screenshot-harness checks included) to additionally
+    // filter by tab count to land on the right one.
+    detailTabs_->setObjectName("PluginOverviewTabs");
 
     auto* detailTab = new QWidget(detailTabs_);
     auto* detailLayout = new QVBoxLayout(detailTab);
