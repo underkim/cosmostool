@@ -97,9 +97,14 @@ std::string SystemService::getOpenC3Version()
 
 bool SystemService::isOpenC3Running()
 {
+    // grep -c already prints a valid count ("0" or higher) whether or not it
+    // finds a match - it only *exits* nonzero on zero matches. An `|| echo 0`
+    // fallback here would fire on that normal "zero matches" case too (not
+    // just on a real failure), doubling the output to "0\n0\n" and making
+    // the stdOut != "0\n" check below wrongly report OpenC3 as running.
     auto r = executor_.execute(
         "docker ps --filter name=cosmos --format '{{.Names}}' 2>/dev/null"
-        " | grep -c cosmos || echo 0");
+        " | grep -c cosmos");
     return r && r.stdOut != "0\n" && !r.stdOut.empty();
 }
 
