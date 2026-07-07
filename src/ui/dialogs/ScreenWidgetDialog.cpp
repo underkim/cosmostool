@@ -18,7 +18,7 @@ QString quoted(QString value)
 }
 } // namespace
 
-ScreenWidgetDialog::ScreenWidgetDialog(QWidget* parent)
+ScreenWidgetDialog::ScreenWidgetDialog(const QStringList& knownTargets, QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(tr("Add Widget"));
@@ -46,13 +46,16 @@ ScreenWidgetDialog::ScreenWidgetDialog(QWidget* parent)
     // ── Value page ────────────────────────────────────────────────────────────
     auto* valuePage = new QWidget(fieldStack_);
     auto* valueForm = new QFormLayout(valuePage);
-    targetEdit_ = new QLineEdit(valuePage);
-    targetEdit_->setPlaceholderText(tr("e.g. MYSAT"));
+    targetCombo_ = new QComboBox(valuePage);
+    targetCombo_->setEditable(true);
+    targetCombo_->addItems(knownTargets);
+    if (knownTargets.isEmpty())
+        targetCombo_->setPlaceholderText(tr("e.g. MYSAT"));
     packetEdit_ = new QLineEdit(valuePage);
     packetEdit_->setPlaceholderText(tr("e.g. STATUS"));
     itemEdit_ = new QLineEdit(valuePage);
     itemEdit_->setPlaceholderText(tr("e.g. TEMPERATURE"));
-    valueForm->addRow(tr("Target:"), targetEdit_);
+    valueForm->addRow(tr("Target:"), targetCombo_);
     valueForm->addRow(tr("Packet:"), packetEdit_);
     valueForm->addRow(tr("Item:"), itemEdit_);
     fieldStack_->addWidget(valuePage); // index 1
@@ -86,7 +89,7 @@ ScreenWidgetDialog::ScreenWidgetDialog(QWidget* parent)
                 return;
             }
         } else if (kind == 2) { // Value
-            if (targetEdit_->text().trimmed().isEmpty()
+            if (targetCombo_->currentText().trimmed().isEmpty()
                 || packetEdit_->text().trimmed().isEmpty()
                 || itemEdit_->text().trimmed().isEmpty()) {
                 QMessageBox::warning(this, tr("Add Widget"),
@@ -122,7 +125,7 @@ QString ScreenWidgetDialog::generatedLine() const
         return QString("LABEL %1\n").arg(quoted(textEdit_->text().trimmed()));
     case 2: // Value
         return QString("VALUE %1 %2 %3\n")
-            .arg(targetEdit_->text().trimmed().toUpper(),
+            .arg(targetCombo_->currentText().trimmed().toUpper(),
                  packetEdit_->text().trimmed().toUpper(),
                  itemEdit_->text().trimmed().toUpper());
     default: // Button

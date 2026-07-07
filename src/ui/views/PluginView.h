@@ -137,6 +137,14 @@ private:
     [[nodiscard]] bool confirmDiscardUnsavedChanges();
     [[nodiscard]] bool confirmSaveAfterValidation();
 
+    // Known target names from two sources, since either may be unavailable
+    // depending on what the user has opened so far: the plugin.txt TARGET
+    // blocks already parsed into currentManifestBlocks_, and the plugin's
+    // own file list ("targets/<NAME>/..."). Used to pre-populate the target
+    // combo in guided dialogs (NewScriptDialog, ScreenWidgetDialog,
+    // PluginManifestInterfaceDialog's MAP_TARGET picker).
+    [[nodiscard]] QStringList knownTargetNames() const;
+
     [[nodiscard]] QString selectedPluginName() const;
     [[nodiscard]] QString selectedPluginRoot() const;
     [[nodiscard]] QString selectedComponentPath() const;
@@ -251,6 +259,13 @@ private:
     // WIDGET/VARIABLE) ──────────────────────────────────────────────────────
     QTableWidget* manifestTable_{nullptr};
     QVector<ViewModels::PluginManifestBlock> currentManifestBlocks_;
+    // TARGET block names from the last time plugin.txt was actually parsed -
+    // unlike currentManifestBlocks_ (cleared whenever a non-manifest file is
+    // opened, for the Manifest table's own display purposes),
+    // this persists across file switches so knownTargetNames() still has
+    // something to offer Add Script/Add Widget's target combo even when a
+    // procedures/*.rb or screens/*.txt file is the one currently open.
+    QStringList lastParsedManifestTargets_;
     bool         updatingManifestTable_{false};
     QComboBox*   manifestBlockSelectorCombo_{nullptr};
     QLabel*      manifestKindLabel_{nullptr};

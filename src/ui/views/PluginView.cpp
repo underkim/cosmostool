@@ -1634,33 +1634,13 @@ void PluginView::onAddScriptClicked()
         return;
     }
 
-    // Derive the known target names from two sources, since either may be
-    // unavailable depending on what the user has opened so far: the
-    // plugin.txt TARGET blocks already parsed into currentManifestBlocks_
-    // (if plugin.txt has been opened this session, same source
-    // onNewManifestInterfaceOrRouter() uses for its MAP_TARGET combo), and
-    // the plugin's own file list ("targets/<NAME>/...", the directory
-    // layout PluginTemplateEngine actually generates).
-    QSet<QString> targetSet;
-    for (const auto& block : currentManifestBlocks_)
-        if (block.kind == ViewModels::PluginManifestBlock::Kind::Target && !block.name.isEmpty())
-            targetSet.insert(block.name);
-    static const QRegularExpression targetDirPattern("^targets/([^/]+)/");
-    for (int i = 0; i < componentList_->count(); ++i) {
-        const QString relPath = componentList_->item(i)->data(Qt::UserRole + 1).toString();
-        const auto match = targetDirPattern.match(relPath);
-        if (match.hasMatch())
-            targetSet.insert(match.captured(1));
-    }
-    QStringList knownTargets(targetSet.constBegin(), targetSet.constEnd());
-    knownTargets.sort(Qt::CaseInsensitive);
-
-    // Neither source above is guaranteed (plugin.txt may not have been
-    // opened yet this session, and not every plugin nests cmd_tlm/screens/
-    // procedures under targets/<NAME>/) - the dialog's target combo is
-    // editable either way, so an empty list just means the user types the
-    // target name themselves instead of picking one, same as AddTargetDialog.
-    Dialogs::NewScriptDialog dlg(infraVm_, root, knownTargets, this);
+    // Neither source knownTargetNames() draws from is guaranteed (plugin.txt
+    // may not have been opened yet this session, and not every plugin nests
+    // cmd_tlm/screens/procedures under targets/<NAME>/) - the dialog's target
+    // combo is editable either way, so an empty list just means the user
+    // types the target name themselves instead of picking one, same as
+    // AddTargetDialog.
+    Dialogs::NewScriptDialog dlg(infraVm_, root, knownTargetNames(), this);
     dlg.exec();
 }
 
@@ -2361,6 +2341,11 @@ void PluginView::refreshManifestTable()
     currentManifestBlocks_ = result.blocks;
     refreshManifestBlockEditor();
 
+    lastParsedManifestTargets_.clear();
+    for (const auto& block : result.blocks)
+        if (block.kind == ViewModels::PluginManifestBlock::Kind::Target && !block.name.isEmpty())
+            lastParsedManifestTargets_ << block.name;
+
     int row = 0;
     for (const auto& block : result.blocks) {
         const QString kindLabel = kKindLabels.value(block.kind);
@@ -2632,12 +2617,7 @@ void PluginView::onNewManifestInterfaceOrRouter(bool isRouter)
     if (!isPluginManifestFile(currentComponentPath_))
         return;
 
-    QStringList knownTargets;
-    for (const auto& block : currentManifestBlocks_)
-        if (block.kind == ViewModels::PluginManifestBlock::Kind::Target && !block.name.isEmpty())
-            knownTargets << block.name;
-
-    Dialogs::PluginManifestInterfaceDialog dialog(isRouter, knownTargets, this);
+    Dialogs::PluginManifestInterfaceDialog dialog(isRouter, knownTargetNames(), this);
     if (dialog.exec() != QDialog::Accepted)
         return;
 
@@ -3168,7 +3148,7 @@ void PluginView::onAddScreenWidgetClicked()
     if (!isScreenFile(currentComponentPath_))
         return;
 
-    Dialogs::ScreenWidgetDialog dialog(this);
+    Dialogs::ScreenWidgetDialog dialog(knownTargetNames(), this);
     if (dialog.exec() != QDialog::Accepted)
         return;
 
@@ -3326,6 +3306,23 @@ QString PluginView::selectedComponentPath() const
 {
     const auto* item = componentList_->currentItem();
     return item ? item->data(Qt::UserRole).toString() : QString{};
+}
+
+QStringList PluginView::knownTargetNames() const
+{
+    QSet<QString> targetSet;
+    for (const QString& name : lastParsedManifestTargets_)
+        targetSet.insert(name);
+    static const QRegularExpression targetDirPattern("^targets/([^/]+)/");
+    for (int i = 0; i < componentList_->count(); ++i) {
+        const QString relPath = componentList_->item(i)->data(Qt::UserRole + 1).toString();
+        const auto match = targetDirPattern.match(relPath);
+        if (match.hasMatch())
+            targetSet.insert(match.captured(1));
+    }
+    QStringList knownTargets(targetSet.constBegin(), targetSet.constEnd());
+    knownTargets.sort(Qt::CaseInsensitive);
+    return knownTargets;
 }
 
 } // namespace OpenC3::UI::Views

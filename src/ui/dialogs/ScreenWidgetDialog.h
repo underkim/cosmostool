@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QStringList>
 
 class QComboBox;
 class QLineEdit;
@@ -20,7 +21,12 @@ class ScreenWidgetDialog final : public QDialog {
     Q_OBJECT
 
 public:
-    explicit ScreenWidgetDialog(QWidget* parent = nullptr);
+    // knownTargets (from the plugin's TARGET blocks, if plugin.txt has been
+    // parsed this session) populates the Value page's Target field as an
+    // editable combo - same pattern as NewScriptDialog/
+    // PluginManifestInterfaceDialog - so a beginner can pick a real target
+    // instead of retyping it from memory.
+    explicit ScreenWidgetDialog(const QStringList& knownTargets = {}, QWidget* parent = nullptr);
 
     // The generated COSMOS screen line(s), ready to append.
     [[nodiscard]] QString generatedLine() const;
@@ -35,7 +41,7 @@ private:
     QLineEdit* textEdit_{nullptr};
 
     // Value (telemetry-bound)
-    QLineEdit* targetEdit_{nullptr};
+    QComboBox* targetCombo_{nullptr};
     QLineEdit* packetEdit_{nullptr};
     QLineEdit* itemEdit_{nullptr};
 
