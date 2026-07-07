@@ -375,9 +375,14 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
             continue;
 
         // ── Unknown keyword ───────────────────────────────────────────────────
+        // Scoped like the STATE/UNITS/LIMITS checks above - an unrecognized
+        // modifier belongs to whichever block it appears in, not both views;
+        // leaving this Any (the default) would leak a typo'd TLM-only
+        // modifier into the CMD-only validator's report and vice versa.
         result.diagnostics.append({
             CmdTlmDiagnostic::Severity::Warning, lineNo,
-            QString("Unknown keyword '%1'").arg(toks[0])
+            QString("Unknown keyword '%1'").arg(toks[0]),
+            modScope
         });
     }
 

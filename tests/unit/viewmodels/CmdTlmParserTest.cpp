@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <QString>
 
+#include <algorithm>
+
 using namespace OpenC3::ViewModels;
 
 TEST(CmdTlmParserTest, ParsesCommandBlockWithItems)
@@ -115,6 +117,25 @@ TEST(CmdTlmParserTest, UnknownKeywordProducesWarning)
 
     const auto result = CmdTlmParser::parse(src);
     EXPECT_GE(result.warningCount(), 1);
+}
+
+// An unknown modifier inside a TELEMETRY block belongs to that block only -
+// it must not be tagged Scope::Any (the default), or it would leak into the
+// CMD-only validator's report too (CommandValidator/TelemetryValidator filter
+// on scope, but Any-scoped diagnostics always pass through both).
+TEST(CmdTlmParserTest, UnknownKeywordInsideBlockIsScopedToThatBlock)
+{
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ITEM FIELD1 16 UINT \"A field\"\n"
+        "  BOGUS_MODIFIER foo\n";
+
+    const auto result = CmdTlmParser::parse(src);
+
+    const auto it = std::find_if(result.diagnostics.cbegin(), result.diagnostics.cend(),
+        [](const CmdTlmDiagnostic& d) { return d.message.contains("BOGUS_MODIFIER"); });
+    ASSERT_NE(it, result.diagnostics.cend());
+    EXPECT_EQ(it->scope, CmdTlmDiagnostic::Scope::Telemetry);
 }
 
 TEST(CmdTlmParserTest, CommentsAndBlankLinesIgnored)
