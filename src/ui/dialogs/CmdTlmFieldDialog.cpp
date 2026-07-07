@@ -55,7 +55,14 @@ CmdTlmFieldDialog::CmdTlmFieldDialog(QWidget* parent)
     nameEdit_->setPlaceholderText("TEMP, CMD_ID, COUNTER");
 
     bitSizeSpin_ = new QSpinBox(this);
-    bitSizeSpin_->setRange(1, 65535);
+    // Minimum 0, not 1: DERIVED items conventionally use bit_size 0 (no raw
+    // storage, computed via a conversion) - CmdTlmParser's own bit-size
+    // sanity check already exempts DERIVED from requiring a positive value
+    // (`item.bitSize <= 0 && item.dataType != "DERIVED"`), so a minimum of 1
+    // here made it impossible to ever create a correct DERIVED field. Check
+    // still flags 0 as an error for every other type, so this doesn't loosen
+    // anything for them.
+    bitSizeSpin_->setRange(0, 65535);
     bitSizeSpin_->setValue(16);
     // Unlike every other narrow numeric field in this app (e.g. SSH Port,
     // Interface Port), this had no width cap, so it stretched to fill the
