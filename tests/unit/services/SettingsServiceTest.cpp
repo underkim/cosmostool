@@ -11,7 +11,16 @@ namespace fs = std::filesystem;
 
 class SettingsServiceTest : public ::testing::Test {
 protected:
-    fs::path   tempFile_{fs::temp_directory_path() / "opencosmos_test_settings.json"};
+    // Unique per test case, not a single hardcoded shared path - CTest runs
+    // each TEST_F as its own process, and CMakePresets.json's "linux-unit"
+    // preset runs them with jobs:4, so a shared filename let concurrent
+    // instances of this fixture read/write over each other's data (seen as
+    // an intermittent CI-only failure in SshSecretsAreProtectedOnDiskAndRoundTrip
+    // that never reproduced locally under -j1).
+    fs::path   tempFile_{fs::temp_directory_path() /
+        (std::string("opencosmos_test_settings_")
+            + ::testing::UnitTest::GetInstance()->current_test_info()->name()
+            + ".json")};
     SettingsService sut_{tempFile_.string()};
 
     void TearDown() override {

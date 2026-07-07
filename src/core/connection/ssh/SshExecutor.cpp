@@ -55,13 +55,24 @@ std::string expandHome(const std::string& path)
     if (path.size() > 1 && path[1] != '/' && path[1] != '\\') return path; // "~user" form - not handled
 
 #ifdef _WIN32
-    const char* home = std::getenv("USERPROFILE");
+    // std::getenv() is fine functionally, but MSVC's /W4 /WX build treats its
+    // C4996 "unsafe" deprecation warning as a hard error - _dupenv_s is the
+    // MSVC-recommended replacement (POSIX has no such warning, so that
+    // branch keeps plain getenv()).
+    char* homeBuf = nullptr;
+    std::size_t homeLen = 0;
+    const bool ok = _dupenv_s(&homeBuf, &homeLen, "USERPROFILE") == 0 && homeBuf;
+    std::string home = ok ? homeBuf : std::string();
+    if (homeBuf) free(homeBuf);
+    if (home.empty()) return path;
+
+    return home + path.substr(1);
 #else
     const char* home = std::getenv("HOME");
-#endif
     if (!home || !*home) return path;
 
     return std::string(home) + path.substr(1);
+#endif
 }
 
 // Retrieves libssh2's own description of the last error on this session, if
