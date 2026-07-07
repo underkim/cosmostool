@@ -41,6 +41,62 @@ TEST_F(DockerServiceTest, ListContainersReturnsEmptyOnExecutorFailure)
     EXPECT_TRUE(containers.empty());
 }
 
+// docker ps --format '{{json .}}"'s "Ports" field is a flat string like
+// "0.0.0.0:8080->80/tcp, :::8080->80/tcp" - this field was previously never
+// parsed at all, so the Docker Manager UI's Ports column was always blank
+// regardless of a container's real port mappings.
+TEST_F(DockerServiceTest, ListContainersParsesPublishedPorts)
+{
+    EXPECT_CALL(mock_, execute(::testing::_))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"ID":"abc123","Names":"/web","Image":"nginx","Command":"nginx",)"
+            R"("CreatedAt":"now","Status":"Up","State":"running",)"
+            R"("Ports":"0.0.0.0:8080->80/tcp, :::8080->80/tcp"})"
+            "\n")));
+
+    const auto containers = sut_.listContainers(true);
+    ASSERT_EQ(containers.size(), 1u);
+    ASSERT_EQ(containers[0].ports.size(), 2u);
+
+    EXPECT_EQ(containers[0].ports[0].ip, "0.0.0.0");
+    EXPECT_EQ(containers[0].ports[0].publicPort, 8080);
+    EXPECT_EQ(containers[0].ports[0].privatePort, 80);
+    EXPECT_EQ(containers[0].ports[0].type, "tcp");
+
+    EXPECT_EQ(containers[0].ports[1].ip, "::");
+    EXPECT_EQ(containers[0].ports[1].publicPort, 8080);
+}
+
+TEST_F(DockerServiceTest, ListContainersHandlesExposedButUnpublishedPort)
+{
+    EXPECT_CALL(mock_, execute(::testing::_))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"ID":"abc123","Names":"/web","Image":"nginx","Command":"nginx",)"
+            R"("CreatedAt":"now","Status":"Up","State":"running","Ports":"80/tcp"})"
+            "\n")));
+
+    const auto containers = sut_.listContainers(true);
+    ASSERT_EQ(containers.size(), 1u);
+    ASSERT_EQ(containers[0].ports.size(), 1u);
+    EXPECT_TRUE(containers[0].ports[0].ip.empty());
+    EXPECT_EQ(containers[0].ports[0].publicPort, 0);
+    EXPECT_EQ(containers[0].ports[0].privatePort, 80);
+    EXPECT_EQ(containers[0].ports[0].type, "tcp");
+}
+
+TEST_F(DockerServiceTest, ListContainersHandlesNoPorts)
+{
+    EXPECT_CALL(mock_, execute(::testing::_))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"ID":"abc123","Names":"/web","Image":"nginx","Command":"nginx",)"
+            R"("CreatedAt":"now","Status":"Up","State":"running","Ports":""})"
+            "\n")));
+
+    const auto containers = sut_.listContainers(true);
+    ASSERT_EQ(containers.size(), 1u);
+    EXPECT_TRUE(containers[0].ports.empty());
+}
+
 TEST_F(DockerServiceTest, StartContainerDelegatesToExecutor)
 {
     EXPECT_CALL(mock_, execute("docker start 'mycontainer'"))

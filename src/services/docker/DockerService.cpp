@@ -3,12 +3,64 @@
 #include "core/logging/Logger.h"
 
 #include <nlohmann/json.hpp>
+#include <charconv>
 #include <sstream>
 
 namespace OpenC3::Services {
 
 using json = nlohmann::json;
 using Core::Connection::shellQuote;
+
+namespace {
+
+int parseIntOrZero(const std::string& text)
+{
+    int parsed{};
+    const auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), parsed);
+    return ec == std::errc{} ? parsed : 0;
+}
+
+// Parses docker ps's "Ports" field, a comma-separated list like
+// "0.0.0.0:8080->80/tcp, :::8080->80/tcp" (published) or "80/tcp" (merely
+// exposed, no host mapping) or "" (no ports at all).
+std::vector<Models::ContainerPort> parsePorts(const std::string& portsField)
+{
+    std::vector<Models::ContainerPort> ports;
+    std::istringstream stream(portsField);
+    std::string entry;
+    while (std::getline(stream, entry, ',')) {
+        while (!entry.empty() && entry.front() == ' ')
+            entry.erase(entry.begin());
+        if (entry.empty())
+            continue;
+
+        Models::ContainerPort port;
+        const auto arrow = entry.find("->");
+        const std::string hostPart = (arrow != std::string::npos) ? entry.substr(0, arrow) : std::string{};
+        const std::string containerPart = (arrow != std::string::npos) ? entry.substr(arrow + 2) : entry;
+
+        if (!hostPart.empty()) {
+            const auto colon = hostPart.rfind(':');
+            if (colon != std::string::npos) {
+                port.ip = hostPart.substr(0, colon);
+                port.publicPort = parseIntOrZero(hostPart.substr(colon + 1));
+            }
+        }
+
+        const auto slash = containerPart.find('/');
+        if (slash != std::string::npos) {
+            port.privatePort = parseIntOrZero(containerPart.substr(0, slash));
+            port.type        = containerPart.substr(slash + 1);
+        } else {
+            port.privatePort = parseIntOrZero(containerPart);
+        }
+
+        ports.push_back(std::move(port));
+    }
+    return ports;
+}
+
+} // namespace
 
 DockerService::DockerService(Core::Connection::ICommandExecutor& executor)
     : executor_(executor)
@@ -207,6 +259,7 @@ DockerService::parseContainerLine(const std::string& jsonLine) const
     c.created     = j.value("CreatedAt", "");
     c.statusText  = j.value("Status", "");
     c.status      = parseStatus(j.value("State", ""));
+    c.ports       = parsePorts(j.value("Ports", ""));
     return c;
 }
 
