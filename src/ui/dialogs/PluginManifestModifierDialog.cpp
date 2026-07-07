@@ -5,10 +5,25 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QStringList>
 #include <QVBoxLayout>
 
 namespace OpenC3::UI::Dialogs {
+
+namespace {
+// Keyword is a single bare token at the start of the generated line -
+// unlike Arguments (intentionally freeform/space-separated) - so a
+// keyword containing whitespace would shift every argument after it by
+// one position on reparse, same risk already guarded against in the
+// sibling PluginManifestInterfaceDialog/NewMicroserviceDialog/
+// ScreenWidgetDialog for their own bare-token fields.
+bool isValidToken(const QString& value)
+{
+    static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+    return pattern.match(value).hasMatch();
+}
+} // namespace
 
 PluginManifestModifierDialog::PluginManifestModifierDialog(
     const QSet<QString>& suggestedKeywords, QWidget* parent)
@@ -42,6 +57,12 @@ PluginManifestModifierDialog::PluginManifestModifierDialog(
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         if (keywordCombo_->currentText().trimmed().isEmpty()) {
             QMessageBox::warning(this, tr("Add Modifier Line"), tr("Keyword is required."));
+            return;
+        }
+        if (!isValidToken(keywordCombo_->currentText().trimmed())) {
+            QMessageBox::warning(this, tr("Add Modifier Line"),
+                tr("Keyword must start with a letter or underscore and contain "
+                   "only letters, numbers, and underscores (no spaces or punctuation)."));
             return;
         }
         accept();

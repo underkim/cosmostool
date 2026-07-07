@@ -627,30 +627,36 @@ Continue?</source>
 <context>
     <name>OpenC3::UI::Dialogs::PluginManifestModifierDialog</name>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="17"/>
-        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="44"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="32"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="59"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="63"/>
         <source>Add Modifier Line</source>
         <translation>수정자 줄 추가</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="32"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="47"/>
         <source>Arguments, e.g. READ_WRITE PreidentifiedProtocol</source>
         <translation>인자, 예: READ_WRITE PreidentifiedProtocol</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="34"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="49"/>
         <source>Keyword</source>
         <translation>키워드</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="35"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="50"/>
         <source>Arguments</source>
         <translation>인자</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="44"/>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="59"/>
         <source>Keyword is required.</source>
         <translation>키워드는 필수입니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/PluginManifestModifierDialog.cpp" line="64"/>
+        <source>Keyword must start with a letter or underscore and contain only letters, numbers, and underscores (no spaces or punctuation).</source>
+        <translation>키워드는 문자나 밑줄로 시작해야 하며 문자, 숫자, 밑줄만 포함할 수 있습니다 (공백이나 구두점 불가).</translation>
     </message>
 </context>
 <context>
