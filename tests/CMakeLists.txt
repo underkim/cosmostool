@@ -22,6 +22,7 @@ add_executable(opencosmos_tests
     unit/viewmodels/InterfaceValidatorTest.cpp
     unit/viewmodels/TargetConfigValidatorTest.cpp
     unit/viewmodels/PacketSimulatorTest.cpp
+    unit/widgets/CmdTlmHighlighterTest.cpp
 )
 
 target_include_directories(opencosmos_tests
@@ -34,6 +35,8 @@ target_link_libraries(opencosmos_tests
     PRIVATE
         opencosmos_services
         opencosmos_viewmodels   # for CmdTlmParser / PluginTemplateEngine (Qt-based)
+        opencosmos_ui           # for CmdTlmHighlighter - QSyntaxHighlighter/QTextDocument
+                                # only, no QApplication/QWidget instantiated by this suite
         GTest::gtest_main
         GTest::gmock
         Qt6::Test
