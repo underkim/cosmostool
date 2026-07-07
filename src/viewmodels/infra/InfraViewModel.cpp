@@ -405,6 +405,9 @@ void InfraViewModel::addTargetToPlugin(
                 const std::string fullPath = (root + "/" + it.key()).toStdString();
                 const std::string dirPath  =
                     fullPath.substr(0, fullPath.rfind('/'));
+                // executeCommand returns stdout; mkdir -p errors go to stderr
+                // so we rely on writeFile below to surface any actual failure
+                // (see writePluginFiles() for the same pattern).
                 [[maybe_unused]] const std::string mkdirOut =
                     fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
@@ -456,6 +459,9 @@ void InfraViewModel::addScriptToPlugin(
                 const std::string fullPath = (root + "/" + it.key()).toStdString();
                 const std::string dirPath  =
                     fullPath.substr(0, fullPath.rfind('/'));
+                // executeCommand returns stdout; mkdir -p errors go to stderr
+                // so we rely on writeFile below to surface any actual failure
+                // (see writePluginFiles() for the same pattern).
                 [[maybe_unused]] const std::string mkdirOut =
                     fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
