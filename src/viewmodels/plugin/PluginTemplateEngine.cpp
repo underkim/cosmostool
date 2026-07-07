@@ -6,6 +6,19 @@ namespace OpenC3::ViewModels {
 
 namespace {
 
+// Escapes a value for embedding inside a Ruby single-quoted string literal
+// ('...') - only backslash and the quote character itself are special there.
+// Without this, a description containing an apostrophe (e.g. "Team's
+// satellite plugin", a perfectly ordinary thing to type) would prematurely
+// close the string and produce a gemspec that fails `gem build` with a
+// confusing Ruby syntax error.
+QString rubySingleQuoteEscape(QString value)
+{
+    value.replace(QStringLiteral("\\"), QStringLiteral("\\\\"));
+    value.replace(QStringLiteral("'"), QStringLiteral("\\'"));
+    return value;
+}
+
 QMap<QString, QString> buildCmdTlmFiles(
     const QString& tgt, int templateType, const QString& pluginNamespace)
 {
@@ -176,7 +189,7 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
         "  s.files       = Dir['{targets,lib,spec}/**/*', 'plugin.txt']\n"
         "  s.require_paths = ['lib']\n"
         "end\n"
-    ).arg(gem, description);
+    ).arg(gem, rubySingleQuoteEscape(description));
 
     files["Gemfile"] =
         "# frozen_string_literal: true\n\n"

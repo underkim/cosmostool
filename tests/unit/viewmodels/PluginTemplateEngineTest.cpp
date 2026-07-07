@@ -71,6 +71,21 @@ TEST(PluginTemplateEngineTest, GemspecCarriesGemName)
     EXPECT_TRUE(gemspec.contains("s.name        = 'cosmos-my-plugin'"));
 }
 
+// A description containing an apostrophe (e.g. "Team's satellite plugin" -
+// an entirely ordinary thing to type) would previously close the Ruby
+// single-quoted string literal early and produce a gemspec that fails
+// `gem build` with a confusing syntax error. The description must come out
+// escaped for Ruby's single-quote rules (only \\ and \' are special).
+TEST(PluginTemplateEngineTest, GemspecEscapesApostropheInDescription)
+{
+    const auto files = PluginTemplateEngine::buildFiles(
+        "my-plugin", "fsw", "Team's satellite plugin", 0);
+
+    const QString gemspec = files.value("cosmos-my-plugin.gemspec");
+    EXPECT_TRUE(gemspec.contains("s.summary     = 'Team\\'s satellite plugin'"));
+    EXPECT_TRUE(gemspec.contains("s.description = 'Team\\'s satellite plugin'"));
+}
+
 TEST(PluginTemplateEngineTest, CcsdsTemplateDiffersFromGeneric)
 {
     const auto generic = PluginTemplateEngine::buildFiles("p", "sat", "d", 0);
