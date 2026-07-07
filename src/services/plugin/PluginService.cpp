@@ -3,6 +3,7 @@
 #include "core/logging/Logger.h"
 
 #include <nlohmann/json.hpp>
+#include <regex>
 #include <sstream>
 #include <string_view>
 
@@ -29,6 +30,65 @@ std::string normalizeCosmosRoot(std::string path)
     }
 
     return path.empty() ? "/cosmos" : path;
+}
+
+// Reverses the \\ and \' escaping PluginTemplateEngine::rubySingleQuoteEscape()
+// applies when generating a gemspec, so a round-tripped field displays the
+// same text the user originally typed rather than its escaped form.
+std::string unescapeRubySingleQuoted(const std::string& text)
+{
+    std::string out;
+    out.reserve(text.size());
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        if (text[i] == '\\' && i + 1 < text.size()) {
+            out += text[i + 1];
+            ++i;
+        } else {
+            out += text[i];
+        }
+    }
+    return out;
+}
+
+// Extracts the first `key = '...'` value from a .gemspec's Ruby source,
+// handling \\ and \' escapes inside the quoted string (see
+// PluginTemplateEngine::rubySingleQuoteEscape) so an escaped apostrophe in a
+// description doesn't truncate the match early.
+std::string extractGemspecField(const std::string& gemspecContent, const std::string& key)
+{
+    const std::regex pattern(key + R"(\s*=\s*'((?:[^'\\]|\\.)*)')");
+    std::smatch match;
+    if (std::regex_search(gemspecContent, match, pattern))
+        return unescapeRubySingleQuoted(match[1].str());
+    return {};
+}
+
+// s.authors is a Ruby array literal, e.g. ['Jane Doe', 'John Smith'] - joins
+// every quoted entry with ", " for display rather than only reading the first.
+std::string extractGemspecAuthors(const std::string& gemspecContent)
+{
+    const std::regex arrayPattern(R"(s\.authors\s*=\s*\[([^\]]*)\])");
+    std::smatch arrayMatch;
+    if (!std::regex_search(gemspecContent, arrayMatch, arrayPattern))
+        return {};
+
+    const std::string       arrayBody = arrayMatch[1].str();
+    const std::regex        entryPattern(R"('((?:[^'\\]|\\.)*)')");
+    std::vector<std::string> authors;
+    for (auto it = std::sregex_iterator(arrayBody.begin(), arrayBody.end(), entryPattern);
+         it != std::sregex_iterator(); ++it)
+    {
+        std::string author = unescapeRubySingleQuoted((*it)[1].str());
+        if (!author.empty())
+            authors.push_back(std::move(author));
+    }
+
+    std::string joined;
+    for (std::size_t i = 0; i < authors.size(); ++i) {
+        if (i > 0) joined += ", ";
+        joined += authors[i];
+    }
+    return joined;
 }
 
 } // namespace
@@ -88,6 +148,21 @@ std::vector<Models::Plugin> PluginService::listInstalled(const std::string& cosm
         p.status = (!p.pluginTxtPath.empty() && !p.gemspecPath.empty())
             ? Models::PluginStatus::Installed
             : Models::PluginStatus::Error;
+
+        // version/description/author come from the gemspec, not the shell
+        // listing above - PluginView's plugin details panel displays all
+        // three, so leaving them unset here made that panel always blank.
+        if (!p.gemspecPath.empty()) {
+            auto gemspecResult = executor_.execute("cat " + shellQuote(p.gemspecPath));
+            if (gemspecResult) {
+                p.version     = extractGemspecField(gemspecResult.stdOut, "s\\.version");
+                p.description = extractGemspecField(gemspecResult.stdOut, "s\\.description");
+                if (p.description.empty())
+                    p.description = extractGemspecField(gemspecResult.stdOut, "s\\.summary");
+                p.author = extractGemspecAuthors(gemspecResult.stdOut);
+            }
+        }
+
         plugins.push_back(std::move(p));
     }
     return plugins;

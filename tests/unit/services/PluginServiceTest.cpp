@@ -26,6 +26,16 @@ TEST_F(PluginServiceTest, ListInstalledScansPluginFolders)
             "/cosmos/plugins/cosmos-my-plugin/plugin.txt\t"
             "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec\t"
             "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin-0.1.0.gem|FSW,ADCS,\n")));
+    EXPECT_CALL(mock_,
+        execute(HasSubstr("cat '/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec'")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "Gem::Specification.new do |s|\n"
+            "  s.name        = 'cosmos-my-plugin'\n"
+            "  s.version     = '1.2.3'\n"
+            "  s.summary     = 'A test plugin'\n"
+            "  s.description = 'A test plugin'\n"
+            "  s.authors     = ['Jane Doe']\n"
+            "end\n")));
 
     const auto plugins = sut_.listInstalled("/cosmos");
     ASSERT_EQ(plugins.size(), 1u);
@@ -34,6 +44,55 @@ TEST_F(PluginServiceTest, ListInstalledScansPluginFolders)
     EXPECT_EQ(plugins[0].pluginTxtPath, "/cosmos/plugins/cosmos-my-plugin/plugin.txt");
     EXPECT_EQ(plugins[0].gemspecPath, "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec");
     EXPECT_EQ(plugins[0].targets.size(), 2u);
+    EXPECT_EQ(plugins[0].version, "1.2.3");
+    EXPECT_EQ(plugins[0].description, "A test plugin");
+    EXPECT_EQ(plugins[0].author, "Jane Doe");
+}
+
+// A description containing an escaped apostrophe (the same escaping
+// PluginTemplateEngine applies - see the earlier apostrophe-escaping fix)
+// must round-trip back to its original, unescaped form for display, not
+// truncate at the first \' or keep the backslash in the displayed text.
+TEST_F(PluginServiceTest, ListInstalledUnescapesApostropheInDescription)
+{
+    EXPECT_CALL(mock_,
+        execute(HasSubstr("plugins_dir='/cosmos/plugins'")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-my-plugin\t/cosmos/plugins/cosmos-my-plugin\t"
+            "/cosmos/plugins/cosmos-my-plugin/plugin.txt\t"
+            "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec\t"
+            "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin-0.1.0.gem|\n")));
+    EXPECT_CALL(mock_,
+        execute(HasSubstr("cat '/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec'")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "Gem::Specification.new do |s|\n"
+            "  s.version     = '0.0.1'\n"
+            "  s.description = 'Team\\'s satellite plugin'\n"
+            "end\n")));
+
+    const auto plugins = sut_.listInstalled("/cosmos");
+    ASSERT_EQ(plugins.size(), 1u);
+    EXPECT_EQ(plugins[0].description, "Team's satellite plugin");
+}
+
+TEST_F(PluginServiceTest, ListInstalledLeavesMetadataEmptyWhenGemspecUnreadable)
+{
+    EXPECT_CALL(mock_,
+        execute(HasSubstr("plugins_dir='/cosmos/plugins'")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-my-plugin\t/cosmos/plugins/cosmos-my-plugin\t"
+            "/cosmos/plugins/cosmos-my-plugin/plugin.txt\t"
+            "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec\t"
+            "/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin-0.1.0.gem|\n")));
+    EXPECT_CALL(mock_,
+        execute(HasSubstr("cat '/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec'")))
+        .WillOnce(Return(ExecutorResult::fail("not found")));
+
+    const auto plugins = sut_.listInstalled("/cosmos");
+    ASSERT_EQ(plugins.size(), 1u);
+    EXPECT_TRUE(plugins[0].version.empty());
+    EXPECT_TRUE(plugins[0].description.empty());
+    EXPECT_TRUE(plugins[0].author.empty());
 }
 
 TEST_F(PluginServiceTest, ListInstalledAcceptsOpenC3ScriptPath)
