@@ -2926,6 +2926,18 @@ void PluginView::onApplyBlockClicked()
         componentDiagnostics_->setPlainText(tr("Target and Name are required for a block."));
         return;
     }
+    // Target and Name are bare positional tokens in the generated line
+    // (COMMAND <target> <name> <endian> "desc") - same hazard
+    // isValidFieldName() already guards against for the Structure table's
+    // own field rows and the Manifest tab's block editor; a space here
+    // would silently shift Endianness/Description instead of failing
+    // loudly.
+    if (!isValidFieldName(target) || !isValidFieldName(name)) {
+        componentDiagnostics_->setPlainText(tr(
+            "Target and Name must start with a letter or underscore and contain only "
+            "letters, numbers, and underscores (no spaces or punctuation)."));
+        return;
+    }
 
     QString line = QString("%1 %2 %3 %4")
         .arg(isCommand ? "COMMAND" : "TELEMETRY", target, name, endian);
