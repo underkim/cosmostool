@@ -32,6 +32,11 @@ bool ExecutorProxy::isConnected() const noexcept
     return current_.load(std::memory_order_acquire)->isConnected();
 }
 
+std::string ExecutorProxy::lastError() const
+{
+    return current_.load(std::memory_order_acquire)->lastError();
+}
+
 ExecutorResult ExecutorProxy::execute(const std::string& command)
 {
     return current_.load(std::memory_order_acquire)->execute(command);

@@ -24,6 +24,7 @@ public:
     [[nodiscard]] bool connect()            override;
     void               disconnect()         override;
     [[nodiscard]] bool isConnected() const noexcept override;
+    [[nodiscard]] std::string lastError() const override;
 
     [[nodiscard]] ExecutorResult execute(const std::string& command) override;
     [[nodiscard]] ExecutorResult executeStreaming(

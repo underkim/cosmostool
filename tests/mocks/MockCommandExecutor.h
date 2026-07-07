@@ -10,6 +10,7 @@ public:
     MOCK_METHOD(bool, connect,    (), (override));
     MOCK_METHOD(void, disconnect, (), (override));
     MOCK_METHOD(bool, isConnected, (), (const, noexcept, override));
+    MOCK_METHOD(std::string, lastError, (), (const, override));
 
     MOCK_METHOD(Core::Connection::ExecutorResult,
                 execute, (const std::string&), (override));

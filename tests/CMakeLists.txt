@@ -5,6 +5,7 @@ add_executable(opencosmos_tests
     unit/app/ServiceRegistryTest.cpp
     unit/core/ExecutorResultTest.cpp
     unit/core/EventBusTest.cpp
+    unit/core/ExecutorProxyTest.cpp
     unit/core/ShellQuoteTest.cpp
     unit/services/DockerServiceTest.cpp
     unit/services/DoctorServiceTest.cpp
