@@ -66,3 +66,51 @@ TEST(EventBus, NoHandlerPublishDoesNotCrash)
     EventBus bus;
     EXPECT_NO_THROW(bus.publish(TestEvent{99}));
 }
+
+// publish() snapshots the handler list before invoking it (see the comment on
+// EventBus::publish) specifically so a handler can subscribe a new handler
+// for the same event type without corrupting the in-progress dispatch loop.
+// That guarantee had no test coverage: a naive implementation that iterated
+// handlers_ directly (instead of over a snapshot) would invalidate iterators
+// or invoke the newly-added handler within the same publish() call.
+TEST(EventBus, HandlerSubscribingDuringPublishDoesNotJoinCurrentDispatch)
+{
+    EventBus bus;
+    int firstCallCount  = 0;
+    int secondCallCount = 0;
+
+    bus.subscribe<TestEvent>([&](const TestEvent&) {
+        ++firstCallCount;
+        bus.subscribe<TestEvent>([&](const TestEvent&) { ++secondCallCount; });
+    });
+
+    bus.publish(TestEvent{1});
+    EXPECT_EQ(firstCallCount, 1);
+    EXPECT_EQ(secondCallCount, 0); // added during dispatch - must not fire yet
+
+    bus.publish(TestEvent{2});
+    EXPECT_EQ(firstCallCount, 2);
+    EXPECT_EQ(secondCallCount, 1); // now present for this second dispatch
+}
+
+// A handler re-entering publish() for the same event type must not deadlock
+// (the snapshot is taken and the lock released before handlers run) and must
+// not itself observe the handler that's still executing higher up the stack.
+TEST(EventBus, HandlerPublishingSameEventTypeDoesNotDeadlock)
+{
+    EventBus bus;
+    int outerCount = 0;
+    int innerCount = 0;
+
+    bus.subscribe<TestEvent>([&](const TestEvent& e) {
+        ++outerCount;
+        if (e.value == 1) {
+            innerCount = outerCount;
+            bus.publish(TestEvent{2});
+        }
+    });
+
+    bus.publish(TestEvent{1});
+    EXPECT_EQ(outerCount, 2);
+    EXPECT_EQ(innerCount, 1);
+}
