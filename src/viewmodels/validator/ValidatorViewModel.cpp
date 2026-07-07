@@ -51,7 +51,12 @@ void ValidatorViewModel::validateTextWith(const QString& validatorId,
     } else if (const auto* v = Validation::RuleValidatorRegistry::byId(validatorId)) {
         report_ = v->validate(content);
     } else {
+        // An unrecognized id must not silently report "no issues found" -
+        // that would read as a real pass rather than a wiring failure (e.g.
+        // a stale id left over after a validator is renamed/removed).
         report_ = Validation::ValidationReport{};
+        report_.add(Validation::Diagnostic::error(
+            0, QStringLiteral("Unknown validator id: '%1'").arg(validatorId)));
     }
 
     lastSource_ = QStringLiteral("(pasted)");

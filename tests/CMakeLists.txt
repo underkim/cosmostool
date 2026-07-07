@@ -25,6 +25,8 @@ add_executable(opencosmos_tests
     unit/viewmodels/ProtocolValidatorTest.cpp
     unit/viewmodels/InterfaceValidatorTest.cpp
     unit/viewmodels/TargetConfigValidatorTest.cpp
+    unit/viewmodels/RuleValidatorRegistryTest.cpp
+    unit/viewmodels/ValidatorViewModelTest.cpp
     unit/viewmodels/PacketSimulatorTest.cpp
     unit/widgets/CmdTlmHighlighterTest.cpp
 )
