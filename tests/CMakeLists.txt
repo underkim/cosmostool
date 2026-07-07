@@ -2,6 +2,7 @@
 
 add_executable(opencosmos_tests
     unit/app/StartupPolicyTest.cpp
+    unit/app/ServiceRegistryTest.cpp
     unit/core/ExecutorResultTest.cpp
     unit/core/EventBusTest.cpp
     unit/core/ShellQuoteTest.cpp
