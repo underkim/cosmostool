@@ -253,7 +253,7 @@ void PluginView::setupUi()
     progressBar_->setFixedWidth(120);
 
     scaffoldBtn_->setToolTip(tr("Create a new plugin locally."));
-    validateBtn_->setToolTip(tr("Check with openc3cli before building or installing."));
+    validateBtn_->setToolTip(tr("Check that this plugin folder has the expected files (plugin.txt, .gemspec, targets/)."));
     buildBtn_->setToolTip(tr("Build the selected plugin into a gem. Save any open file first."));
     installBtn_->setToolTip(tr("Install a local .gem file into OpenC3."));
     refreshBtn_->setToolTip(tr("Refresh the local/remote plugin list."));
@@ -2172,7 +2172,7 @@ void PluginView::updateActionHints()
     addTargetBtn_->setToolTip(tr("Add a target folder structure to this plugin."));
     buildBtn_->setToolTip(busy ? busyReason : tr("Build this plugin into a gem."));
     removeBtn_->setToolTip(busy ? busyReason : tr("Remove this plugin from OpenC3."));
-    validateBtn_->setToolTip(tr("Check this plugin with openc3cli."));
+    validateBtn_->setToolTip(tr("Check that this plugin folder has the expected files (plugin.txt, .gemspec, targets/)."));
     openComponentBtn_->setToolTip(!hasSelectedFile ? tr("Select a plugin file first.") : tr("Open the selected plugin file."));
     startCmdTlmEditBtn_->setToolTip(firstCmdTlmComponentPath_.isEmpty() ? fileReason : tr("Open the first CMD/TLM definition and start editing."));
     saveComponentBtn_->setToolTip(!hasOpenFile ? openPluginFileReason : tr("Save the open plugin file."));

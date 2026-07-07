@@ -2398,9 +2398,8 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
         <translation>로컬에 새 플러그인을 생성합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="256"/>
         <source>Check with openc3cli before building or installing.</source>
-        <translation>빌드나 설치 전에 openc3cli로 검사합니다.</translation>
+        <translation type="vanished">빌드나 설치 전에 openc3cli로 검사합니다.</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="257"/>
@@ -2464,6 +2463,12 @@ APPEND_ITEM &lt;NAME&gt; &lt;BIT_SIZE&gt; &lt;TYPE&gt; &quot;설명&quot;
         <location filename="../src/ui/views/PluginView.cpp" line="1414"/>
         <source>Workspace</source>
         <translation>작업 공간</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/views/PluginView.cpp" line="256"/>
+        <location filename="../src/ui/views/PluginView.cpp" line="2175"/>
+        <source>Check that this plugin folder has the expected files (plugin.txt, .gemspec, targets/).</source>
+        <translation>이 플러그인 폴더에 필요한 파일(plugin.txt, .gemspec, targets/)이 있는지 확인합니다.</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="291"/>
@@ -3507,9 +3512,8 @@ COSMOS:     %9
         <translation>이 플러그인을 OpenC3에서 제거합니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/views/PluginView.cpp" line="2175"/>
         <source>Check this plugin with openc3cli.</source>
-        <translation>openc3cli로 이 플러그인을 검사합니다.</translation>
+        <translation type="vanished">openc3cli로 이 플러그인을 검사합니다.</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="2176"/>

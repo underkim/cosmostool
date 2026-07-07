@@ -38,7 +38,7 @@ public:
     // Creation (steps 1-3: Plugin/File/Edit) is reachable from the app's
     // Plugin Creation mode without a connection; CheckBuild (steps 4-5:
     // Check/Build & Install) is reachable from Connect & Operate mode and
-    // needs a real connection (openc3cli, gem build). Both modes act on the
+    // needs a real connection (remote file existence checks, gem build). Both modes act on the
     // exact same underlying session state (currentPluginRoot_,
     // currentComponentPath_, componentEditor_ contents, etc.) - switching
     // modes never resets or loses an open file's edits.
