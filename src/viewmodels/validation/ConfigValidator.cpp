@@ -90,7 +90,19 @@ ValidationReport ConfigValidator::validateContent(FileKind kind, const QString& 
     case FileKind::Unknown:
         break;
     }
-    return {};
+
+    // An empty ValidationReport (0 errors, 0 warnings) reads identically to
+    // "checked, and it's clean" - misleading for a file this validator never
+    // actually looked at (e.g. a Ruby procedures/*.rb script, which
+    // PluginView's Offline Check also routes through validateContent() via
+    // checkContent()). Match validateFile()'s own explicit Unknown handling
+    // so both entry points give the same honest "not checked" signal instead
+    // of one giving false confidence.
+    ValidationReport report;
+    report.add(Diagnostic::info(
+        0, QStringLiteral("Not a recognised COSMOS config file; skipped"),
+        QStringLiteral("classify.unknown")));
+    return report;
 }
 
 ValidationReport ConfigValidator::validateFile(const QString& path)

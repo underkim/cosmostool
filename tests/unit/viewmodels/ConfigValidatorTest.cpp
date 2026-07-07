@@ -61,6 +61,21 @@ TEST(ConfigValidatorTest, ValidateContentDispatchesToScreen)
     EXPECT_GE(report.errorCount(), 1);
 }
 
+TEST(ConfigValidatorTest, ValidateContentOnUnknownKindReportsInfoNotEmptyReport)
+{
+    // A bare empty ValidationReport (0 errors, 0 warnings) reads identically
+    // to "checked, and it's clean" - this must instead surface an explicit
+    // info diagnostic so a Ruby script or other unrecognized content isn't
+    // mistaken for a validated, error-free COSMOS config file (see
+    // PluginView::onValidateOfflineClicked(), which routes through this exact
+    // path for procedures/*.rb files via checkContent()).
+    const auto report = ConfigValidator::validateContent(
+        ConfigValidator::FileKind::Unknown, "def foo\nend\n");
+    EXPECT_TRUE(report.ok());
+    EXPECT_TRUE(hasRule(report, "classify.unknown"));
+    EXPECT_FALSE(report.diagnostics.isEmpty());
+}
+
 TEST(ConfigValidatorTest, ReportSummaryCountsSeverities)
 {
     ValidationReport report;
