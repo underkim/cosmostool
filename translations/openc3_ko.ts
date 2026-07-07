@@ -929,110 +929,116 @@ Continue?</source>
 <context>
     <name>OpenC3::UI::Dialogs::ScreenWidgetDialog</name>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="24"/>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="88"/>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="95"/>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="102"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="37"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="101"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="108"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="115"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="124"/>
         <source>Add Widget</source>
         <translation>위젯 추가</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="31"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="44"/>
         <source>Title</source>
         <translation>제목</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="31"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="44"/>
         <source>Label</source>
         <translation>레이블</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="31"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="44"/>
         <source>Value (telemetry)</source>
         <translation>값 (텔레메트리)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="31"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="44"/>
         <source>Button</source>
         <translation>버튼</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="33"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="46"/>
         <source>Widget:</source>
         <translation>위젯:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="42"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="55"/>
         <source>Text to display</source>
         <translation>표시할 텍스트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="43"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="56"/>
         <source>Text:</source>
         <translation>텍스트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="53"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="66"/>
         <source>e.g. MYSAT</source>
         <translation>예: MYSAT</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="55"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="68"/>
         <source>e.g. STATUS</source>
         <translation>예: STATUS</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="57"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="70"/>
         <source>e.g. TEMPERATURE</source>
         <translation>예: TEMPERATURE</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="58"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="71"/>
         <source>Target:</source>
         <translation>타겟:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="59"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="72"/>
         <source>Packet:</source>
         <translation>패킷:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="60"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="73"/>
         <source>Item:</source>
         <translation>아이템:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="67"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="80"/>
         <source>e.g. Send Reset</source>
         <translation>예: Send Reset</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="69"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="82"/>
         <source>e.g. cmd(&quot;MYSAT RESET&quot;)</source>
         <translation>예: cmd(&quot;MYSAT RESET&quot;)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="70"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="83"/>
         <source>Label:</source>
         <translation>레이블:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="71"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="84"/>
         <source>On click, run:</source>
         <translation>클릭 시 실행:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="88"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="101"/>
         <source>Enter the text to display.</source>
         <translation>표시할 텍스트를 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="96"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="109"/>
         <source>Target, Packet, and Item are all required.</source>
         <translation>타겟, 패킷, 아이템은 모두 필수입니다.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="103"/>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="116"/>
+        <source>Target, Packet, and Item must start with a letter or underscore and contain only letters, numbers, and underscores (no spaces or punctuation).</source>
+        <translation>타겟, 패킷, 아이템은 문자나 밑줄로 시작해야 하며 문자, 숫자, 밑줄만 포함할 수 있습니다 (공백이나 구두점 불가).</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/ScreenWidgetDialog.cpp" line="125"/>
         <source>Label and the command to run are both required.</source>
         <translation>레이블과 실행할 명령은 모두 필수입니다.</translation>
     </message>
@@ -3652,7 +3658,7 @@ COSMOS:     %9
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="2444"/>
         <source>No TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/WIDGET/VARIABLE blocks yet - use the &quot;Manifest&quot; menu above to add one.</source>
-        <translation>아직 TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/WIDGET/VARIABLE 블록이 없습니다 - 위의 "Manifest" 메뉴를 사용해 하나를 추가하세요.</translation>
+        <translation>아직 TARGET/INTERFACE/ROUTER/MICROSERVICE/TOOL/WIDGET/VARIABLE 블록이 없습니다 - 위의 &quot;Manifest&quot; 메뉴를 사용해 하나를 추가하세요.</translation>
     </message>
     <message>
         <location filename="../src/ui/views/PluginView.cpp" line="2553"/>

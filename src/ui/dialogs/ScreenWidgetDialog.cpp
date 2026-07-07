@@ -5,6 +5,7 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
@@ -15,6 +16,18 @@ QString quoted(QString value)
 {
     value.replace('"', '\'');
     return '"' + value + '"';
+}
+
+// Target/Packet/Item become bare (unquoted) space-separated tokens in the
+// generated VALUE line, unlike Title/Label/Button text which is quoted - a
+// name containing whitespace (e.g. "MY SAT") would silently split into
+// extra tokens and corrupt the line, same risk the sibling
+// PluginManifestInterfaceDialog/NewMicroserviceDialog already guard against
+// for their own bare-token name fields.
+bool isValidToken(const QString& value)
+{
+    static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
+    return pattern.match(value).hasMatch();
 }
 } // namespace
 
@@ -94,6 +107,15 @@ ScreenWidgetDialog::ScreenWidgetDialog(const QStringList& knownTargets, QWidget*
                 || itemEdit_->text().trimmed().isEmpty()) {
                 QMessageBox::warning(this, tr("Add Widget"),
                     tr("Target, Packet, and Item are all required."));
+                return;
+            }
+            if (!isValidToken(targetCombo_->currentText().trimmed())
+                || !isValidToken(packetEdit_->text().trimmed())
+                || !isValidToken(itemEdit_->text().trimmed())) {
+                QMessageBox::warning(this, tr("Add Widget"),
+                    tr("Target, Packet, and Item must start with a letter or "
+                       "underscore and contain only letters, numbers, and "
+                       "underscores (no spaces or punctuation)."));
                 return;
             }
         } else { // Button
