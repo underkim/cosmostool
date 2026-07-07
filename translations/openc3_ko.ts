@@ -563,97 +563,107 @@ Continue?</source>
 <context>
     <name>OpenC3::UI::Dialogs::PluginManifestInterfaceDialog</name>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="30"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="44"/>
         <source>New Router</source>
         <translation>새 라우터</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="30"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="44"/>
         <source>New Interface</source>
         <translation>새 인터페이스</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="38"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="52"/>
         <source>UPPERCASE, e.g. MYSAT_INT</source>
         <translation>대문자, 예: MYSAT_INT</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="44"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="58"/>
         <source>Target name (MAP_TARGET)</source>
         <translation>타겟 이름 (MAP_TARGET)</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="47"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="61"/>
         <source>TCP/IP Client</source>
         <translation>TCP/IP 클라이언트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="47"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="61"/>
         <source>TCP/IP Server</source>
         <translation>TCP/IP 서버</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="47"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="61"/>
         <source>UDP</source>
         <translation>UDP</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="47"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="61"/>
         <source>Serial</source>
         <translation>시리얼</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="55"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="69"/>
         <source>Port:</source>
         <translation>포트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="58"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="72"/>
         <source>Name:</source>
         <translation>이름:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="59"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="73"/>
         <source>Maps to target:</source>
         <translation>매핑할 타겟:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="60"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="74"/>
         <source>Connection type:</source>
         <translation>연결 유형:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="61"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="75"/>
         <source>Host:Port:</source>
         <translation>호스트:포트:</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="76"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="90"/>
         <source>Name must start with a letter or underscore and contain only letters, numbers, and underscores (no spaces or punctuation).</source>
         <translation>이름은 문자나 밑줄로 시작해야 하며, 문자/숫자/밑줄만 포함할 수 있습니다 (공백이나 특수문자 불가).</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="81"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="95"/>
         <source>Select or enter a target to map to.</source>
         <translation>매핑할 타겟을 선택하거나 입력하세요.</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="98"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="99"/>
+        <source>Host and Port are both required.</source>
+        <translation>Host와 Port는 모두 필수입니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="104"/>
+        <source>Host and Port must not contain spaces.</source>
+        <translation>Host와 Port에는 공백을 포함할 수 없습니다.</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="121"/>
         <source>/dev/ttyUSB0</source>
         <translation>/dev/ttyUSB0</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="99"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="122"/>
         <source>baud</source>
         <translation>보드레이트</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="101"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="124"/>
         <source>localhost</source>
         <translation>localhost</translation>
     </message>
     <message>
-        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="102"/>
+        <location filename="../src/ui/dialogs/PluginManifestInterfaceDialog.cpp" line="125"/>
         <source>port</source>
         <translation>포트</translation>
     </message>

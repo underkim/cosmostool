@@ -20,6 +20,20 @@ bool isValidBlockName(const QString& name)
     static const QRegularExpression pattern("^[A-Za-z_][A-Za-z0-9_]*$");
     return pattern.match(name).hasMatch();
 }
+
+// Host/Port become bare, unquoted, space-separated tokens inside
+// buildInterfaceArgs()'s output, which is itself spliced into the
+// generated INTERFACE/ROUTER line - but unlike Name, PluginManifestParser
+// never validates the content of that trailing "rest of line" args text,
+// only the block's own required leading tokens. So a space here doesn't
+// even get caught by Check - it silently produces a plugin.txt that looks
+// completely valid but hands the wrong number of constructor arguments to
+// the real Ruby interface class at COSMOS runtime.
+bool hasNoEmbeddedWhitespace(const QString& value)
+{
+    static const QRegularExpression whitespace("\\s");
+    return !value.contains(whitespace);
+}
 } // namespace
 
 PluginManifestInterfaceDialog::PluginManifestInterfaceDialog(
@@ -79,6 +93,15 @@ PluginManifestInterfaceDialog::PluginManifestInterfaceDialog(
         }
         if (targetCombo_->currentText().trimmed().isEmpty()) {
             QMessageBox::warning(this, windowTitle(), tr("Select or enter a target to map to."));
+            return;
+        }
+        if (hostEdit_->text().trimmed().isEmpty() || portEdit_->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, windowTitle(), tr("Host and Port are both required."));
+            return;
+        }
+        if (!hasNoEmbeddedWhitespace(hostEdit_->text().trimmed())
+            || !hasNoEmbeddedWhitespace(portEdit_->text().trimmed())) {
+            QMessageBox::warning(this, windowTitle(), tr("Host and Port must not contain spaces."));
             return;
         }
         accept();
