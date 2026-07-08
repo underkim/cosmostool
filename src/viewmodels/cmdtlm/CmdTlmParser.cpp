@@ -290,7 +290,15 @@ CmdTlmParseResult CmdTlmParser::parse(const QString& content)
                             scopeOf(currentBlock->kind)
                         });
                     }
-                } else if (item.bitSize <= 0 && item.dataType != "DERIVED") {
+                } else if (item.bitSize <= 0 && item.dataType != "DERIVED"
+                           && item.dataType != "STRING" && item.dataType != "BLOCK") {
+                    // Real COSMOS gives STRING/BLOCK bit_size <= 0 a defined
+                    // meaning: "variable length, consuming the rest of the
+                    // packet minus |bit_size| bits" - a common, documented
+                    // pattern for a trailing variable-length field, not an
+                    // error. DERIVED was already exempted; STRING/BLOCK need
+                    // the same treatment or a perfectly valid, commonly
+                    // hand-written cmd_tlm.txt gets flagged as broken.
                     result.diagnostics.append({
                         CmdTlmDiagnostic::Severity::Error, lineNo,
                         QString("Bit size for '%1' must be positive").arg(item.name),

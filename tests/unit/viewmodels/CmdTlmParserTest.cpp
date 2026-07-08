@@ -184,6 +184,31 @@ TEST(CmdTlmParserTest, FloatWithBadBitSizeProducesError)
     EXPECT_GE(result.errorCount(), 1);
 }
 
+TEST(CmdTlmParserTest, NegativeBitSizeIsAllowedForBlockAndString)
+{
+    // Real COSMOS gives STRING/BLOCK bit_size <= 0 a defined meaning
+    // ("variable length, consume the rest of the packet minus |bit_size|
+    // bits") - a common pattern for a trailing variable-length field, not
+    // an error, matching the DERIVED exemption already in place.
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ITEM TRAILER -8 BLOCK \"remaining bytes\"\n"
+        "  APPEND_ITEM LABEL 0 STRING \"variable length label\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_EQ(result.errorCount(), 0);
+}
+
+TEST(CmdTlmParserTest, NonPositiveBitSizeStillErrorsForNumericTypes)
+{
+    const QString src =
+        "TELEMETRY T H BIG_ENDIAN \"d\"\n"
+        "  APPEND_ITEM COUNT 0 UINT \"count\"\n";
+
+    const auto result = CmdTlmParser::parse(src);
+    EXPECT_GE(result.errorCount(), 1);
+}
+
 TEST(CmdTlmParserTest, SelectTelemetryWithoutItemsIsOk)
 {
     const QString src = "SELECT_TELEMETRY T H\n";
