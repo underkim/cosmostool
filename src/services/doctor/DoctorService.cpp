@@ -9,6 +9,17 @@ using Models::HealthStatus;
 using Models::DoctorReport;
 using Core::Connection::shellQuote;
 
+namespace {
+// Command output embedded verbatim into a HealthCheckResult::detail carries
+// the shell's trailing newline, which then shows up as a stray line break in
+// the Doctor table's Detail column - trim it before display.
+std::string trimTrailingNewline(std::string s)
+{
+    if (!s.empty() && s.back() == '\n') s.pop_back();
+    return s;
+}
+} // namespace
+
 DoctorService::DoctorService(
     Core::Connection::ICommandExecutor& executor,
     std::function<std::string()>        cosmosRootProvider)
@@ -79,7 +90,7 @@ HealthCheckResult DoctorService::checkDockerInstalled()
     auto res = executor_.execute("which docker 2>/dev/null || command -v docker");
     if (res && !res.stdOut.empty()) {
         r.status = HealthStatus::Pass;
-        r.detail = "docker found at " + res.stdOut;
+        r.detail = "docker found at " + trimTrailingNewline(res.stdOut);
     } else {
         r.status     = HealthStatus::Fail;
         r.detail     = "docker executable not found in PATH";
@@ -117,7 +128,7 @@ HealthCheckResult DoctorService::checkDockerCompose()
     auto res = executor_.execute("docker compose version 2>/dev/null");
     if (res && res.stdOut.find("Docker Compose") != std::string::npos) {
         r.status = HealthStatus::Pass;
-        r.detail = res.stdOut;
+        r.detail = trimTrailingNewline(res.stdOut);
     } else {
         r.status     = HealthStatus::Fail;
         r.detail     = "docker compose plugin not found";
@@ -340,10 +351,11 @@ HealthCheckResult DoctorService::checkOpenC3Version()
         "/openc3-cosmos-init/plugins/openc3-tool-base/VERSION";
     auto res = executor_.execute(
         "cat " + shellQuote(versionPath) + " 2>/dev/null || echo unknown");
+    const std::string version = trimTrailingNewline(res.stdOut);
 
-    if (res && res.stdOut != "unknown\n" && !res.stdOut.empty()) {
+    if (res && version != "unknown" && !version.empty()) {
         r.status = HealthStatus::Pass;
-        r.detail = "OpenC3 version: " + res.stdOut;
+        r.detail = "OpenC3 version: " + version;
     } else {
         r.status     = HealthStatus::Warning;
         r.detail     = "Could not determine OpenC3 version";

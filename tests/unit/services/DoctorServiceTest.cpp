@@ -137,6 +137,39 @@ TEST(DoctorServicePathTest, PluginFolderUsesConfiguredCosmosRoot)
     EXPECT_NE(r.suggestion.find("/opt/my cosmos"), std::string::npos);
 }
 
+TEST_F(DoctorServiceTest, DockerInstalledDetailStripsTrailingNewline)
+{
+    EXPECT_CALL(mock_, execute(
+        "which docker 2>/dev/null || command -v docker"))
+        .WillOnce(Return(ExecutorResult::ok("/usr/bin/docker\n")));
+
+    const auto r = sut_.runCheck("docker_installed");
+    EXPECT_EQ(r.detail, "docker found at /usr/bin/docker");
+}
+
+TEST_F(DoctorServiceTest, DockerComposeDetailStripsTrailingNewline)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker compose version")))
+        .WillOnce(Return(ExecutorResult::ok("Docker Compose version v2.20.2\n")));
+
+    const auto r = sut_.runCheck("docker_compose");
+    EXPECT_EQ(r.detail, "Docker Compose version v2.20.2");
+}
+
+TEST(DoctorServicePathTest, VersionCheckDetailStripsTrailingNewline)
+{
+    MockCommandExecutor mock;
+    DoctorService doctor{mock, [] { return std::string("/srv/cosmos"); }};
+
+    EXPECT_CALL(mock, execute(
+        "cat '/srv/cosmos/openc3-cosmos-init/plugins/openc3-tool-base/VERSION'"
+        " 2>/dev/null || echo unknown"))
+        .WillOnce(Return(ExecutorResult::ok("6.1.0\n")));
+
+    const auto r = doctor.runCheck("openc3_version");
+    EXPECT_EQ(r.detail, "OpenC3 version: 6.1.0");
+}
+
 TEST(DoctorServicePathTest, VersionCheckUsesConfiguredCosmosRoot)
 {
     MockCommandExecutor mock;
