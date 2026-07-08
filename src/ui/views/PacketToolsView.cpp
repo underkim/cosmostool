@@ -474,13 +474,13 @@ void PacketToolsView::bindViewModel()
 
     connect(&vm_, &ViewModels::PacketToolsViewModel::simulatorPacketSent,
             this, [this](const QString& transport, const QString& peer,
-                         const QString& hexPayload) {
+                         const QString& hexPayload, const QString& asciiPreview) {
                 const int row = simulatorPackets_->rowCount();
                 simulatorPackets_->insertRow(row);
                 simulatorPackets_->setItem(row, 0, new QTableWidgetItem(tr("TX ") + transport));
                 simulatorPackets_->setItem(row, 1, new QTableWidgetItem(peer));
                 simulatorPackets_->setItem(row, 2, new QTableWidgetItem(hexPayload));
-                simulatorPackets_->setItem(row, 3, new QTableWidgetItem(QString()));
+                simulatorPackets_->setItem(row, 3, new QTableWidgetItem(asciiPreview));
                 simulatorPackets_->scrollToBottom();
             });
 

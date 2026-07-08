@@ -88,6 +88,7 @@ TEST(PacketSimulatorTest, AcceptsTcpClientReceivesAndSendsHexPayload)
     ensureQtApplication();
     PacketSimulator simulator;
     QSignalSpy received(&simulator, &PacketSimulator::packetReceived);
+    QSignalSpy sent(&simulator, &PacketSimulator::packetSent);
     QSignalSpy started(&simulator, &PacketSimulator::started);
 
     ASSERT_TRUE(simulator.startTcpServer(QStringLiteral("127.0.0.1"), 0));
@@ -119,6 +120,31 @@ TEST(PacketSimulatorTest, AcceptsTcpClientReceivesAndSendsHexPayload)
     ASSERT_TRUE(simulator.sendTcpHex(QStringLiteral("CA FE")));
     ASSERT_TRUE(client.waitForReadyRead(1000));
     EXPECT_EQ(client.readAll(), QByteArray::fromHex("CAFE"));
+
+    ASSERT_EQ(sent.count(), 1);
+    const QList<QVariant> txArgs = sent.takeFirst();
+    EXPECT_EQ(txArgs.at(0).toString(), QStringLiteral("TCP"));
+    EXPECT_TRUE(txArgs.at(2).toString().contains(QStringLiteral("CA FE")));
+    EXPECT_EQ(txArgs.at(3).toString(), QStringLiteral(".."));
+}
+
+TEST(PacketSimulatorTest, SendUdpHexEmitsAsciiPreviewOfSentPayload)
+{
+    ensureQtApplication();
+    PacketSimulator simulator;
+    QSignalSpy sent(&simulator, &PacketSimulator::packetSent);
+
+    QUdpSocket receiver;
+    ASSERT_TRUE(receiver.bind(QHostAddress::LocalHost, 0));
+
+    ASSERT_TRUE(simulator.sendUdpHex(QStringLiteral("127.0.0.1"), receiver.localPort(),
+                                     QStringLiteral("41 42 ff")));
+
+    ASSERT_EQ(sent.count(), 1);
+    const QList<QVariant> args = sent.takeFirst();
+    EXPECT_EQ(args.at(0).toString(), QStringLiteral("UDP"));
+    EXPECT_TRUE(args.at(2).toString().contains(QStringLiteral("41 42 FF")));
+    EXPECT_EQ(args.at(3).toString(), QStringLiteral("AB."));
 }
 
 TEST(PacketSimulatorTest, TracksTcpClientCount)

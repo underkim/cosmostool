@@ -52,7 +52,7 @@ class PacketSimulator final : public QObject
     void packetReceived(const QString& transport, const QString& peer,
                         const QString& hexPayload, const QString& asciiPreview);
     void packetSent(const QString& transport, const QString& peer,
-                    const QString& hexPayload);
+                    const QString& hexPayload, const QString& asciiPreview);
 
   private slots:
     void acceptTcpClient();

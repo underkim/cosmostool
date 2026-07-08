@@ -56,7 +56,8 @@ signals:
                                  const QString& asciiPreview);
     void simulatorPacketSent(const QString& transport,
                              const QString& peer,
-                             const QString& hexPayload);
+                             const QString& hexPayload,
+                             const QString& asciiPreview);
 
 private:
     void setBusy(bool busy);

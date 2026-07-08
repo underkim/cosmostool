@@ -169,7 +169,7 @@ bool PacketSimulator::sendUdpHex(const QString& host, quint16 port,
     }
 
     emit packetSent(QStringLiteral("UDP"), QString("%1:%2").arg(host).arg(port),
-                    toHex(payload));
+                    toHex(payload), toAsciiPreview(payload));
     return true;
 }
 
@@ -205,7 +205,7 @@ bool PacketSimulator::sendTcpHex(const QString& hexPayload)
     }
 
     emit packetSent(QStringLiteral("TCP"), QString("%1 client(s)").arg(sentCount),
-                    toHex(payload));
+                    toHex(payload), toAsciiPreview(payload));
     return true;
 }
 
