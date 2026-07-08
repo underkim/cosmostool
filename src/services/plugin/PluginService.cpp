@@ -229,11 +229,18 @@ bool PluginService::install(
 bool PluginService::remove(
     const std::string& pluginName, const std::string& cosmosRoot)
 {
-    const std::string root = normalizeCosmosRoot(cosmosRoot);
+    const std::string root    = normalizeCosmosRoot(cosmosRoot);
+    const std::string gemPath = root + "/plugins/" + pluginName + ".gem";
     Logging::Logger::info("[PluginService] Removing plugin: {}", pluginName);
+
+    // `rm -f` exits 0 whether or not the target existed - that's the whole
+    // point of -f, so a stale/mistyped pluginName silently reported success
+    // without deleting anything. Check existence first so a missing file
+    // actually fails instead of masquerading as a successful removal.
     auto r = executor_.execute(
-        "rm -f " + shellQuote(root + "/plugins/" + pluginName + ".gem") +
-        " 2>&1");
+        "f=" + shellQuote(gemPath) + "; "
+        "if [ ! -e \"$f\" ]; then echo \"Plugin file not found: $f\" >&2; exit 1; fi; "
+        "rm -f \"$f\" 2>&1");
     if (!r)
         Logging::Logger::warn("[PluginService] Remove failed for {}: {}",
                                pluginName, r.stdOut.empty() ? r.errorMessage : r.stdOut);

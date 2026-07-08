@@ -138,7 +138,9 @@ TEST_F(PluginServiceTest, InstallQuotesBothArguments)
 TEST_F(PluginServiceTest, RemoveQuotesConstructedPath)
 {
     EXPECT_CALL(mock_,
-        execute("rm -f '/cosmos/plugins/mytool.gem' 2>&1"))
+        execute("f='/cosmos/plugins/mytool.gem'; "
+                "if [ ! -e \"$f\" ]; then echo \"Plugin file not found: $f\" >&2; exit 1; fi; "
+                "rm -f \"$f\" 2>&1"))
         .WillOnce(Return(ExecutorResult::ok()));
 
     EXPECT_TRUE(sut_.remove("mytool", "/cosmos"));
@@ -148,7 +150,9 @@ TEST_F(PluginServiceTest, PluginNameWithMetacharactersIsNeutralised)
 {
     // A malicious plugin name must stay inside a single quoted argument.
     EXPECT_CALL(mock_,
-        execute("rm -f '/cosmos/plugins/x'\\''; rm -rf /; '\\''.gem' 2>&1"))
+        execute("f='/cosmos/plugins/x'\\''; rm -rf /; '\\''.gem'; "
+                "if [ ! -e \"$f\" ]; then echo \"Plugin file not found: $f\" >&2; exit 1; fi; "
+                "rm -f \"$f\" 2>&1"))
         .WillOnce(Return(ExecutorResult::ok()));
 
     EXPECT_TRUE(sut_.remove("x'; rm -rf /; '", "/cosmos"));
