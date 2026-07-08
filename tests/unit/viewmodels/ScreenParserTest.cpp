@@ -71,3 +71,16 @@ TEST(ScreenParserTest, NamedWidgetIsAccepted)
     const auto report = ScreenParser::parse(src);
     EXPECT_EQ(report.errorCount(), 0);
 }
+
+TEST(ScreenParserTest, NamedWidgetWithUnknownTypeNamesTheWidgetTypeNotNamedWidget)
+{
+    const QString src =
+        "SCREEN AUTO AUTO 1.0\n"
+        "NAMED_WIDGET temp BOGUSWIDGET foo\n";
+
+    const auto report = ScreenParser::parse(src);
+    ASSERT_GE(report.warningCount(), 1);
+    const QString& message = report.diagnostics.last().message;
+    EXPECT_TRUE(message.contains("BOGUSWIDGET"));
+    EXPECT_FALSE(message.contains("NAMED_WIDGET"));
+}

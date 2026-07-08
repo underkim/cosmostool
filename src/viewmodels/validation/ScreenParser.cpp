@@ -228,10 +228,14 @@ ValidationReport ScreenParser::parse(const QString& content)
         }
 
         // Unknown widget — flag as a warning so typos are visible without
-        // failing valid screens that use widgets we don't model yet.
+        // failing valid screens that use widgets we don't model yet. Report
+        // `widget` (the actual widget type), not toks[0]: for a NAMED_WIDGET
+        // line toks[0] is always the literal "NAMED_WIDGET" wrapper, which
+        // would misname the offending keyword as "NAMED_WIDGET" instead of
+        // the unrecognized type it wraps.
         report.add(Diagnostic::warning(
             lineNo,
-            QStringLiteral("Unknown widget or keyword '%1'").arg(toks[0]),
+            QStringLiteral("Unknown widget or keyword '%1'").arg(widget),
             QStringLiteral("screen.widget.unknown")));
     }
 
