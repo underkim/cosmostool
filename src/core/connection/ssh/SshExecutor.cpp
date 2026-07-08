@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <array>
 #include <cstdlib>
+#include <chrono>
+#include <thread>
 
 #ifdef _WIN32
 #  include <winsock2.h>
@@ -174,6 +176,7 @@ ExecutorResult SshExecutor::executeStreaming(
     std::function<void(const std::string&)> onOutput)
 {
     if (!connected_) return ExecutorResult::fail("Not connected");
+    cancelStreaming_.store(false, std::memory_order_release);
 
     LIBSSH2_CHANNEL* channel =
         libssh2_channel_open_session(session_);
@@ -185,15 +188,47 @@ ExecutorResult SshExecutor::executeStreaming(
         return ExecutorResult::fail("Failed to exec command: " + command);
     }
 
+    // Non-blocking so the read loop can poll cancelStreaming_ between reads -
+    // a blocking read would keep libssh2_channel_read() stuck inside the
+    // kernel recv() until the remote side (e.g. a long-lived "tail -f")
+    // sends more data, silently ignoring cancelStreaming().
+    libssh2_channel_set_blocking(channel, 0);
+
     std::string                       output;
     std::array<char, kSshReadBuffer>  buf{};
     ssize_t                           nread;
+    bool                              cancelled = false;
 
-    while ((nread = libssh2_channel_read(channel, buf.data(),
-                                          buf.size())) > 0) {
-        std::string chunk(buf.data(), static_cast<std::size_t>(nread));
-        output += chunk;
-        if (onOutput) onOutput(chunk);
+    for (;;) {
+        if (cancelStreaming_.load(std::memory_order_acquire)) {
+            cancelled = true;
+            break;
+        }
+
+        nread = libssh2_channel_read(channel, buf.data(), buf.size());
+        if (nread > 0) {
+            std::string chunk(buf.data(), static_cast<std::size_t>(nread));
+            output += chunk;
+            if (onOutput) onOutput(chunk);
+            continue;
+        }
+        if (nread == LIBSSH2_ERROR_EAGAIN) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            continue;
+        }
+        break; // real error, or 0 with EOF
+    }
+
+    if (cancelled) {
+        // The remote command (e.g. tail -f) is still running and would
+        // otherwise keep the channel - and any resources it holds - alive
+        // indefinitely. Closing it (rather than the graceful send_eof/
+        // wait_eof/wait_closed sequence used for a normal finish) tells
+        // sshd to tear down the remote process instead of waiting for it
+        // to exit on its own.
+        libssh2_channel_close(channel);
+        libssh2_channel_free(channel);
+        return ExecutorResult::fail("Cancelled");
     }
 
     libssh2_channel_send_eof(channel);
@@ -203,6 +238,11 @@ ExecutorResult SshExecutor::executeStreaming(
     libssh2_channel_free(channel);
 
     return ExecutorResult::fromProcess(exitCode, output, {});
+}
+
+void SshExecutor::cancelStreaming()
+{
+    cancelStreaming_.store(true, std::memory_order_release);
 }
 
 // ── File operations ───────────────────────────────────────────────────────────

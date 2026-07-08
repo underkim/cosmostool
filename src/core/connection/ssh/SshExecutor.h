@@ -3,6 +3,8 @@
 #include "core/connection/ICommandExecutor.h"
 #include "core/connection/ConnectionConfig.h"
 
+#include <atomic>
+
 // Forward-declare libssh2 handle to avoid polluting every translation unit
 struct _LIBSSH2_SESSION;
 struct _LIBSSH2_CHANNEL;
@@ -34,6 +36,8 @@ public:
     [[nodiscard]] ExecutorResult executeStreaming(
         const std::string&                      command,
         std::function<void(const std::string&)> onOutput) override;
+
+    void cancelStreaming() override;
 
     [[nodiscard]] bool uploadFile(
         const std::string& localPath,
@@ -67,6 +71,7 @@ private:
     int                socket_{-1};
     bool               connected_{false};
     std::string        lastError_;
+    std::atomic_bool   cancelStreaming_{false};
 };
 
 } // namespace OpenC3::Core::Connection
