@@ -42,6 +42,16 @@ The pre-existing local build tree used during development lives in
 > (e.g. `C:/Qt/6.7.0/msvc2022_64`). Qt DLLs are copied next to the executable by
 > `windeployqt` in a POST_BUILD step.
 
+> **Windows troubleshooting — CMake exits with `0xC0000409` during configure:**
+> CMake 3.30/3.31 (including the Visual Studio-bundled and Qt-bundled copies)
+> can crash with `STATUS_STACK_BUFFER_OVERRUN` inside `find_program()` once the
+> Qt6 package has been loaded — on affected machines the configure dies right
+> after the `WrapAtomic`/`WrapVulkanHeaders` probes or at the
+> `windeployqt`/`lrelease` lookups, with no error message. The fix is to use
+> CMake ≥ 4.x (e.g. `pip install cmake`, or any recent standalone release) —
+> the same configure then succeeds unchanged. Non-ASCII characters in the
+> repository path are *not* the problem.
+
 ## Running Tests
 
 Primary fallback (direct binary; works without CMake/CTest on PATH if the

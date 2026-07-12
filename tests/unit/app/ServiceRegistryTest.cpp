@@ -47,7 +47,9 @@ TEST(ServiceRegistryTest, ResolveReturnsSameSharedInstanceEachTime)
 TEST(ServiceRegistryTest, ResolveUnregisteredTypeThrows)
 {
     ServiceRegistry registry;
-    EXPECT_THROW(registry.resolve<IGreeter>(), std::runtime_error);
+    // (void) — resolve() is [[nodiscard]]; MSVC /W4 /WX turns the discarded
+    // return inside EXPECT_THROW into a hard error (C4834).
+    EXPECT_THROW((void)registry.resolve<IGreeter>(), std::runtime_error);
 }
 
 // Every service is meant to be registered exactly once (singleton lifetime,
