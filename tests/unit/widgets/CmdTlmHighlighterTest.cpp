@@ -21,10 +21,20 @@ int fakeArgc = 1;
 char fakeArgName[] = "opencosmos_tests";
 char* fakeArgv[] = {fakeArgName, nullptr};
 
-void forceHighlight(CmdTlmHighlighter& highlighter)
+// Another test file (PacketSimulatorTest) may have created the application
+// object already; constructing a second one trips Qt's "there should be only
+// one application object" assert, which on Windows debug builds pops a
+// blocking CRT dialog and hangs the whole suite.
+void ensureQtApplication()
 {
+    if (QCoreApplication::instance()) return;
     static QCoreApplication app(fakeArgc, fakeArgv);
     (void)app;
+}
+
+void forceHighlight(CmdTlmHighlighter& highlighter)
+{
+    ensureQtApplication();
     QCoreApplication::processEvents();
     highlighter.rehighlight();
     QCoreApplication::processEvents();
