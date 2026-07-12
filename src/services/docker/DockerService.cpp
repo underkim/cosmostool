@@ -158,11 +158,17 @@ Models::ContainerStats DockerService::getStats(const std::string& nameOrId)
         stats.cpuPercent = std::stod(cpu);
 
         std::string mem = j.value("MemUsage", "0MiB / 0GiB");
-        // Parse "XXX MiB / YYY GiB" etc. — simplified parsing for skeleton
+        // Docker reports MemUsage as "<value><unit> / <limit><unit>" where unit
+        // is one of B, KiB, MiB, GiB, TiB depending on container memory size.
         std::istringstream ms(mem);
         double used{}; std::string unit{};
         ms >> used >> unit;
-        stats.memUsageMb = (unit == "GiB") ? used * 1024.0 : used;
+        if (unit == "TiB") stats.memUsageMb = used * 1024.0 * 1024.0;
+        else if (unit == "GiB") stats.memUsageMb = used * 1024.0;
+        else if (unit == "MiB") stats.memUsageMb = used;
+        else if (unit == "KiB") stats.memUsageMb = used / 1024.0;
+        else if (unit == "B") stats.memUsageMb = used / (1024.0 * 1024.0);
+        else stats.memUsageMb = used;
 
     } catch (const std::exception& e) {
         Logging::Logger::warn("[DockerService] getStats parse error: {}", e.what());

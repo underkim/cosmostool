@@ -12,6 +12,37 @@
 
 namespace OpenC3::Core::Connection {
 
+namespace {
+// Quote a single argument per the Windows CreateProcess command-line parsing
+// rules. This is distinct from shellQuote(): shellQuote() protects the inner
+// POSIX command handed to WSL/bash, while this protects config_.wslDistribution
+// (a user-editable field) when it is spliced into the outer Win32 command line
+// that CreateProcessA parses before wsl.exe even runs.
+std::string quoteWindowsArg(const std::string& arg)
+{
+    if (!arg.empty() && arg.find_first_of(" \t\n\v\"") == std::string::npos)
+        return arg;
+
+    std::string result = "\"";
+    for (auto it = arg.begin();; ++it) {
+        size_t backslashes = 0;
+        while (it != arg.end() && *it == '\\') { ++backslashes; ++it; }
+        if (it == arg.end()) {
+            result.append(backslashes * 2, '\\');
+            break;
+        } else if (*it == '"') {
+            result.append(backslashes * 2 + 1, '\\');
+            result += *it;
+        } else {
+            result.append(backslashes, '\\');
+            result += *it;
+        }
+    }
+    result += '"';
+    return result;
+}
+} // namespace
+
 // ── Windows-only pipe helper ──────────────────────────────────────────────────
 // Uses CreateProcess with CREATE_NO_WINDOW so no console flashes in a GUI app.
 
@@ -156,7 +187,7 @@ bool WslExecutor::connect()
     cancelStreaming_.store(false, std::memory_order_release);
 
     const std::string probe =
-        "wsl.exe -d " + config_.wslDistribution + " -- echo OK";
+        "wsl.exe -d " + quoteWindowsArg(config_.wslDistribution) + " -- echo OK";
     auto result = runProcess(probe);
     if (!result || result.stdOut.find("OK") == std::string::npos) {
         Logging::Logger::error(
@@ -274,7 +305,7 @@ std::vector<std::string> WslExecutor::listDirectory(const std::string& remotePat
 
 std::string WslExecutor::buildWslCommand(const std::string& command) const
 {
-    return "wsl.exe -d " + config_.wslDistribution + " -- " + command;
+    return "wsl.exe -d " + quoteWindowsArg(config_.wslDistribution) + " -- " + command;
 }
 
 ExecutorResult WslExecutor::runProcess(const std::string& fullCommand)

@@ -174,6 +174,16 @@ TEST_F(DockerServiceTest, GetStatsHandlesCpuWithoutPercentSign)
     EXPECT_DOUBLE_EQ(stats.memUsageMb, 100.0);
 }
 
+TEST_F(DockerServiceTest, GetStatsConvertsKibAndBToMb)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker stats")))
+        .WillOnce(Return(ExecutorResult::ok(
+            R"({"CPUPerc":"0.1%","MemUsage":"512KiB / 1.952GiB"})")));
+
+    const auto stats = sut_.getStats("mycontainer");
+    EXPECT_DOUBLE_EQ(stats.memUsageMb, 512.0 / 1024.0);  // 512 KiB -> MiB
+}
+
 TEST_F(DockerServiceTest, ListComposeServicesParsesEachJsonLine)
 {
     EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker compose ps")))
