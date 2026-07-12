@@ -50,7 +50,16 @@ The pre-existing local build tree used during development lives in
 > `windeployqt`/`lrelease` lookups, with no error message. The fix is to use
 > CMake ≥ 4.x (e.g. `pip install cmake`, or any recent standalone release) —
 > the same configure then succeeds unchanged. Non-ASCII characters in the
-> repository path are *not* the problem.
+> repository path are *not* the problem for configuring or compiling.
+>
+> One residual quirk remains if the repository lives under a **non-ASCII path**
+> (e.g. a Korean folder name): CMake ≥ 4.x's `gtest_discover_tests` post-build
+> step runs the test binary with `--gtest_output=json:<build-dir>/...`, and
+> GoogleTest 1.14 aborts (exit code 3) when that output path contains
+> non-ASCII characters — so the *last* build step fails even though the test
+> executable itself linked fine. Work around it by running
+> `bin\opencosmos_tests.exe` directly (the documented fallback above), or keep
+> the working tree on an ASCII-only path if you need `ctest` integration.
 
 ## Running Tests
 
