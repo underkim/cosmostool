@@ -47,6 +47,8 @@ public:
         Services::IDockerService&     docker,
         QObject*                      parent = nullptr);
 
+    ~DockerViewModel() override;
+
     [[nodiscard]] ContainerTableModel* containerModel() const noexcept;
     [[nodiscard]] QString              dockerVersion()  const noexcept;
     [[nodiscard]] bool                 isConnected()    const noexcept;
@@ -71,6 +73,7 @@ private:
     ContainerTableModel*          containerModel_{nullptr};
     QTimer*                       refreshTimer_{nullptr};
     QString                       dockerVersion_;
+    Services::IConnectionService::SubscriptionId connSubscription_{0};
 };
 
 } // namespace OpenC3::ViewModels

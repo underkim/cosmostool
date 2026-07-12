@@ -46,6 +46,7 @@ private:
 
     Services::IConnectionService& connection_;
     Services::IRemoteFileService& fs_;
+    Services::IConnectionService::SubscriptionId connSubscription_{0};
     bool                          streaming_{false};
     QString                       status_;
 

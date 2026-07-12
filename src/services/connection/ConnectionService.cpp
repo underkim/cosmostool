@@ -80,11 +80,20 @@ std::string ConnectionService::cosmosRootPath() const noexcept
     return activeProfile_ ? activeProfile_->cosmosRootPath : "/cosmos";
 }
 
-void ConnectionService::onStateChanged(
+IConnectionService::SubscriptionId ConnectionService::onStateChanged(
     std::function<void(const ConnectionEvent&)> cb)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    stateCallbacks_.push_back(std::move(cb));
+    const SubscriptionId id = nextSubscriptionId_++;
+    stateCallbacks_.emplace_back(id, std::move(cb));
+    return id;
+}
+
+void ConnectionService::removeStateChanged(SubscriptionId id)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::erase_if(stateCallbacks_,
+                  [id](const auto& entry) { return entry.first == id; });
 }
 
 Core::Connection::ICommandExecutor* ConnectionService::executor() const noexcept
@@ -100,7 +109,11 @@ void ConnectionService::setState(ConnectionState s, const std::string& err)
     ev.state        = s;
     ev.profileId    = activeProfile_ ? activeProfile_->id : "";
     ev.errorMessage = err;
-    for (auto& cb : stateCallbacks_) cb(ev);
+    // Iterate a copy: the mutex is recursive, so a callback may legally call
+    // removeStateChanged() mid-dispatch, which would otherwise invalidate the
+    // iterators of the vector being walked here.
+    const auto callbacks = stateCallbacks_;
+    for (const auto& [id, cb] : callbacks) cb(ev);
 }
 
 } // namespace OpenC3::Services

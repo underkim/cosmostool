@@ -108,3 +108,58 @@ TEST(ConnectionServiceTest, MultipleCallbacksAllReceiveEvents)
     EXPECT_EQ(firstCount, 2);
     EXPECT_EQ(secondCount, 2);
 }
+
+// ViewModels unsubscribe in their destructors; a removed callback must never
+// fire again while the remaining subscribers keep receiving events.
+TEST(ConnectionServiceTest, RemoveStateChangedStopsOnlyThatCallback)
+{
+    FakeSettingsService settings;
+    ConnectionService   svc(settings);
+
+    int removedCount = 0, keptCount = 0;
+    const auto id = svc.onStateChanged([&](const ConnectionEvent&) { ++removedCount; });
+    svc.onStateChanged([&](const ConnectionEvent&) { ++keptCount; });
+
+    svc.removeStateChanged(id);
+    (void)svc.connect("missing-profile");
+
+    EXPECT_EQ(removedCount, 0);
+    EXPECT_EQ(keptCount, 2);
+}
+
+TEST(ConnectionServiceTest, RemoveStateChangedWithUnknownIdIsANoOp)
+{
+    FakeSettingsService settings;
+    ConnectionService   svc(settings);
+
+    int count = 0;
+    svc.onStateChanged([&](const ConnectionEvent&) { ++count; });
+
+    EXPECT_NO_THROW(svc.removeStateChanged(9999));
+    (void)svc.connect("missing-profile");
+
+    EXPECT_EQ(count, 2);
+}
+
+// A callback may unsubscribe itself while events are being dispatched (the
+// mutex is recursive); this must not invalidate the dispatch loop.
+TEST(ConnectionServiceTest, CallbackCanRemoveItselfDuringDispatch)
+{
+    FakeSettingsService settings;
+    ConnectionService   svc(settings);
+
+    int selfCount = 0, otherCount = 0;
+    IConnectionService::SubscriptionId selfId = 0;
+    selfId = svc.onStateChanged([&](const ConnectionEvent&) {
+        ++selfCount;
+        svc.removeStateChanged(selfId);
+    });
+    svc.onStateChanged([&](const ConnectionEvent&) { ++otherCount; });
+
+    // connect() fires Connecting then Error; the self-removing callback only
+    // sees the first event, the other callback sees both.
+    (void)svc.connect("missing-profile");
+
+    EXPECT_EQ(selfCount, 1);
+    EXPECT_EQ(otherCount, 2);
+}

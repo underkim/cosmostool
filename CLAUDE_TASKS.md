@@ -334,8 +334,9 @@ Status as of the latest local check:
 
 - Priorities 1-6 are implemented or materially addressed.
 - Priority 7, end-to-end manual validation, remains pending.
-- The repository has uncommitted source, test, and documentation changes.
-- Do not assume the changes are committed.
+- The source, test, and documentation changes referenced below have since
+  been committed and pushed to `master` (the two bullets that previously
+  warned about uncommitted changes are obsolete).
 
 Observed test result:
 

@@ -36,6 +36,8 @@ public:
         Services::IConnectionService& connection,
         QObject*                     parent = nullptr);
 
+    ~SettingsViewModel() override;
+
     [[nodiscard]] ProfileListModel* profileModel() const noexcept;
     [[nodiscard]] bool isConnected() const noexcept;
 
@@ -68,6 +70,7 @@ private:
     Services::ISettingsService&  settings_;
     Services::IConnectionService& connection_;
     ProfileListModel*             profileModel_{nullptr};
+    Services::IConnectionService::SubscriptionId connSubscription_{0};
 };
 
 } // namespace OpenC3::ViewModels

@@ -28,6 +28,8 @@ public:
         Services::IRemoteFileService& fs,
         QObject*                      parent = nullptr);
 
+    ~InfraViewModel() override;
+
     [[nodiscard]] bool    isConnected()   const noexcept;
     [[nodiscard]] bool    isBusy()        const noexcept;
     [[nodiscard]] QString statusMessage() const noexcept;
@@ -116,6 +118,7 @@ private:
 
     Services::IConnectionService& connection_;
     Services::IRemoteFileService& fs_;
+    Services::IConnectionService::SubscriptionId connSubscription_{0};
     bool    connected_{false};
     bool    busy_{false};
     QString statusMessage_;

@@ -27,7 +27,7 @@ DashboardViewModel::DashboardViewModel(
     connectionState_ = connection_.state();
 
     // Sync connection status — callback fires on the worker thread; marshal to GUI thread.
-    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+    connSubscription_ = connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         const auto state = ev.state;
         const QString errorMessage = QString::fromStdString(ev.errorMessage);
         QMetaObject::invokeMethod(this, [this, state, errorMessage] {
@@ -46,7 +46,10 @@ DashboardViewModel::DashboardViewModel(
     });
 }
 
-DashboardViewModel::~DashboardViewModel() = default;
+DashboardViewModel::~DashboardViewModel()
+{
+    connection_.removeStateChanged(connSubscription_);
+}
 
 // ── Property accessors ────────────────────────────────────────────────────────
 

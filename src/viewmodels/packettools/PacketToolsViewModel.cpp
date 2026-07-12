@@ -34,13 +34,18 @@ PacketToolsViewModel::PacketToolsViewModel(
     connect(&simulator_, &PacketSimulator::packetSent,
             this, &PacketToolsViewModel::simulatorPacketSent);
 
-    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+    connSubscription_ = connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         Q_UNUSED(ev);
         QMetaObject::invokeMethod(this, [this] {
             emit connectionChanged();
             if (isConnected()) refreshLogList();
         }, Qt::QueuedConnection);
     });
+}
+
+PacketToolsViewModel::~PacketToolsViewModel()
+{
+    connection_.removeStateChanged(connSubscription_);
 }
 
 bool PacketToolsViewModel::isConnected() const noexcept

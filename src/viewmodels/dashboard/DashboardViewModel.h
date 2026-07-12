@@ -70,6 +70,7 @@ private:
     Services::ISystemService&     system_;
 
     QTimer* timer_{nullptr};
+    Services::IConnectionService::SubscriptionId connSubscription_{0};
 
     Services::ConnectionState connectionState_{Services::ConnectionState::Disconnected};
     QString connectionErrorMessage_;

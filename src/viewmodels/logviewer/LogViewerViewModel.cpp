@@ -15,7 +15,7 @@ LogViewerViewModel::LogViewerViewModel(
     , connection_(connection)
     , fs_(fs)
 {
-    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+    connSubscription_ = connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         Q_UNUSED(ev);
         QMetaObject::invokeMethod(this, [this] {
             if (!isConnected() && streaming_) stopStream();
@@ -26,6 +26,7 @@ LogViewerViewModel::LogViewerViewModel(
 
 LogViewerViewModel::~LogViewerViewModel()
 {
+    connection_.removeStateChanged(connSubscription_);
     stopStream();
 }
 

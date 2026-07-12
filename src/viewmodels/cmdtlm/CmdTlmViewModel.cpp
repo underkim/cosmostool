@@ -17,12 +17,17 @@ CmdTlmViewModel::CmdTlmViewModel(
     , connection_(connection)
     , fs_(fs)
 {
-    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+    connSubscription_ = connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         Q_UNUSED(ev);
         QMetaObject::invokeMethod(this, [this] {
             emit connectionChanged();
         }, Qt::QueuedConnection);
     });
+}
+
+CmdTlmViewModel::~CmdTlmViewModel()
+{
+    connection_.removeStateChanged(connSubscription_);
 }
 
 bool CmdTlmViewModel::isConnected() const noexcept

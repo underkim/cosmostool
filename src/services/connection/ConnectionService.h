@@ -8,6 +8,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace OpenC3::Services {
@@ -23,7 +24,8 @@ public:
     [[nodiscard]] const Models::ConnectionProfile* activeProfile() const noexcept override;
     [[nodiscard]] std::string cosmosRootPath() const noexcept override;
 
-    void onStateChanged(std::function<void(const ConnectionEvent&)> cb) override;
+    SubscriptionId onStateChanged(std::function<void(const ConnectionEvent&)> cb) override;
+    void           removeStateChanged(SubscriptionId id) override;
 
     /// Provides access to the active executor for services that need to
     /// run commands (DockerService, SystemService, etc.).
@@ -37,7 +39,9 @@ private:
     ConnectionState                                   state_{ConnectionState::Disconnected};
     std::optional<Models::ConnectionProfile>          activeProfile_;
 
-    std::vector<std::function<void(const ConnectionEvent&)>> stateCallbacks_;
+    std::vector<std::pair<SubscriptionId,
+                          std::function<void(const ConnectionEvent&)>>> stateCallbacks_;
+    SubscriptionId nextSubscriptionId_{1};
 
     // connect() runs on a background thread (SettingsViewModel::connectToProfile
     // via QtConcurrent::run) while disconnect() is invoked synchronously from

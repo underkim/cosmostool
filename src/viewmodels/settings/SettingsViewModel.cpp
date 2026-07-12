@@ -58,13 +58,18 @@ SettingsViewModel::SettingsViewModel(
     , profileModel_(new ProfileListModel(this))
 {
     // Callback fires on the worker thread — marshal signal emission to the GUI thread.
-    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+    connSubscription_ = connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         const auto state = ev.state;
         const QString errorMessage = QString::fromStdString(ev.errorMessage);
         QMetaObject::invokeMethod(this, [this, state, errorMessage] {
             emit connectionStateChanged(state, errorMessage);
         }, Qt::QueuedConnection);
     });
+}
+
+SettingsViewModel::~SettingsViewModel()
+{
+    connection_.removeStateChanged(connSubscription_);
 }
 
 ProfileListModel* SettingsViewModel::profileModel() const noexcept

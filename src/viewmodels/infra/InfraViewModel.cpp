@@ -20,13 +20,18 @@ InfraViewModel::InfraViewModel(
     , connection_(connection)
     , fs_(fs)
 {
-    connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
+    connSubscription_ = connection_.onStateChanged([this](const Services::ConnectionEvent& ev) {
         const bool c = (ev.state == Services::ConnectionState::Connected);
         QMetaObject::invokeMethod(this, [this, c] {
             connected_ = c;
             emit connectionChanged();
         }, Qt::QueuedConnection);
     });
+}
+
+InfraViewModel::~InfraViewModel()
+{
+    connection_.removeStateChanged(connSubscription_);
 }
 
 // ── Properties ────────────────────────────────────────────────────────────────
