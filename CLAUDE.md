@@ -46,14 +46,74 @@ dependency, which is what makes them unit-testable without a GUI.
 
 Key patterns in play (details + diagrams in `ARCHITECTURE.md`):
 - **Null Object** — `NullCommandExecutor` lets services run safely before a
-  connection exists.
+  connection exists; `NullCosmosApiClient` does the same for the API transport.
 - **Strategy** — `ICommandExecutor` implementations are swappable at runtime.
 - **Proxy** — `ExecutorProxy` holds an `std::atomic` pointer so services keep
-  a stable reference across connect/disconnect without races.
+  a stable reference across connect/disconnect without races; `ApiClientProxy`
+  mirrors it exactly for `ICosmosApiClient`.
 - **Observer** — services expose plain C++ `onStateChanged` callbacks;
   ViewModels translate them into Qt signals on the GUI thread.
 - **MVVM** — View ↔ ViewModel via signals/slots and `Q_PROPERTY`; ViewModel ↔
   Service via plain function calls/callbacks.
+
+## Two transports (shell + COSMOS API)
+
+This app targets **OpenC3 COSMOS 6.10.4 Core** and speaks to it over *two*
+transports. Using the wrong one is the single biggest correctness trap here:
+
+| Transport | Interface | Correct for |
+|---|---|---|
+| Shell (WSL/SSH) | `core/connection/ICommandExecutor.h` | Docker control, remote file editing, `gem build` |
+| HTTP API | `core/api/ICosmosApiClient.h` | Everything about COSMOS *itself* |
+
+A shell on the COSMOS host cannot answer any question about COSMOS. Installed
+plugins live in MinIO + Redis, **not** in a host directory; targets,
+interfaces, and microservices are Redis-backed models; installing a plugin is
+a two-phase server-side operation. All of that is only reachable through the
+API traefik exposes on port 2900. Do **not** implement COSMOS operations by
+copying files around with shell commands.
+
+Non-obvious facts, each verified against the 6.10.4 sources (not the docs):
+
+- **No `Bearer` prefix.** Core's `OpenC3Authentication#token` returns
+  `ENV['OPENC3_API_PASSWORD']` verbatim and `AuthModel.verify(token)` compares
+  it directly, so `Authorization` carries the raw password. Adding `Bearer `
+  makes every request fail authorization. (Keycloak/Bearer is Enterprise only,
+  and is not implemented.)
+- **Scope is mandatory.** `authorize()` raises "Scope is required", so scope is
+  part of the connection identity, not a per-call argument —
+  `HttpCosmosApiClient` appends it to every request automatically.
+- **Plugin install is two phases.** `POST /openc3-api/plugins` uploads the
+  `.gem` (multipart field name `plugin`) and returns a plugin hash; then
+  `POST /openc3-api/plugins/install/:id` performs the install. Note the id
+  comes *after* `install` in that route, reversing the usual Rails ordering.
+- **Two URL prefixes.** cmd-tlm-api is under `/openc3-api`, Script Runner under
+  `/script-api`, both behind the same port.
+
+Never spell a route out at a call site — use `core/api/CosmosRoutes.h`.
+
+The plugin domain is split along the same transport line, and the split is
+load-bearing — do not merge them back:
+
+| Service | Question it answers | Transport |
+|---|---|---|
+| `IWorkspaceService` | "what plugin *sources* are on this host?" | shell |
+| `ICosmosPluginService` | "what is *installed* in COSMOS right now?" | API |
+
+A plugin can be installed with no source folder present, and a source folder
+may never have been installed. `IWorkspaceService` was split out of the old
+`IPluginService`, whose `listInstalled()` scanned `<cosmosRoot>/plugins/*` on
+disk while claiming to report installed plugins — that conflation is why the
+toolkit used to show development folders as if they were live COSMOS state.
+The old `install()`/`remove()` were deleted rather than ported: they copied or
+deleted a `.gem` on the host and reported success while having no effect on a
+running COSMOS.
+
+Qt stays out of `core/`, so `ICosmosApiClient` is pure C++20 and its Qt Network
+implementation lives in `viewmodels/api/HttpCosmosApiClient.{h,cpp}` (the
+precedent `PluginTemplateEngine` set). Services therefore depend only on the
+interface and are testable with `tests/mocks/MockCosmosApiClient.h` — no
+network, no Qt event loop, no running COSMOS.
 
 Every remote command executor call funnels through `ShellQuote`
 (`src/core/connection/ShellQuote.h`) when interpolating user-controlled

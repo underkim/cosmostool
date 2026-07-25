@@ -12,8 +12,10 @@
 #include "services/system/SystemService.h"
 #include "services/doctor/IDoctorService.h"
 #include "services/doctor/DoctorService.h"
-#include "services/plugin/IPluginService.h"
-#include "services/plugin/PluginService.h"
+#include "services/plugin/ICosmosPluginService.h"
+#include "services/plugin/CosmosPluginService.h"
+#include "services/workspace/IWorkspaceService.h"
+#include "services/workspace/WorkspaceService.h"
 #include "services/filesystem/IRemoteFileService.h"
 #include "services/filesystem/RemoteFileService.h"
 
@@ -30,6 +32,7 @@
 
 #include "ui/styles/ThemeManager.h"
 #include "ui/dialogs/ConnectionDialog.h"
+#include "viewmodels/api/HttpCosmosApiClient.h"
 #include "StartupPolicy.h"
 
 #include <QStandardPaths>
@@ -46,6 +49,18 @@ Application::Application(QApplication& qtApp)
 {
     initLogging();
     Logging::Logger::info("OpenC3 Developer Toolkit starting");
+}
+
+Application::~Application()
+{
+    // Order matters. Member destruction runs in reverse declaration order,
+    // which would destroy apiClient_ while apiProxy_ (declared earlier, so
+    // destroyed later) may still point at it. Any service that outlives this
+    // window and touches the proxy would then dereference freed memory.
+    // Detaching first makes the proxy fall back to its embedded null client,
+    // so the teardown order becomes irrelevant.
+    apiProxy_.reset();
+    executorProxy_.reset();
 }
 
 void Application::loadLanguage()
@@ -166,16 +181,52 @@ void Application::registerServices()
     // Connected. Resetting the proxy here first means that reassignment
     // never destroys an executor the proxy is still pointing at - the same
     // hazard the Disconnected/Error branch guards against.
+    //
+    // The COSMOS API client follows the same lifecycle. It is a separate
+    // transport (see CLAUDE.md's "Two transports"), but it is configured from
+    // the same profile and becomes valid/invalid at the same moments, so
+    // driving both from one callback keeps them from drifting apart.
+    apiClient_ = std::make_unique<ViewModels::Api::HttpCosmosApiClient>();
+
     connection->onStateChanged([this, conn = connection.get()](
         const Services::ConnectionEvent& ev)
     {
         if (ev.state == Services::ConnectionState::Connected) {
             executorProxy_.swap(conn->executor());
             Logging::Logger::info("[App] ExecutorProxy swapped to live connection");
+
+            // Only bring the API up when the active profile actually carries
+            // credentials. Without a password every COSMOS route fails
+            // authorization, so connecting anyway would leave the UI showing
+            // authentication errors for a profile that simply never opted in
+            // to the API - shell-only profiles stay silently shell-only.
+            const auto profile = conn->activeProfile();
+            if (profile && profile->hasApiEndpoint()) {
+                apiClient_->configure(profile->toApiConfig());
+                if (apiClient_->connect()) {
+                    apiProxy_.swap(apiClient_.get());
+                    Logging::Logger::info(
+                        "[App] COSMOS API connected at {}",
+                        profile->resolvedApiBaseUrl());
+                } else {
+                    // A failed API probe must not take the shell connection
+                    // down with it: Docker control and file editing still work
+                    // without the API, and COSMOS-backed views degrade to
+                    // "unavailable" through NullCosmosApiClient.
+                    apiProxy_.reset();
+                    Logging::Logger::warn(
+                        "[App] COSMOS API unavailable: {}", apiClient_->lastError());
+                }
+            } else {
+                apiProxy_.reset();
+                Logging::Logger::info(
+                    "[App] Profile has no COSMOS API password; API features disabled");
+            }
         } else if (ev.state == Services::ConnectionState::Disconnected
                 || ev.state == Services::ConnectionState::Error
                 || ev.state == Services::ConnectionState::Connecting) {
             executorProxy_.reset();
+            apiProxy_.reset();
             Logging::Logger::info("[App] ExecutorProxy reset to NullExecutor");
         }
     });
@@ -196,8 +247,14 @@ void Application::registerServices()
         [conn = connection.get()] { return conn->cosmosRootPath(); });
     registry_.registerInstance<Services::IDoctorService>(doctorSvc);
 
-    auto pluginSvc = std::make_shared<Services::PluginService>(executorProxy_);
-    registry_.registerInstance<Services::IPluginService>(pluginSvc);
+    auto workspaceSvc = std::make_shared<Services::WorkspaceService>(executorProxy_);
+    registry_.registerInstance<Services::IWorkspaceService>(workspaceSvc);
+
+    // COSMOS-side plugin lifecycle (API transport). Separate from
+    // WorkspaceService, which only sees plugin *sources* on the host
+    // filesystem - see ICosmosPluginService's header for why both exist.
+    auto cosmosPluginSvc = std::make_shared<Services::CosmosPluginService>(apiProxy_);
+    registry_.registerInstance<Services::ICosmosPluginService>(cosmosPluginSvc);
 
     auto fsSvc = std::make_shared<Services::RemoteFileService>(executorProxy_);
     registry_.registerInstance<Services::IRemoteFileService>(fsSvc);
@@ -212,7 +269,8 @@ void Application::registerViewModels()
     auto system     = registry_.resolve<Services::ISystemService>();
     auto doctor     = registry_.resolve<Services::IDoctorService>();
     auto settings   = registry_.resolve<Services::ISettingsService>();
-    auto plugin     = registry_.resolve<Services::IPluginService>();
+    auto workspace  = registry_.resolve<Services::IWorkspaceService>();
+    auto cosmosPlug = registry_.resolve<Services::ICosmosPluginService>();
     auto fs         = registry_.resolve<Services::IRemoteFileService>();
 
     auto dashVm = std::make_shared<ViewModels::DashboardViewModel>(
@@ -229,7 +287,8 @@ void Application::registerViewModels()
         *settings, *connection);
     registry_.registerInstance<ViewModels::SettingsViewModel>(settingsVm);
 
-    auto pluginVm = std::make_shared<ViewModels::PluginViewModel>(*plugin, *connection);
+    auto pluginVm = std::make_shared<ViewModels::PluginViewModel>(
+        *workspace, *cosmosPlug, *connection);
     registry_.registerInstance<ViewModels::PluginViewModel>(pluginVm);
 
     auto cmdTlmVm = std::make_shared<ViewModels::CmdTlmViewModel>(

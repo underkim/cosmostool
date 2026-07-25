@@ -7,11 +7,14 @@ add_executable(opencosmos_tests
     unit/core/EventBusTest.cpp
     unit/core/ExecutorProxyTest.cpp
     unit/core/ShellQuoteTest.cpp
+    unit/core/ApiClientProxyTest.cpp
+    unit/core/ConnectionProfileApiTest.cpp
     unit/services/ConnectionServiceTest.cpp
     unit/services/DockerServiceTest.cpp
     unit/services/SystemServiceTest.cpp
     unit/services/DoctorServiceTest.cpp
-    unit/services/PluginServiceTest.cpp
+    unit/services/CosmosPluginServiceTest.cpp
+    unit/services/WorkspaceServiceTest.cpp
     unit/services/SettingsServiceTest.cpp
     unit/viewmodels/CmdTlmParserTest.cpp
     unit/viewmodels/PluginTemplateEngineTest.cpp
@@ -51,6 +54,53 @@ target_link_libraries(opencosmos_tests
 )
 
 target_set_warnings(opencosmos_tests)
+
+# ── Live transport check (manual) ─────────────────────────────────────────────
+# Excluded from the gtest suite and from ALL: it binds real localhost sockets to
+# exercise HttpCosmosApiClient's actual Qt Network path, which the mock-based
+# unit tests cannot cover. Build and run it explicitly:
+#   cmake --build <dir> --target opencosmos_api_livecheck
+#   <dir>/bin/opencosmos_api_livecheck
+add_executable(opencosmos_api_livecheck EXCLUDE_FROM_ALL
+    manual/HttpCosmosApiClientLiveCheck.cpp
+)
+
+target_include_directories(opencosmos_api_livecheck
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+target_link_libraries(opencosmos_api_livecheck
+    PRIVATE
+        opencosmos_viewmodels
+        Qt6::Core
+        Qt6::Network
+)
+
+# ── Startup wiring check (manual) ─────────────────────────────────────────────
+# The shipped app is WIN32_EXECUTABLE, so its console log sink goes nowhere and
+# its file sink only flushes at warn level - a GUI run killed by a timeout
+# leaves no evidence that startup actually succeeded. This console executable
+# builds the same composition root and reports the result on stdout.
+#   cmake --build <dir> --target opencosmos_startup_check
+#   <dir>/bin/opencosmos_startup_check
+add_executable(opencosmos_startup_check EXCLUDE_FROM_ALL
+    manual/StartupWiringCheck.cpp
+)
+
+target_include_directories(opencosmos_startup_check
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+target_link_libraries(opencosmos_startup_check
+    PRIVATE
+        opencosmos_viewmodels
+        Qt6::Core
+        Qt6::Network
+)
 
 gtest_discover_tests(opencosmos_tests
     WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"

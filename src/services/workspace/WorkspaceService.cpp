@@ -1,8 +1,7 @@
-#include "PluginService.h"
+#include "WorkspaceService.h"
 #include "core/connection/ShellQuote.h"
 #include "core/logging/Logger.h"
 
-#include <nlohmann/json.hpp>
 #include <regex>
 #include <sstream>
 #include <string_view>
@@ -93,11 +92,11 @@ std::string extractGemspecAuthors(const std::string& gemspecContent)
 
 } // namespace
 
-PluginService::PluginService(Core::Connection::ICommandExecutor& executor)
+WorkspaceService::WorkspaceService(Core::Connection::ICommandExecutor& executor)
     : executor_(executor)
 {}
 
-std::vector<Models::Plugin> PluginService::listInstalled(const std::string& cosmosRoot)
+std::vector<Models::Plugin> WorkspaceService::listSources(const std::string& cosmosRoot)
 {
     const std::string pluginsDir = normalizeCosmosRoot(cosmosRoot) + "/plugins";
     auto r = executor_.execute(
@@ -145,13 +144,16 @@ std::vector<Models::Plugin> PluginService::listInstalled(const std::string& cosm
             p.targets.push_back(std::move(t));
         }
 
+        // A source folder is usable when it has both plugin.txt and a
+        // gemspec. Incomplete folders are still returned (flagged Error) so
+        // the UI can explain why rather than hiding them.
         p.status = (!p.pluginTxtPath.empty() && !p.gemspecPath.empty())
             ? Models::PluginStatus::Installed
             : Models::PluginStatus::Error;
 
         // version/description/author come from the gemspec, not the shell
-        // listing above - PluginView's plugin details panel displays all
-        // three, so leaving them unset here made that panel always blank.
+        // listing above - the plugin details panel displays all three, so
+        // leaving them unset here made that panel always blank.
         if (!p.gemspecPath.empty()) {
             auto gemspecResult = executor_.execute("cat " + shellQuote(p.gemspecPath));
             if (gemspecResult) {
@@ -169,7 +171,7 @@ std::vector<Models::Plugin> PluginService::listInstalled(const std::string& cosm
 }
 
 Models::PluginValidationResult
-PluginService::validate(const std::string& localPluginPath)
+WorkspaceService::validate(const std::string& localPluginPath)
 {
     Models::PluginValidationResult result;
     result.valid = true;
@@ -212,42 +214,7 @@ PluginService::validate(const std::string& localPluginPath)
     return result;
 }
 
-bool PluginService::install(
-    const std::string& gemFilePath, const std::string& cosmosRoot)
-{
-    const std::string root = normalizeCosmosRoot(cosmosRoot);
-    Logging::Logger::info("[PluginService] Installing plugin: {}", gemFilePath);
-    auto r = executor_.execute(
-        "cp " + shellQuote(gemFilePath) + " " +
-        shellQuote(root + "/plugins/") + " 2>&1");
-    if (!r)
-        Logging::Logger::warn("[PluginService] Install failed for {}: {}",
-                               gemFilePath, r.stdOut.empty() ? r.errorMessage : r.stdOut);
-    return static_cast<bool>(r);
-}
-
-bool PluginService::remove(
-    const std::string& pluginName, const std::string& cosmosRoot)
-{
-    const std::string root    = normalizeCosmosRoot(cosmosRoot);
-    const std::string gemPath = root + "/plugins/" + pluginName + ".gem";
-    Logging::Logger::info("[PluginService] Removing plugin: {}", pluginName);
-
-    // `rm -f` exits 0 whether or not the target existed - that's the whole
-    // point of -f, so a stale/mistyped pluginName silently reported success
-    // without deleting anything. Check existence first so a missing file
-    // actually fails instead of masquerading as a successful removal.
-    auto r = executor_.execute(
-        "f=" + shellQuote(gemPath) + "; "
-        "if [ ! -e \"$f\" ]; then echo \"Plugin file not found: $f\" >&2; exit 1; fi; "
-        "rm -f \"$f\" 2>&1");
-    if (!r)
-        Logging::Logger::warn("[PluginService] Remove failed for {}: {}",
-                               pluginName, r.stdOut.empty() ? r.errorMessage : r.stdOut);
-    return static_cast<bool>(r);
-}
-
-std::string PluginService::build(const std::string& pluginRootPath)
+std::string WorkspaceService::build(const std::string& pluginRootPath)
 {
     // PluginViewModel::build() decides success/failure by sniffing this
     // string for "ERROR"/"failed" (there's no separate success flag on this
@@ -278,7 +245,7 @@ std::string PluginService::build(const std::string& pluginRootPath)
     return r ? std::string{} : r.errorMessage;
 }
 
-bool PluginService::backup(
+bool WorkspaceService::backup(
     const std::string& pluginName,
     const std::string& localBackupPath,
     const std::string& cosmosRoot)

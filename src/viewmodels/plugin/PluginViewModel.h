@@ -1,7 +1,8 @@
 #pragma once
 
 #include "viewmodels/base/ViewModelBase.h"
-#include "services/plugin/IPluginService.h"
+#include "services/workspace/IWorkspaceService.h"
+#include "services/plugin/ICosmosPluginService.h"
 #include "services/connection/IConnectionService.h"
 #include "models/Plugin.h"
 
@@ -15,7 +16,7 @@ class PluginTableModel final : public QAbstractTableModel {
     Q_OBJECT
 public:
     // Named TargetCount, not Author, even though Plugin now carries a real
-    // author field (from PluginService's gemspec parsing) - this column's
+    // author field (from WorkspaceService's gemspec parsing) - this column's
     // header and data have always been the plugin's target count.
     enum Column { Name = 0, Version, Status, TargetCount, ColCount };
 
@@ -43,9 +44,10 @@ class PluginViewModel final : public ViewModelBase {
 
 public:
     explicit PluginViewModel(
-        Services::IPluginService&     plugin,
-        Services::IConnectionService& connection,
-        QObject*                      parent = nullptr);
+        Services::IWorkspaceService&    workspace,
+        Services::ICosmosPluginService& cosmosPlugin,
+        Services::IConnectionService&   connection,
+        QObject*                        parent = nullptr);
 
     [[nodiscard]] PluginTableModel* pluginModel()    const noexcept;
     [[nodiscard]] bool              isBusy()         const noexcept;
@@ -71,7 +73,8 @@ private:
     void setBusy(bool busy);
     void setStatus(const QString& msg);
 
-    Services::IPluginService&     plugin_;
+    Services::IWorkspaceService&    workspace_;
+    Services::ICosmosPluginService& cosmosPlugin_;
     Services::IConnectionService& connection_;
     PluginTableModel*             tableModel_{nullptr};
     bool                      busy_{false};

@@ -290,6 +290,46 @@ ICommandExecutor
 서비스가 저장한 참조 주소는 변하지 않습니다.
 `std::atomic`으로 스레드 안전성을 보장합니다.
 
+### 전송 계층 2: COSMOS API (ICosmosApiClient)
+
+셸(WSL/SSH) 하나만으로는 COSMOS를 다룰 수 없습니다. 설치된 플러그인은
+호스트 디렉터리가 아니라 MinIO 버킷과 Redis 설정에 존재하고, 타겟·인터페이스·
+마이크로서비스도 모두 Redis 기반 모델이며, 플러그인 설치는 서버 측 2단계
+작업입니다. 이 모든 것은 traefik이 2900 포트로 노출하는 HTTP API를 통해서만
+접근할 수 있습니다.
+
+따라서 이 애플리케이션은 **두 개의 전송 계층**을 가집니다.
+
+| 전송 | 담당 | 인터페이스 |
+|---|---|---|
+| 셸 | Docker 제어, 원격 파일 편집, `gem build` | `ICommandExecutor` |
+| API | COSMOS 상태 조회, 플러그인 설치/삭제, 스크립트 실행 | `ICosmosApiClient` |
+
+```
+ICosmosApiClient
+    ├── HttpCosmosApiClient (Qt Network 구현)
+    └── NullCosmosApiClient (연결 전)
+
+ApiClientProxy  ← ExecutorProxy와 동일한 std::atomic 교체 패턴
+```
+
+**Qt 계층 규칙과의 관계**: `core/`와 `services/`에는 Qt를 넣지 않는다는
+규칙을 유지하기 위해, 인터페이스(`core/api/ICosmosApiClient.h`)는 순수
+C++20으로 두고 Qt Network를 쓰는 구현체만 `viewmodels/api/`에 둡니다.
+`PluginTemplateEngine`이 만든 선례와 같은 구조입니다. 서비스는 인터페이스에만
+의존하므로 COSMOS 인스턴스나 Qt 이벤트 루프 없이 `MockCosmosApiClient`로
+테스트할 수 있습니다.
+
+**인증 (COSMOS 6.10.4 Core)**: Core는 Keycloak을 쓰지 않습니다.
+`OpenC3Authentication#token`이 `ENV['OPENC3_API_PASSWORD']`를 그대로
+반환하고 `AuthModel.verify(token)`이 이를 직접 검증하므로,
+`Authorization` 헤더에는 **`Bearer ` 접두사 없이** 비밀번호 원문이 들어갑니다.
+접두사를 붙이면 모든 요청이 인가에 실패합니다.
+
+**scope**: COSMOS의 `authorize()`는 scope가 없으면 예외를 던지므로,
+scope는 호출별 인자가 아니라 연결 정체성의 일부입니다.
+`ApiClientProxy`가 모든 요청에 자동으로 붙입니다.
+
 ### 패턴 4: Observer (onStateChanged 콜백)
 
 ```cpp

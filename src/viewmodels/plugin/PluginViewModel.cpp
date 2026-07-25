@@ -89,11 +89,13 @@ QVariant PluginTableModel::headerData(int section,
 }
 
 PluginViewModel::PluginViewModel(
-    Services::IPluginService&     plugin,
-    Services::IConnectionService& connection,
-    QObject*                      parent)
+    Services::IWorkspaceService&    workspace,
+    Services::ICosmosPluginService& cosmosPlugin,
+    Services::IConnectionService&   connection,
+    QObject*                        parent)
     : ViewModelBase(parent)
-    , plugin_(plugin)
+    , workspace_(workspace)
+    , cosmosPlugin_(cosmosPlugin)
     , connection_(connection)
     , tableModel_(new PluginTableModel(this))
 {}
@@ -144,7 +146,7 @@ void PluginViewModel::refresh()
 
     const std::string cosmosRoot = pluginRootPath().toStdString();
     (void)QtConcurrent::run([this, cosmosRoot] {
-        auto plugins = plugin_.listInstalled(cosmosRoot);
+        auto plugins = workspace_.listSources(cosmosRoot);
         QMetaObject::invokeMethod(this, [this, list = std::move(plugins)] () mutable {
             tableModel_->setPlugins(std::move(list));
             emit pluginListChanged();
@@ -157,46 +159,65 @@ void PluginViewModel::refresh()
 void PluginViewModel::install(const QString& gemFilePath)
 {
     if (busy_) return;
-    const std::string path       = gemFilePath.toStdString();
-    const std::string cosmosRoot = pluginRootPath().toStdString();
+    const std::string path = gemFilePath.toStdString();
+
+    // Installation goes through the COSMOS API, not the shell. The previous
+    // implementation copied the .gem into <cosmosRoot>/plugins/ and reported
+    // success, but that has no effect on a running COSMOS - installed plugins
+    // live in MinIO + Redis, and installing is a two-phase server-side job.
+    if (!cosmosPlugin_.isAvailable()) {
+        setStatus("Not connected to the COSMOS API - "
+                  "set an API password in the connection profile to install plugins.");
+        emit actionCompleted(gemFilePath, false);
+        return;
+    }
+
     setBusy(true);
     setStatus("Installing " + gemFilePath);
 
-    (void)QtConcurrent::run([this, path, cosmosRoot] {
-        const bool ok = plugin_.install(path, cosmosRoot);
-        QMetaObject::invokeMethod(this, [this, ok, qpath = QString::fromStdString(path)] {
-            emit actionCompleted(qpath, ok);
-            setBusy(false);
-            if (ok) {
-                setStatus("Installed successfully.");
-                refresh();
-            } else {
-                setStatus("Install failed.");
-            }
-        }, Qt::QueuedConnection);
+    (void)QtConcurrent::run([this, path] {
+        const auto result = cosmosPlugin_.installGem(path);
+        QMetaObject::invokeMethod(this,
+            [this, result, qpath = QString::fromStdString(path)] {
+                emit actionCompleted(qpath, result.success);
+                setBusy(false);
+                // COSMOS spawns openc3cli and returns immediately, so this
+                // reports that the job started - result.message says as much
+                // rather than claiming a finished install.
+                setStatus(QString::fromStdString(
+                    result.success ? result.message
+                                   : "Install failed: " + result.message));
+                if (result.success) refresh();
+            }, Qt::QueuedConnection);
     });
 }
 
 void PluginViewModel::remove(const QString& pluginName)
 {
     if (busy_) return;
-    const std::string name       = pluginName.toStdString();
-    const std::string cosmosRoot = pluginRootPath().toStdString();
+    const std::string name = pluginName.toStdString();
+
+    if (!cosmosPlugin_.isAvailable()) {
+        setStatus("Not connected to the COSMOS API - "
+                  "set an API password in the connection profile to remove plugins.");
+        emit actionCompleted(pluginName, false);
+        return;
+    }
+
     setBusy(true);
     setStatus("Removing " + pluginName);
 
-    (void)QtConcurrent::run([this, name, cosmosRoot] {
-        const bool ok = plugin_.remove(name, cosmosRoot);
-        QMetaObject::invokeMethod(this, [this, ok, qname = QString::fromStdString(name)] {
-            emit actionCompleted(qname, ok);
-            setBusy(false);
-            if (ok) {
-                setStatus("Removed successfully.");
-                refresh();
-            } else {
-                setStatus("Remove failed.");
-            }
-        }, Qt::QueuedConnection);
+    (void)QtConcurrent::run([this, name] {
+        const auto result = cosmosPlugin_.uninstall(name);
+        QMetaObject::invokeMethod(this,
+            [this, result, qname = QString::fromStdString(name)] {
+                emit actionCompleted(qname, result.success);
+                setBusy(false);
+                setStatus(QString::fromStdString(
+                    result.success ? result.message
+                                   : "Remove failed: " + result.message));
+                if (result.success) refresh();
+            }, Qt::QueuedConnection);
     });
 }
 
@@ -208,7 +229,7 @@ void PluginViewModel::validate(const QString& localPath)
     setStatus("Validating " + localPath);
 
     (void)QtConcurrent::run([this, path] {
-        const auto result = plugin_.validate(path);
+        const auto result = workspace_.validate(path);
         QMetaObject::invokeMethod(this, [this, result] {
             setBusy(false);
             QString summary;
@@ -236,7 +257,7 @@ void PluginViewModel::build(const QString& pluginRootPath)
     setStatus("Building " + pluginRootPath);
 
     (void)QtConcurrent::run([this, path] {
-        const auto output = plugin_.build(path);
+        const auto output = workspace_.build(path);
         QMetaObject::invokeMethod(this, [this,
             qpath = QString::fromStdString(path),
             qout  = QString::fromStdString(output)] {

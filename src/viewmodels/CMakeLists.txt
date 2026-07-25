@@ -4,6 +4,7 @@
 
 add_library(opencosmos_viewmodels STATIC
     base/ViewModelBase.cpp
+    api/HttpCosmosApiClient.cpp
     dashboard/DashboardViewModel.cpp
     docker/DockerViewModel.cpp
     doctor/DoctorViewModel.cpp

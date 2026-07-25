@@ -348,7 +348,18 @@ json SettingsService::profileToJson(const Models::ConnectionProfile& p) const
         {"publicKeyPath",   p.publicKeyPath},
         {"passphrase",      protectSecret(p.passphrase)},
         {"connectTimeoutMs",p.connectTimeoutMs},
-        {"commandTimeoutMs",p.commandTimeoutMs}
+        {"commandTimeoutMs",p.commandTimeoutMs},
+
+        // COSMOS API transport. apiPassword is OPENC3_API_PASSWORD and is run
+        // through the same protectSecret() path as the SSH secrets above - it
+        // grants full admin access to the COSMOS instance, so it must never be
+        // written to settings.json in the clear.
+        {"apiBaseUrl",          p.apiBaseUrl},
+        {"apiAuthMode",         static_cast<int>(p.apiAuthMode)},
+        {"apiPassword",         protectSecret(p.apiPassword)},
+        {"apiScope",            p.apiScope},
+        {"apiAllowInsecureTls", p.apiAllowInsecureTls},
+        {"apiRequestTimeoutMs", p.apiRequestTimeoutMs}
     };
 }
 
@@ -372,6 +383,17 @@ SettingsService::profileFromJson(const json& j) const
     p.passphrase      = unprotectSecret(j.value("passphrase", ""));
     p.connectTimeoutMs= j.value("connectTimeoutMs", 10000);
     p.commandTimeoutMs= j.value("commandTimeoutMs", 30000);
+
+    // COSMOS API. Every field defaults to the pre-API behaviour so a
+    // settings.json written by an older build still loads cleanly: an absent
+    // apiPassword simply means hasApiEndpoint() is false and the profile keeps
+    // using the shell transport alone.
+    p.apiBaseUrl          = j.value("apiBaseUrl", "");
+    p.apiAuthMode         = static_cast<Models::ApiAuthMode>(j.value("apiAuthMode", 0));
+    p.apiPassword         = unprotectSecret(j.value("apiPassword", ""));
+    p.apiScope            = j.value("apiScope", "DEFAULT");
+    p.apiAllowInsecureTls = j.value("apiAllowInsecureTls", false);
+    p.apiRequestTimeoutMs = j.value("apiRequestTimeoutMs", 30000);
     return p;
 }
 

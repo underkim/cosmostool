@@ -1,4 +1,4 @@
-#include "services/plugin/PluginService.h"
+#include "services/workspace/WorkspaceService.h"
 #include "mocks/MockCommandExecutor.h"
 
 #include <gtest/gtest.h>
@@ -11,13 +11,13 @@ using ::testing::_;
 using ::testing::HasSubstr;
 using ::testing::Return;
 
-class PluginServiceTest : public ::testing::Test {
+class WorkspaceServiceTest : public ::testing::Test {
 protected:
     MockCommandExecutor mock_;
-    PluginService       sut_{mock_};
+    WorkspaceService    sut_{mock_};
 };
 
-TEST_F(PluginServiceTest, ListInstalledScansPluginFolders)
+TEST_F(WorkspaceServiceTest, ListSourcesScansPluginFolders)
 {
     EXPECT_CALL(mock_,
         execute(HasSubstr("plugins_dir='/cosmos/plugins'")))
@@ -37,7 +37,7 @@ TEST_F(PluginServiceTest, ListInstalledScansPluginFolders)
             "  s.authors     = ['Jane Doe']\n"
             "end\n")));
 
-    const auto plugins = sut_.listInstalled("/cosmos");
+    const auto plugins = sut_.listSources("/cosmos");
     ASSERT_EQ(plugins.size(), 1u);
     EXPECT_EQ(plugins[0].name, "cosmos-my-plugin");
     EXPECT_EQ(plugins[0].rootPath, "/cosmos/plugins/cosmos-my-plugin");
@@ -53,7 +53,7 @@ TEST_F(PluginServiceTest, ListInstalledScansPluginFolders)
 // PluginTemplateEngine applies - see the earlier apostrophe-escaping fix)
 // must round-trip back to its original, unescaped form for display, not
 // truncate at the first \' or keep the backslash in the displayed text.
-TEST_F(PluginServiceTest, ListInstalledUnescapesApostropheInDescription)
+TEST_F(WorkspaceServiceTest, ListSourcesUnescapesApostropheInDescription)
 {
     EXPECT_CALL(mock_,
         execute(HasSubstr("plugins_dir='/cosmos/plugins'")))
@@ -70,12 +70,12 @@ TEST_F(PluginServiceTest, ListInstalledUnescapesApostropheInDescription)
             "  s.description = 'Team\\'s satellite plugin'\n"
             "end\n")));
 
-    const auto plugins = sut_.listInstalled("/cosmos");
+    const auto plugins = sut_.listSources("/cosmos");
     ASSERT_EQ(plugins.size(), 1u);
     EXPECT_EQ(plugins[0].description, "Team's satellite plugin");
 }
 
-TEST_F(PluginServiceTest, ListInstalledLeavesMetadataEmptyWhenGemspecUnreadable)
+TEST_F(WorkspaceServiceTest, ListSourcesLeavesMetadataEmptyWhenGemspecUnreadable)
 {
     EXPECT_CALL(mock_,
         execute(HasSubstr("plugins_dir='/cosmos/plugins'")))
@@ -88,24 +88,24 @@ TEST_F(PluginServiceTest, ListInstalledLeavesMetadataEmptyWhenGemspecUnreadable)
         execute(HasSubstr("cat '/cosmos/plugins/cosmos-my-plugin/cosmos-my-plugin.gemspec'")))
         .WillOnce(Return(ExecutorResult::fail("not found")));
 
-    const auto plugins = sut_.listInstalled("/cosmos");
+    const auto plugins = sut_.listSources("/cosmos");
     ASSERT_EQ(plugins.size(), 1u);
     EXPECT_TRUE(plugins[0].version.empty());
     EXPECT_TRUE(plugins[0].description.empty());
     EXPECT_TRUE(plugins[0].author.empty());
 }
 
-TEST_F(PluginServiceTest, ListInstalledAcceptsOpenC3ScriptPath)
+TEST_F(WorkspaceServiceTest, ListSourcesAcceptsOpenC3ScriptPath)
 {
     EXPECT_CALL(mock_,
         execute(HasSubstr("plugins_dir='/cosmos/plugins'")))
         .WillOnce(Return(ExecutorResult::ok("")));
 
-    const auto plugins = sut_.listInstalled("/cosmos/openc3.sh");
+    const auto plugins = sut_.listSources("/cosmos/openc3.sh");
     EXPECT_TRUE(plugins.empty());
 }
 
-TEST_F(PluginServiceTest, ValidateQuotesLocalPath)
+TEST_F(WorkspaceServiceTest, ValidateQuotesLocalPath)
 {
     EXPECT_CALL(mock_,
         execute(HasSubstr("p='/tmp/my plugin'")))
@@ -115,7 +115,7 @@ TEST_F(PluginServiceTest, ValidateQuotesLocalPath)
     EXPECT_TRUE(result.valid);
 }
 
-TEST_F(PluginServiceTest, ValidateReportsMissingPluginTxt)
+TEST_F(WorkspaceServiceTest, ValidateReportsMissingPluginTxt)
 {
     EXPECT_CALL(mock_, execute(_))
         .WillOnce(Return(ExecutorResult::ok("MISSING_PLUGIN_TXT\n")));
@@ -126,39 +126,33 @@ TEST_F(PluginServiceTest, ValidateReportsMissingPluginTxt)
     EXPECT_EQ(result.issues[0].code, "MISSING_PLUGIN_TXT");
 }
 
-TEST_F(PluginServiceTest, InstallQuotesBothArguments)
+TEST_F(WorkspaceServiceTest, BackupQuotesConstructedPath)
 {
-    EXPECT_CALL(mock_,
-        execute("cp '/tmp/a.gem' '/cosmos/plugins/' 2>&1"))
-        .WillOnce(Return(ExecutorResult::ok()));
+    // install()/remove() used to live here, exercising `cp` into
+    // <root>/plugins/ and `rm -f`. Both were deleted rather than moved: they
+    // manipulated files on the host and reported success while having no
+    // effect on a running COSMOS. Installation now goes through
+    // CosmosPluginService (see CosmosPluginServiceTest). backup() is the
+    // remaining path that builds a plugins/ path from a caller-supplied name,
+    // so the shell-quoting guarantee is asserted here instead.
+    EXPECT_CALL(mock_, downloadFile("/cosmos/plugins/mytool.gem", "/tmp/out.gem"))
+        .WillOnce(Return(true));
 
-    EXPECT_TRUE(sut_.install("/tmp/a.gem", "/cosmos"));
+    EXPECT_TRUE(sut_.backup("mytool", "/tmp/out.gem", "/cosmos"));
 }
 
-TEST_F(PluginServiceTest, RemoveQuotesConstructedPath)
+TEST_F(WorkspaceServiceTest, PluginRootWithMetacharactersIsNeutralised)
 {
-    EXPECT_CALL(mock_,
-        execute("f='/cosmos/plugins/mytool.gem'; "
-                "if [ ! -e \"$f\" ]; then echo \"Plugin file not found: $f\" >&2; exit 1; fi; "
-                "rm -f \"$f\" 2>&1"))
-        .WillOnce(Return(ExecutorResult::ok()));
+    // A malicious path must stay inside a single quoted argument rather than
+    // terminating it and injecting a second command.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr(
+        "cd '/tmp/x'\\''; rm -rf /; '\\'''")))
+        .WillOnce(Return(ExecutorResult::ok("out.gem\n")));
 
-    EXPECT_TRUE(sut_.remove("mytool", "/cosmos"));
+    (void)sut_.build("/tmp/x'; rm -rf /; '");
 }
 
-TEST_F(PluginServiceTest, PluginNameWithMetacharactersIsNeutralised)
-{
-    // A malicious plugin name must stay inside a single quoted argument.
-    EXPECT_CALL(mock_,
-        execute("f='/cosmos/plugins/x'\\''; rm -rf /; '\\''.gem'; "
-                "if [ ! -e \"$f\" ]; then echo \"Plugin file not found: $f\" >&2; exit 1; fi; "
-                "rm -f \"$f\" 2>&1"))
-        .WillOnce(Return(ExecutorResult::ok()));
-
-    EXPECT_TRUE(sut_.remove("x'; rm -rf /; '", "/cosmos"));
-}
-
-TEST_F(PluginServiceTest, BuildQuotesPluginRoot)
+TEST_F(WorkspaceServiceTest, BuildQuotesPluginRoot)
 {
     EXPECT_CALL(mock_,
         execute(HasSubstr("cd '/cosmos/plugins/my plugin'")))
@@ -177,7 +171,7 @@ TEST_F(PluginServiceTest, BuildQuotesPluginRoot)
 // "Process exited with code N" text with no such keyword, which the
 // heuristic would misread as a successful build (see ExecutorResult::
 // fromProcess()'s errorMessage fallback, which build() used to return here).
-TEST_F(PluginServiceTest, BuildSurfacesFailureTextInsteadOfGenericMessage)
+TEST_F(WorkspaceServiceTest, BuildSurfacesFailureTextInsteadOfGenericMessage)
 {
     EXPECT_CALL(mock_, execute(HasSubstr("cd '/cosmos/plugins/broken'")))
         .WillOnce(Return(ExecutorResult::fromProcess(

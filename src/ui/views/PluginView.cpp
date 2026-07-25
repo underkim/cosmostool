@@ -1982,7 +1982,7 @@ void PluginView::onRunScriptClicked()
     }
 
     // Runs directly on the connected host via `ruby` (same execution model
-    // PluginService::build() already uses for `gem build`) - not the real
+    // WorkspaceService::build() already uses for `gem build`) - not the real
     // COSMOS Script Runner, so cmd()/tlm() only resolve if the openc3 script
     // libraries happen to be loadable in that environment. Honest, scoped
     // "run this file" support, not a faithful Script Runner replacement.
