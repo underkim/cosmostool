@@ -103,6 +103,24 @@ target_link_libraries(opencosmos_startup_check
         Qt6::Network
 )
 
-gtest_discover_tests(opencosmos_tests
-    WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-)
+# gtest_discover_tests() runs the freshly-linked test binary at CMake-generate
+# time to enumerate individual TEST()s, writing its scratch file next to the
+# build tree. On a non-ASCII (e.g. Korean) Windows path that scratch file is
+# written under a mis-encoded path the binary itself then can't reopen,
+# turning every otherwise-successful build into a spurious post-link failure
+# ("Unable to open file ... cmake_test_discovery_*.json"). gtest_add_tests()
+# gets the same per-TEST() ctest granularity by parsing the *source files* at
+# configure time instead of executing anything, so it isn't sensitive to the
+# runtime working directory's encoding. Keep gtest_discover_tests() on
+# non-Windows, where CI and local encoding are ASCII and the run-time
+# discovery has no such failure mode.
+if(WIN32)
+    gtest_add_tests(
+        TARGET opencosmos_tests
+        WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    )
+else()
+    gtest_discover_tests(opencosmos_tests
+        WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+    )
+endif()
