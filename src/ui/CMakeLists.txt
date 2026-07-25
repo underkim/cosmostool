@@ -10,6 +10,7 @@ add_library(opencosmos_ui STATIC
     widgets/ScreenPreviewWidget.cpp
     widgets/InstalledPluginsPanel.cpp
     widgets/ScriptRunnerPanel.cpp
+    widgets/RuntimePanel.cpp
     views/DashboardView.cpp
     views/DockerView.cpp
     views/DoctorView.cpp

@@ -67,6 +67,7 @@ MainWindow::MainWindow(
     ViewModels::LogViewerViewModel&    logViewer,
     ViewModels::ValidatorViewModel&    validator,
     ViewModels::ScriptViewModel&       script,
+    ViewModels::RuntimeViewModel&      runtime,
     QWidget*                           parent)
     : QMainWindow(parent)
     , dashboardVm_(dashboard)
@@ -80,6 +81,7 @@ MainWindow::MainWindow(
     , logViewerVm_(logViewer)
     , validatorVm_(validator)
     , scriptVm_(script)
+    , runtimeVm_(runtime)
 {
     setWindowTitle(tr("OpenC3 Developer Toolkit"));
     setMinimumSize(1280, 800);
@@ -324,7 +326,7 @@ void MainWindow::autoConnectIfNeeded()
 void MainWindow::setupViews()
 {
     auto* dashboardView = new Views::DashboardView(dashboardVm_, this);
-    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, scriptVm_, this);
+    auto* pluginView    = new Views::PluginView(pluginVm_, infraVm_, cmdTlmVm_, validatorVm_, logViewerVm_, scriptVm_, runtimeVm_, this);
     auto* validatorView = new Views::ValidatorView(validatorVm_, this);
     pluginView_ = pluginView;
     dashboardView_ = dashboardView;

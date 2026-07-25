@@ -7,9 +7,11 @@
 #include "viewmodels/validator/ValidatorViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
 #include "viewmodels/script/ScriptViewModel.h"
+#include "viewmodels/runtime/RuntimeViewModel.h"
 #include "ui/widgets/ScreenPreviewWidget.h"
 #include "ui/widgets/InstalledPluginsPanel.h"
 #include "ui/widgets/ScriptRunnerPanel.h"
+#include "ui/widgets/RuntimePanel.h"
 
 #include <QWidget>
 #include <QTableView>
@@ -53,6 +55,7 @@ public:
                         ViewModels::ValidatorViewModel& validatorVm,
                         ViewModels::LogViewerViewModel& logViewerVm,
                         ViewModels::ScriptViewModel& scriptVm,
+                        ViewModels::RuntimeViewModel& runtimeVm,
                         QWidget*                     parent = nullptr);
 
     void setStepStripMode(StepStripMode mode);
@@ -167,10 +170,12 @@ private:
     ViewModels::ValidatorViewModel& validatorVm_;
     ViewModels::LogViewerViewModel& logViewerVm_;
     ViewModels::ScriptViewModel& scriptVm_;
+    ViewModels::RuntimeViewModel& runtimeVm_;
 
     QTableView*  tableView_{nullptr};
     Widgets::InstalledPluginsPanel* installedPluginsPanel_{nullptr};
     Widgets::ScriptRunnerPanel*     scriptRunnerPanel_{nullptr};
+    Widgets::RuntimePanel*          runtimePanel_{nullptr};
     QPushButton* refreshBtn_{nullptr};
     QPushButton* installBtn_{nullptr};
     QPushButton* buildInstallBtn_{nullptr};

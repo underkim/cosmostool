@@ -16,6 +16,8 @@
 #include "services/plugin/CosmosPluginService.h"
 #include "services/script/IScriptService.h"
 #include "services/script/CosmosScriptService.h"
+#include "services/runtime/ICosmosRuntimeService.h"
+#include "services/runtime/CosmosRuntimeService.h"
 #include "services/workspace/IWorkspaceService.h"
 #include "services/workspace/WorkspaceService.h"
 #include "services/filesystem/IRemoteFileService.h"
@@ -27,6 +29,7 @@
 #include "viewmodels/settings/SettingsViewModel.h"
 #include "viewmodels/plugin/PluginViewModel.h"
 #include "viewmodels/script/ScriptViewModel.h"
+#include "viewmodels/runtime/RuntimeViewModel.h"
 #include "viewmodels/cmdtlm/CmdTlmViewModel.h"
 #include "viewmodels/packettools/PacketToolsViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
@@ -137,7 +140,8 @@ int Application::run()
         *registry_.resolve<ViewModels::PacketToolsViewModel>(),
         *registry_.resolve<ViewModels::LogViewerViewModel>(),
         *registry_.resolve<ViewModels::ValidatorViewModel>(),
-        *registry_.resolve<ViewModels::ScriptViewModel>());
+        *registry_.resolve<ViewModels::ScriptViewModel>(),
+        *registry_.resolve<ViewModels::RuntimeViewModel>());
 
     mainWindow_->show();
     Logging::Logger::info("Main window shown — entering event loop");
@@ -269,6 +273,13 @@ void Application::registerServices()
     auto scriptSvc = std::make_shared<Services::CosmosScriptService>(apiProxy_);
     registry_.registerInstance<Services::IScriptService>(scriptSvc);
 
+    // Read-only target/command/telemetry state (JSON-DRB API transport, one
+    // POST endpoint dispatched by method name). Command *sending* stays out
+    // of scope until it has its own safety UX - see ICosmosRuntimeService's
+    // header.
+    auto runtimeSvc = std::make_shared<Services::CosmosRuntimeService>(apiProxy_);
+    registry_.registerInstance<Services::ICosmosRuntimeService>(runtimeSvc);
+
     auto fsSvc = std::make_shared<Services::RemoteFileService>(executorProxy_);
     registry_.registerInstance<Services::IRemoteFileService>(fsSvc);
 
@@ -285,6 +296,7 @@ void Application::registerViewModels()
     auto workspace  = registry_.resolve<Services::IWorkspaceService>();
     auto cosmosPlug = registry_.resolve<Services::ICosmosPluginService>();
     auto scriptSvc  = registry_.resolve<Services::IScriptService>();
+    auto runtimeSvc = registry_.resolve<Services::ICosmosRuntimeService>();
     auto fs         = registry_.resolve<Services::IRemoteFileService>();
 
     auto dashVm = std::make_shared<ViewModels::DashboardViewModel>(
@@ -307,6 +319,9 @@ void Application::registerViewModels()
 
     auto scriptVm = std::make_shared<ViewModels::ScriptViewModel>(*scriptSvc);
     registry_.registerInstance<ViewModels::ScriptViewModel>(scriptVm);
+
+    auto runtimeVm = std::make_shared<ViewModels::RuntimeViewModel>(*runtimeSvc);
+    registry_.registerInstance<ViewModels::RuntimeViewModel>(runtimeVm);
 
     auto cmdTlmVm = std::make_shared<ViewModels::CmdTlmViewModel>(
         *connection, *fs);

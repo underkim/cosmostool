@@ -198,6 +198,7 @@ PluginView::PluginView(
     ViewModels::ValidatorViewModel& validatorVm,
     ViewModels::LogViewerViewModel& logViewerVm,
     ViewModels::ScriptViewModel& scriptVm,
+    ViewModels::RuntimeViewModel& runtimeVm,
     QWidget* parent)
     : QWidget(parent)
     , vm_(vm)
@@ -206,6 +207,7 @@ PluginView::PluginView(
     , validatorVm_(validatorVm)
     , logViewerVm_(logViewerVm)
     , scriptVm_(scriptVm)
+    , runtimeVm_(runtimeVm)
 {
     setupUi();
     bindViewModel();
@@ -1041,6 +1043,13 @@ void PluginView::setupUi()
     scriptRunnerPanel_ = new Widgets::ScriptRunnerPanel(scriptVm_, scriptGroup);
     scriptGroupLayout->addWidget(scriptRunnerPanel_);
     wizardBuildPageLayout->addWidget(scriptGroup);
+
+    auto* runtimeGroup = new QGroupBox(tr("COSMOS Targets (read-only)"), this);
+    auto* runtimeGroupLayout = new QVBoxLayout(runtimeGroup);
+    runtimeGroupLayout->setContentsMargins(0, 0, 0, 0);
+    runtimePanel_ = new Widgets::RuntimePanel(runtimeVm_, runtimeGroup);
+    runtimeGroupLayout->addWidget(runtimePanel_);
+    wizardBuildPageLayout->addWidget(runtimeGroup);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
