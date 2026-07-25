@@ -16,28 +16,38 @@ protected:
     SystemService        sut_{mock_};
 };
 
-// `docker ps ... | grep -c cosmos` on zero matches prints "0" but exits 1
-// (grep's "no match found" convention) - this mirrors that real shell
-// behavior via ExecutorResult::fromProcess, which sets success = (code==0).
+// Every 6.10.4 service has an openc3-* name, while Compose may prefix any
+// project name. The check therefore inspects unfiltered names and matches the
+// stable service fragment locally.
 TEST_F(SystemServiceTest, IsOpenC3RunningReturnsFalseWhenNoContainersMatch)
 {
-    EXPECT_CALL(mock_, execute(HasSubstr("grep -c cosmos")))
-        .WillOnce(Return(ExecutorResult::fromProcess(1, "0\n", "")));
+    EXPECT_CALL(mock_, execute(::testing::Not(HasSubstr("--filter"))))
+        .WillOnce(Return(ExecutorResult::ok("postgres-1\nnginx-1\n")));
 
     EXPECT_FALSE(sut_.isOpenC3Running());
 }
 
-TEST_F(SystemServiceTest, IsOpenC3RunningReturnsTrueWhenContainersMatch)
+TEST_F(SystemServiceTest, IsOpenC3RunningReturnsTrueForRenamedComposeProject)
 {
-    EXPECT_CALL(mock_, execute(HasSubstr("grep -c cosmos")))
-        .WillOnce(Return(ExecutorResult::fromProcess(0, "3\n", "")));
+    EXPECT_CALL(mock_, execute(::testing::Not(HasSubstr("--filter"))))
+        .WillOnce(Return(ExecutorResult::ok(
+            "mission-alpha-openc3-redis-1\n")));
+
+    EXPECT_TRUE(sut_.isOpenC3Running());
+}
+
+TEST_F(SystemServiceTest, IsOpenC3RunningReturnsTrueForServiceWithoutCosmosInName)
+{
+    // This is the exact case the old name=cosmos filter missed.
+    EXPECT_CALL(mock_, execute(::testing::Not(HasSubstr("--filter"))))
+        .WillOnce(Return(ExecutorResult::ok("openc3-minio\n")));
 
     EXPECT_TRUE(sut_.isOpenC3Running());
 }
 
 TEST_F(SystemServiceTest, IsOpenC3RunningReturnsFalseWhenExecutorFails)
 {
-    EXPECT_CALL(mock_, execute(HasSubstr("grep -c cosmos")))
+    EXPECT_CALL(mock_, execute(HasSubstr("docker ps")))
         .WillOnce(Return(ExecutorResult::fail("not connected")));
 
     EXPECT_FALSE(sut_.isOpenC3Running());

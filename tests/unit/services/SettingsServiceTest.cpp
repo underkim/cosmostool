@@ -139,6 +139,35 @@ TEST_F(SettingsServiceTest, SshSecretsAreProtectedOnDiskAndRoundTrip)
     EXPECT_EQ(roundTrip->passphrase, "secret-passphrase");
 }
 
+TEST_F(SettingsServiceTest, CosmosApiSettingsAreProtectedAndRoundTrip)
+{
+    auto profile = makeProfile("api1", "COSMOS API");
+    profile.apiBaseUrl          = "https://cosmos.example.test:2900";
+    profile.apiScope            = "MISSION_A";
+    profile.apiPassword         = "openc3-api-secret";
+    profile.apiAllowInsecureTls = true;
+    profile.apiRequestTimeoutMs = 45000;
+
+    sut_.saveProfile(profile);
+
+    std::ifstream f(tempFile_);
+    const std::string saved((std::istreambuf_iterator<char>(f)),
+                            std::istreambuf_iterator<char>());
+    // OPENC3_API_PASSWORD grants admin access; it must not hit disk in clear.
+    EXPECT_EQ(saved.find("openc3-api-secret"), std::string::npos);
+    EXPECT_NE(saved.find("enc:v1:"), std::string::npos);
+
+    SettingsService loaded{tempFile_.string()};
+    loaded.load();
+    const auto roundTrip = loaded.profileById("api1");
+    ASSERT_TRUE(roundTrip.has_value());
+    EXPECT_EQ(roundTrip->apiBaseUrl, "https://cosmos.example.test:2900");
+    EXPECT_EQ(roundTrip->apiScope, "MISSION_A");
+    EXPECT_EQ(roundTrip->apiPassword, "openc3-api-secret");
+    EXPECT_TRUE(roundTrip->apiAllowInsecureTls);
+    EXPECT_EQ(roundTrip->apiRequestTimeoutMs, 45000);
+}
+
 TEST_F(SettingsServiceTest, LegacyPlaintextSshSecretsStillLoad)
 {
     {

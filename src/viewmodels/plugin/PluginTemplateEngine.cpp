@@ -139,7 +139,11 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
     const QString& pluginNamespace)
 {
     const QString tgt    = targetName.toUpper();
-    const QString gem    = "cosmos-" + pluginName;
+    // OpenC3 COSMOS 5/6 plugin gems use the openc3-cosmos-* namespace. The
+    // former "cosmos-*" prefix belongs to older COSMOS generations and makes
+    // new 6.10.4 plugins inconsistent with all official gems
+    // (openc3-cosmos-init, openc3-cosmos-cmd-tlm-api, ...).
+    const QString gem    = "openc3-cosmos-" + pluginName;
     const QString varPfx = pluginName.toLower().replace('-', '_');
 
     // -1 means "no explicit interface picked" - derive it from the CMD/TLM

@@ -183,6 +183,40 @@ void SettingsView::setupUi()
     formLayout->addRow(tr("Mode:"), modeCombo_);
     formLayout->addRow(tr("OpenC3 path:"), openC3PathRow);
 
+    // ── COSMOS API (common to WSL/SSH) ────────────────────────────────────────
+    // This is the second transport. The shell fields above are for Docker and
+    // files; installed plugins, targets, interfaces and microservices are
+    // Redis/MinIO-backed COSMOS models and only exist through this API.
+    apiBaseUrlEdit_ = new QLineEdit(formGroup);
+    apiBaseUrlEdit_->setPlaceholderText(tr(
+        "http://localhost:2900 (WSL) or http://host:2900 (SSH)"));
+    apiBaseUrlEdit_->setToolTip(tr(
+        "COSMOS traefik base URL, without /openc3-api.\n"
+        "Leave blank to derive the standard endpoint from the connection mode."));
+
+    apiScopeEdit_ = new QLineEdit("DEFAULT", formGroup);
+    apiScopeEdit_->setPlaceholderText("DEFAULT");
+    apiScopeEdit_->setToolTip(tr(
+        "COSMOS scope attached to every API request. Core normally uses DEFAULT."));
+
+    apiPasswordEdit_ = new QLineEdit(formGroup);
+    apiPasswordEdit_->setEchoMode(QLineEdit::Password);
+    apiPasswordEdit_->setPlaceholderText("OPENC3_API_PASSWORD");
+    apiPasswordEdit_->setToolTip(tr(
+        "Value of OPENC3_API_PASSWORD from the COSMOS .env file.\n"
+        "COSMOS 6.10.4 Core sends it as the raw Authorization header; "
+        "this is not your SSH password. It is protected with DPAPI on Windows."));
+
+    apiAllowInsecureTlsCheck_ = new QCheckBox(tr("Allow self-signed certificate"), formGroup);
+    apiAllowInsecureTlsCheck_->setToolTip(tr(
+        "Disables TLS certificate verification for this API endpoint.\n"
+        "Use only for a trusted development environment."));
+
+    formLayout->addRow(tr("COSMOS API URL:"), apiBaseUrlEdit_);
+    formLayout->addRow(tr("API scope:"), apiScopeEdit_);
+    formLayout->addRow(tr("API password:"), apiPasswordEdit_);
+    formLayout->addRow(tr("API TLS:"), apiAllowInsecureTlsCheck_);
+
     // ── Mode-specific stack ───────────────────────────────────────────────────
     modeStack_ = new QStackedWidget(formGroup);
 
@@ -657,6 +691,14 @@ void SettingsView::populateProfileForm(const Models::ConnectionProfile& p)
     passwordEdit_->setText(QString::fromStdString(p.password));
     keyPathEdit_->setText(QString::fromStdString(p.privateKeyPath));
     passphraseEdit_->setText(QString::fromStdString(p.passphrase));
+
+    // COSMOS API. An empty base URL is intentional: ConnectionProfile derives
+    // localhost:2900 for WSL or <ssh-host>:2900 for SSH at connect time.
+    apiBaseUrlEdit_->setText(QString::fromStdString(p.apiBaseUrl));
+    apiScopeEdit_->setText(QString::fromStdString(
+        p.apiScope.empty() ? "DEFAULT" : p.apiScope));
+    apiPasswordEdit_->setText(QString::fromStdString(p.apiPassword));
+    apiAllowInsecureTlsCheck_->setChecked(p.apiAllowInsecureTls);
 }
 
 bool SettingsView::isSshFormValid() const
@@ -692,6 +734,15 @@ Models::ConnectionProfile SettingsView::collectProfileForm() const
     p.password       = passwordEdit_->text().toStdString();
     p.privateKeyPath = keyPathEdit_->text().toStdString();
     p.passphrase     = passphraseEdit_->text().toStdString();
+
+    // COSMOS API (Core 6.10.4). Keep a blank URL so the model can derive the
+    // mode-appropriate default; an empty scope is normalised to DEFAULT before
+    // any request leaves the client.
+    p.apiBaseUrl          = apiBaseUrlEdit_->text().trimmed().toStdString();
+    p.apiScope            = apiScopeEdit_->text().trimmed().toStdString();
+    if (p.apiScope.empty()) p.apiScope = "DEFAULT";
+    p.apiPassword         = apiPasswordEdit_->text().toStdString();
+    p.apiAllowInsecureTls = apiAllowInsecureTlsCheck_->isChecked();
 
     return p;
 }

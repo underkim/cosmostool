@@ -106,15 +106,22 @@ std::string SystemService::getOpenC3Version()
 
 bool SystemService::isOpenC3Running()
 {
-    // grep -c already prints a valid count ("0" or higher) whether or not it
-    // finds a match - it only *exits* nonzero on zero matches. An `|| echo 0`
-    // fallback here would fire on that normal "zero matches" case too (not
-    // just on a real failure), doubling the output to "0\n0\n" and making
-    // the stdOut != "0\n" check below wrongly report OpenC3 as running.
+    // Every COSMOS 6.10.4 Compose service is named openc3-*; Compose may add a
+    // configurable project prefix and an instance suffix. Match that stable
+    // service-name fragment against unfiltered docker output instead of using
+    // `--filter name=cosmos`, which misses minio/redis/traefik/operator and can
+    // miss the entire stack when COMPOSE_PROJECT_NAME is not "cosmos".
     auto r = executor_.execute(
-        "docker ps --filter name=cosmos --format '{{.Names}}' 2>/dev/null"
-        " | grep -c cosmos");
-    return r && r.stdOut != "0\n" && !r.stdOut.empty();
+        "docker ps --format '{{.Names}}' 2>/dev/null");
+    if (!r) return false;
+
+    std::istringstream stream(r.stdOut);
+    std::string        name;
+    while (std::getline(stream, name)) {
+        if (name.find("openc3-") != std::string::npos)
+            return true;
+    }
+    return false;
 }
 
 } // namespace OpenC3::Services

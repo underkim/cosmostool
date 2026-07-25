@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QLineEdit>
+#include <QCheckBox>
 #include <QGroupBox>
 #include <QStackedWidget>
 #include <QString>
@@ -77,6 +78,14 @@ private:
     // Common field (shown for both WSL and SSH)
     QLineEdit*   cosmosRootPathEdit_{nullptr};
     QPushButton* detectOpenC3PathBtn_{nullptr};
+
+    // COSMOS API (common to WSL and SSH). These are not SSH credentials:
+    // apiPassword is OPENC3_API_PASSWORD from the COSMOS .env file and is
+    // persisted through SettingsService's protected-secret path.
+    QLineEdit* apiBaseUrlEdit_{nullptr};
+    QLineEdit* apiScopeEdit_{nullptr};
+    QLineEdit* apiPasswordEdit_{nullptr};
+    QCheckBox* apiAllowInsecureTlsCheck_{nullptr};
 
     // SSH page (index 1)
     QLineEdit*   hostEdit_{nullptr};

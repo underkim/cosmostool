@@ -14,7 +14,7 @@ TEST(PluginTemplateEngineTest, BuildFilesProducesExpectedTree)
 
     // Top-level plugin scaffolding.
     EXPECT_TRUE(files.contains("plugin.txt"));
-    EXPECT_TRUE(files.contains("cosmos-my-plugin.gemspec"));
+    EXPECT_TRUE(files.contains("openc3-cosmos-my-plugin.gemspec"));
     EXPECT_TRUE(files.contains("Gemfile"));
 
     // Target files use the upper-cased target name in the path.
@@ -67,8 +67,8 @@ TEST(PluginTemplateEngineTest, GemspecCarriesGemName)
     const auto files =
         PluginTemplateEngine::buildFiles("my-plugin", "fsw", "desc", 0);
 
-    const QString gemspec = files.value("cosmos-my-plugin.gemspec");
-    EXPECT_TRUE(gemspec.contains("s.name        = 'cosmos-my-plugin'"));
+    const QString gemspec = files.value("openc3-cosmos-my-plugin.gemspec");
+    EXPECT_TRUE(gemspec.contains("s.name        = 'openc3-cosmos-my-plugin'"));
 }
 
 // A description containing an apostrophe (e.g. "Team's satellite plugin" -
@@ -81,7 +81,7 @@ TEST(PluginTemplateEngineTest, GemspecEscapesApostropheInDescription)
     const auto files = PluginTemplateEngine::buildFiles(
         "my-plugin", "fsw", "Team's satellite plugin", 0);
 
-    const QString gemspec = files.value("cosmos-my-plugin.gemspec");
+    const QString gemspec = files.value("openc3-cosmos-my-plugin.gemspec");
     EXPECT_TRUE(gemspec.contains("s.summary     = 'Team\\'s satellite plugin'"));
     EXPECT_TRUE(gemspec.contains("s.description = 'Team\\'s satellite plugin'"));
 }
