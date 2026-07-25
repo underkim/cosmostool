@@ -1,5 +1,6 @@
 #include "services/doctor/DoctorService.h"
 #include "mocks/MockCommandExecutor.h"
+#include "mocks/MockCosmosApiClient.h"
 #include "models/HealthCheckResult.h"
 
 #include <gtest/gtest.h>
@@ -9,13 +10,19 @@ using namespace OpenC3::Services;
 using namespace OpenC3::Tests;
 using namespace OpenC3::Core::Connection;
 using namespace OpenC3::Models;
+using OpenC3::Core::Api::ApiResponse;
+using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::_;
 
 class DoctorServiceTest : public ::testing::Test {
 protected:
     MockCommandExecutor mock_;
-    DoctorService       sut_{mock_};
+    // NiceMock: the L1/L2 tests below never touch the API, and an API-layer
+    // check running as part of runAll() would otherwise emit "uninteresting
+    // call" noise for every one of them.
+    NiceMock<MockCosmosApiClient> api_;
+    DoctorService       sut_{mock_, api_};
 };
 
 TEST_F(DoctorServiceTest, DockerInstalledPassWhenFound)
@@ -85,13 +92,80 @@ TEST_F(DoctorServiceTest, DiskSpaceSkippedWhenOutputUnparseable)
     EXPECT_EQ(r.status, HealthStatus::Skipped);
 }
 
-TEST_F(DoctorServiceTest, ContainerCountSkippedWhenOutputUnparseable)
+TEST_F(DoctorServiceTest, ContainerCheckFailsWhenNothingIsRunning)
 {
     EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
         .WillOnce(Return(ExecutorResult::ok("")));
 
     const auto r = sut_.runCheck("cosmos_containers");
-    EXPECT_EQ(r.status, HealthStatus::Skipped);
+    EXPECT_EQ(r.status, HealthStatus::Fail);
+}
+
+// The old implementation ran `docker ps --filter name=cosmos` and compared the
+// count against a threshold. Every service in COSMOS 6.10.4's compose.yaml is
+// named openc3-* (minio, redis, traefik, operator, ...), so that filter matched
+// only the two openc3-cosmos-* API containers and silently ignored the rest.
+TEST_F(DoctorServiceTest, ContainerCheckDoesNotFilterByNameOnDocker)
+{
+    EXPECT_CALL(mock_, execute(::testing::Not(::testing::HasSubstr("--filter"))))
+        .WillOnce(Return(ExecutorResult::ok("")));
+
+    (void)sut_.runCheck("cosmos_containers");
+}
+
+TEST_F(DoctorServiceTest, ContainerCheckPassesWhenAllRequiredServicesPresent)
+{
+    // Compose prefixes the project name and appends an index, so matching must
+    // be by substring rather than equality.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-openc3-traefik-1\n"
+            "cosmos-openc3-redis-1\n"
+            "cosmos-openc3-redis-ephemeral-1\n"
+            "cosmos-openc3-minio-1\n"
+            "cosmos-openc3-operator-1\n"
+            "cosmos-openc3-cosmos-cmd-tlm-api-1\n"
+            "cosmos-openc3-cosmos-script-runner-api-1\n")));
+
+    const auto r = sut_.runCheck("cosmos_containers");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+}
+
+TEST_F(DoctorServiceTest, ContainerCheckNamesTheMissingServices)
+{
+    // "Not running: minio, operator" is actionable; "3 of 7 running" is not.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-openc3-traefik-1\n"
+            "cosmos-openc3-redis-1\n"
+            "cosmos-openc3-redis-ephemeral-1\n"
+            "cosmos-openc3-cosmos-cmd-tlm-api-1\n"
+            "cosmos-openc3-cosmos-script-runner-api-1\n")));
+
+    const auto r = sut_.runCheck("cosmos_containers");
+    EXPECT_EQ(r.status, HealthStatus::Fail);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("minio"));
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("operator"));
+}
+
+TEST_F(DoctorServiceTest, InitContainerAbsenceIsNotAFault)
+{
+    // openc3-cosmos-init seeds the system then exits, so a healthy running
+    // stack normally does NOT have it - treating that as a fault would make
+    // every correct deployment look broken.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-openc3-traefik-1\n"
+            "cosmos-openc3-redis-1\n"
+            "cosmos-openc3-redis-ephemeral-1\n"
+            "cosmos-openc3-minio-1\n"
+            "cosmos-openc3-operator-1\n"
+            "cosmos-openc3-cosmos-cmd-tlm-api-1\n"
+            "cosmos-openc3-cosmos-script-runner-api-1\n")));
+
+    const auto r = sut_.runCheck("cosmos_containers");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+    EXPECT_THAT(r.detail, ::testing::Not(::testing::HasSubstr("init")));
 }
 
 TEST_F(DoctorServiceTest, RunAllReturnsSameCountAsChecks)
@@ -111,30 +185,93 @@ TEST_F(DoctorServiceTest, UnknownCheckIdReturnsFail)
     EXPECT_EQ(r.detail, "Unknown check id");
 }
 
-TEST_F(DoctorServiceTest, PluginFolderUsesDefaultCosmosRoot)
-{
-    // Default provider probes "/cosmos", quoted as a single shell argument.
-    EXPECT_CALL(mock_, execute(
-        "test -d '/cosmos/plugins' && echo EXISTS || echo MISSING"))
-        .WillOnce(Return(ExecutorResult::ok("EXISTS\n")));
+// ── L3: COSMOS logical state (API transport) ─────────────────────────────────
+//
+// The plugin_folder check that used to live here was deleted, not ported. It
+// ran `test -d <root>/plugins`, but that directory's existence says nothing
+// about COSMOS: installed plugins live in MinIO + Redis, so the check passed
+// on a host with an empty folder and failed on a perfectly healthy COSMOS
+// whose plugins were installed from elsewhere.
 
-    const auto r = sut_.runCheck("plugin_folder");
-    EXPECT_EQ(r.status, HealthStatus::Pass);
+TEST_F(DoctorServiceTest, ApiChecksAreSkippedNotFailedWhenApiIsUnconfigured)
+{
+    // A shell-only profile is a legitimate setup. Reporting it as a failure
+    // would train users to ignore Doctor output.
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(false));
+
+    for (const char* id : {"api_reachable", "scope", "plugins",
+                           "microservices", "interfaces"}) {
+        const auto r = sut_.runCheck(id);
+        EXPECT_EQ(r.status, HealthStatus::Skipped) << id;
+    }
 }
 
-TEST(DoctorServicePathTest, PluginFolderUsesConfiguredCosmosRoot)
+TEST_F(DoctorServiceTest, ApiReachableReportsAuthFailureDistinctly)
 {
-    MockCommandExecutor mock;
-    DoctorService doctor{mock, [] { return std::string("/opt/my cosmos"); }};
+    // 401/403 means the password is wrong, which is a completely different
+    // remedy from "COSMOS is down" - the suggestion must say so.
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/internal/health"), _))
+        .WillOnce(Return(ApiResponse::fromHttp(401, "")));
 
-    EXPECT_CALL(mock, execute(
-        "test -d '/opt/my cosmos/plugins' && echo EXISTS || echo MISSING"))
-        .WillOnce(Return(ExecutorResult::fail("missing")));
+    const auto r = sut_.runCheck("api_reachable");
+    EXPECT_EQ(r.status, HealthStatus::Fail);
+    EXPECT_THAT(r.suggestion, ::testing::HasSubstr("OPENC3_API_PASSWORD"));
+}
 
-    const auto r = doctor.runCheck("plugin_folder");
+TEST_F(DoctorServiceTest, ScopeCheckFailsWhenConfiguredScopeIsAbsent)
+{
+    // Every API call carries the scope, so a missing one breaks all COSMOS
+    // operations in ways that look unrelated to scope.
+    OpenC3::Core::Api::ApiConfig config;
+    config.scope = "MISSION_B";
+
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, config()).WillRepeatedly(::testing::ReturnRef(config));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/scopes"), _))
+        .WillOnce(Return(ApiResponse::ok(R"(["DEFAULT"])")));
+
+    const auto r = sut_.runCheck("scope");
+    EXPECT_EQ(r.status, HealthStatus::Fail);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("MISSION_B"));
+}
+
+TEST_F(DoctorServiceTest, ScopeCheckPassesWhenScopeExists)
+{
+    OpenC3::Core::Api::ApiConfig config;
+    config.scope = "DEFAULT";
+
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, config()).WillRepeatedly(::testing::ReturnRef(config));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/scopes"), _))
+        .WillOnce(Return(ApiResponse::ok(R"(["DEFAULT","OTHER"])")));
+
+    EXPECT_EQ(sut_.runCheck("scope").status, HealthStatus::Pass);
+}
+
+TEST_F(DoctorServiceTest, MicroservicesEmptyWarnsAboutTheOperator)
+{
+    // The classic post-install failure: the plugin installed but the operator
+    // never started its microservices, so the plugin list looks correct while
+    // nothing actually runs.
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/microservices"), _))
+        .WillOnce(Return(ApiResponse::ok("[]")));
+
+    const auto r = sut_.runCheck("microservices");
     EXPECT_EQ(r.status, HealthStatus::Warning);
-    // Suggestion should mention the configured root.
-    EXPECT_NE(r.suggestion.find("/opt/my cosmos"), std::string::npos);
+    EXPECT_THAT(r.suggestion, ::testing::HasSubstr("operator"));
+}
+
+TEST_F(DoctorServiceTest, PluginListUsesTheAllRouteAndCountsEntries)
+{
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, get("/openc3-api/plugins/all", _))
+        .WillOnce(Return(ApiResponse::ok(R"({"a__1":{},"b__2":{}})")));
+
+    const auto r = sut_.runCheck("plugins");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("2"));
 }
 
 TEST_F(DoctorServiceTest, DockerInstalledDetailStripsTrailingNewline)
@@ -159,7 +296,8 @@ TEST_F(DoctorServiceTest, DockerComposeDetailStripsTrailingNewline)
 TEST(DoctorServicePathTest, VersionCheckDetailStripsTrailingNewline)
 {
     MockCommandExecutor mock;
-    DoctorService doctor{mock, [] { return std::string("/srv/cosmos"); }};
+    NiceMock<MockCosmosApiClient> api;
+    DoctorService doctor{mock, api, [] { return std::string("/srv/cosmos"); }};
 
     EXPECT_CALL(mock, execute(
         "cat '/srv/cosmos/openc3-cosmos-init/plugins/openc3-tool-base/VERSION'"
@@ -173,7 +311,8 @@ TEST(DoctorServicePathTest, VersionCheckDetailStripsTrailingNewline)
 TEST(DoctorServicePathTest, VersionCheckUsesConfiguredCosmosRoot)
 {
     MockCommandExecutor mock;
-    DoctorService doctor{mock, [] { return std::string("/srv/cosmos"); }};
+    NiceMock<MockCosmosApiClient> api;
+    DoctorService doctor{mock, api, [] { return std::string("/srv/cosmos"); }};
 
     EXPECT_CALL(mock, execute(
         "cat '/srv/cosmos/openc3-cosmos-init/plugins/openc3-tool-base/VERSION'"

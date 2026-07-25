@@ -72,7 +72,8 @@ int main(int argc, char** argv)
     auto system = std::make_shared<OpenC3::Services::SystemService>(
         executorProxy, [c = connection.get()] { return c->cosmosRootPath(); });
     auto doctor = std::make_shared<OpenC3::Services::DoctorService>(
-        executorProxy, [c = connection.get()] { return c->cosmosRootPath(); });
+        executorProxy, apiProxy,
+        [c = connection.get()] { return c->cosmosRootPath(); });
     auto workspace = std::make_shared<OpenC3::Services::WorkspaceService>(executorProxy);
     auto files  = std::make_shared<OpenC3::Services::RemoteFileService>(executorProxy);
 

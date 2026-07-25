@@ -109,6 +109,16 @@ The old `install()`/`remove()` were deleted rather than ported: they copied or
 deleted a `.gem` on the host and reported success while having no effect on a
 running COSMOS.
 
+`DoctorService` takes both transports for the same reason. Its checks are
+layered: L1 infrastructure (Docker/CPU/memory/disk, shell), L2 COSMOS stack
+(each expected container, Redis PING, MinIO — shell), L3 COSMOS logical state
+(API reachable, scope exists, plugins, microservices, interfaces — API). When
+no API password is configured the L3 checks report **Skipped, not Fail** — a
+shell-only profile is a valid setup, and crying wolf there teaches users to
+ignore Doctor. Container detection matches `openc3-*` **substrings** against
+unfiltered `docker ps`, never `--filter name=cosmos`: every 6.10.4 service is
+named `openc3-*`, and Compose prefixes a configurable project name.
+
 Qt stays out of `core/`, so `ICosmosApiClient` is pure C++20 and its Qt Network
 implementation lives in `viewmodels/api/HttpCosmosApiClient.{h,cpp}` (the
 precedent `PluginTemplateEngine` set). Services therefore depend only on the

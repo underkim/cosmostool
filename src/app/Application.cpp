@@ -241,9 +241,12 @@ void Application::registerServices()
     registry_.registerInstance<Services::ISystemService>(systemSvc);
 
     // Doctor probes the COSMOS root configured on the active connection profile,
-    // falling back to "/cosmos" when nothing is connected.
+    // falling back to "/cosmos" when nothing is connected. It takes both
+    // transports: shell for infrastructure/stack checks, API for COSMOS's own
+    // logical state (scope, plugins, microservices, interfaces).
     auto doctorSvc = std::make_shared<Services::DoctorService>(
         executorProxy_,
+        apiProxy_,
         [conn = connection.get()] { return conn->cosmosRootPath(); });
     registry_.registerInstance<Services::IDoctorService>(doctorSvc);
 
