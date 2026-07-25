@@ -24,6 +24,9 @@ public:
     MOCK_METHOD(Services::PluginOperationResult, uninstall,
                 (const std::string&), (override));
 
+    MOCK_METHOD(Services::PluginJobStatus, jobStatus,
+                (const std::string&), (override));
+
     MOCK_METHOD(bool, isAvailable, (), (const, override));
 };
 

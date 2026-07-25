@@ -57,6 +57,13 @@ inline constexpr const char* kRouters       = "/openc3-api/routers";
 inline constexpr const char* kMicroservices = "/openc3-api/microservices";
 inline constexpr const char* kProcessStatus = "/openc3-api/process_status";
 
+/// GET a single ProcessStatusModel by the process name returned from plugin
+/// install/uninstall. COSMOS 6.10.4 routes this as process_status#show.
+[[nodiscard]] inline std::string processStatus(const std::string& name)
+{
+    return std::string("/openc3-api/process_status/") + name;
+}
+
 [[nodiscard]] inline std::string target(const std::string& name)
 {
     return std::string("/openc3-api/targets/") + name;

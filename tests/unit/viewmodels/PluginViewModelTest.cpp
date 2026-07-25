@@ -188,6 +188,39 @@ TEST_F(PluginViewModelTest, InstallReportsJobStartedRatherThanCompleted)
                 ::testing::HasSubstr("started"));
 }
 
+TEST_F(PluginViewModelTest, InstallTracksProcessUntilCompleteAndRefreshesInstances)
+{
+    EXPECT_CALL(cosmos_, isAvailable()).WillRepeatedly(Return(true));
+    EXPECT_CALL(cosmos_, installGem("C:/tmp/demo.gem"))
+        .WillOnce(Return(PluginOperationResult::ok(
+            "COSMOS started installing demo.", "plugin_install__42")));
+
+    Services::PluginJobStatus complete;
+    complete.querySucceeded = true;
+    complete.found = true;
+    complete.processName = "plugin_install__42";
+    complete.state = "Complete";
+    complete.output = "Plugin installed";
+    EXPECT_CALL(cosmos_, jobStatus("plugin_install__42"))
+        .WillOnce(Return(complete));
+    EXPECT_CALL(cosmos_, listInstalled())
+        .WillOnce(Return(std::vector<Models::Plugin>{}));
+
+    QSignalSpy actionSpy(vm_.get(), &ViewModels::PluginViewModel::actionCompleted);
+    QSignalSpy jobSpy(vm_.get(), &ViewModels::PluginViewModel::jobStatusChanged);
+    vm_->install("C:/tmp/demo.gem");
+
+    ASSERT_TRUE(waitFor(actionSpy));
+    while (jobSpy.count() < 2)
+        ASSERT_TRUE(jobSpy.wait(5000));
+
+    const auto terminal = jobSpy.last();
+    EXPECT_EQ(terminal.at(0).toString(), "plugin_install__42");
+    EXPECT_EQ(terminal.at(1).toString(), "Complete");
+    EXPECT_TRUE(terminal.at(3).toBool());
+    EXPECT_TRUE(terminal.at(4).toBool());
+}
+
 TEST_F(PluginViewModelTest, BuildAndInstallDownloadsRemoteGemBeforeApiUpload)
 {
     const std::string remote =

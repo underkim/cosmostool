@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <QTimer>
 
 namespace OpenC3::ViewModels {
 
@@ -159,10 +160,16 @@ PluginViewModel::PluginViewModel(
     , connection_(connection)
     , tableModel_(new PluginTableModel(this))
     , installedTableModel_(new InstalledPluginTableModel(this))
-{}
+    , jobPollTimer_(new QTimer(this))
+{
+    jobPollTimer_->setInterval(1000);
+    connect(jobPollTimer_, &QTimer::timeout,
+            this, &PluginViewModel::pollJobStatus);
+}
 
 PluginViewModel::~PluginViewModel()
 {
+    jobPollTimer_->stop();
     // Blocks until any in-flight worker finishes. The worker captures `this`
     // and posts a queued invocation back to this object, so returning here
     // while it runs would leave it writing into freed memory.
@@ -173,6 +180,8 @@ PluginViewModel::~PluginViewModel()
     // reassigned when the future it replaces has finished.
     if (worker_.isRunning())
         worker_.waitForFinished();
+    if (jobWorker_.isRunning())
+        jobWorker_.waitForFinished();
 }
 
 PluginTableModel* PluginViewModel::pluginModel() const noexcept
@@ -216,6 +225,98 @@ void PluginViewModel::setStatus(const QString& msg)
 {
     statusMessage_ = msg;
     emit statusMessageChanged();
+}
+
+void PluginViewModel::startJobTracking(const QString& processName)
+{
+    if (processName.trimmed().isEmpty()) return;
+
+    activeProcessName_ = processName.trimmed();
+    jobPollAttempts_ = 0;
+    jobPollFailures_ = 0;
+    jobPollInFlight_ = false;
+    setBusy(true);
+    emit jobStatusChanged(activeProcessName_, "Starting",
+                          "Waiting for COSMOS ProcessManager", false, false);
+    jobPollTimer_->start();
+    pollJobStatus();
+}
+
+void PluginViewModel::pollJobStatus()
+{
+    constexpr int kMaxPollAttempts = 300; // five minutes at a one-second interval
+    if (jobPollInFlight_ || activeProcessName_.isEmpty()) return;
+
+    if (jobPollAttempts_ >= kMaxPollAttempts) {
+        const QString processName = activeProcessName_;
+        activeProcessName_.clear();
+        jobPollTimer_->stop();
+        setBusy(false);
+        emit jobStatusChanged(processName, "Timed out",
+                              "COSMOS did not report a terminal state within five minutes.",
+                              true, false);
+        return;
+    }
+
+    jobPollInFlight_ = true;
+    const QString processName = activeProcessName_;
+    jobWorker_ = QtConcurrent::run([this, processName] {
+        const auto result = cosmosPlugin_.jobStatus(processName.toStdString());
+        QMetaObject::invokeMethod(this,
+            [this, processName, result] {
+                jobPollInFlight_ = false;
+                if (processName != activeProcessName_) return;
+                ++jobPollAttempts_;
+
+                if (!result.querySucceeded) {
+                    ++jobPollFailures_;
+                    if (jobPollFailures_ >= 5) {
+                        activeProcessName_.clear();
+                        jobPollTimer_->stop();
+                        setBusy(false);
+                        emit jobStatusChanged(processName, "Status unavailable",
+                            QString::fromStdString(result.errorMessage), true, false);
+                        return;
+                    }
+                    emit jobStatusChanged(processName, "Status unavailable",
+                        QString::fromStdString(result.errorMessage), false, false);
+                    return;
+                }
+                jobPollFailures_ = 0;
+
+                if (!result.found) {
+                    emit jobStatusChanged(processName, "Starting",
+                        "Waiting for COSMOS ProcessManager", false, false);
+                    return;
+                }
+
+                QString detail = QString::fromStdString(result.detail);
+                QString output = QString::fromStdString(result.output).trimmed();
+                constexpr qsizetype kMaxDisplayedOutput = 8192;
+                if (output.size() > kMaxDisplayedOutput)
+                    output = output.left(kMaxDisplayedOutput)
+                        + "\n... output truncated for display ...";
+                if (!output.isEmpty()) {
+                    if (!detail.isEmpty()) detail += "\n";
+                    detail += output;
+                }
+
+                if (!result.isTerminal()) {
+                    emit jobStatusChanged(processName,
+                        QString::fromStdString(result.state), detail, false, false);
+                    return;
+                }
+
+                activeProcessName_.clear();
+                jobPollTimer_->stop();
+                setBusy(false);
+                emit jobStatusChanged(processName,
+                    QString::fromStdString(result.state), detail, true,
+                    result.completedSuccessfully());
+                refreshInstalled();
+            },
+            Qt::QueuedConnection);
+    });
 }
 
 void PluginViewModel::refresh()
@@ -285,7 +386,6 @@ void PluginViewModel::install(const QString& gemFilePath)
         const auto result = cosmosPlugin_.installGem(path);
         QMetaObject::invokeMethod(this,
             [this, result, qpath = QString::fromStdString(path)] {
-                emit actionCompleted(qpath, result.success);
                 setBusy(false);
                 // COSMOS spawns openc3cli and returns immediately, so this
                 // reports that the job started - result.message says as much
@@ -294,6 +394,9 @@ void PluginViewModel::install(const QString& gemFilePath)
                     result.success ? result.message
                                    : "Install failed: " + result.message);
                 setStatus(outcome);
+                emit actionCompleted(qpath, result.success);
+                if (result.success)
+                    startJobTracking(QString::fromStdString(result.processName));
             }, Qt::QueuedConnection);
     });
 }
@@ -377,9 +480,12 @@ void PluginViewModel::buildAndInstall(const QString& pluginRootPath)
                 setStatus(QString::fromStdString(
                     installResult.success
                         ? installResult.message
-                            + " Refresh Installed Plugins shortly to see the new instance."
+                            + " Tracking the COSMOS job until it finishes."
                         : "Install failed after a successful build: "
                             + installResult.message));
+                if (installResult.success)
+                    startJobTracking(
+                        QString::fromStdString(installResult.processName));
             },
             Qt::QueuedConnection);
     });
@@ -419,12 +525,14 @@ void PluginViewModel::remove(const QString& pluginName)
         const auto result = cosmosPlugin_.uninstall(name);
         QMetaObject::invokeMethod(this,
             [this, result, qname = QString::fromStdString(name)] {
-                emit actionCompleted(qname, result.success);
                 setBusy(false);
                 const QString outcome = QString::fromStdString(
                     result.success ? result.message
                                    : "Remove failed: " + result.message);
                 setStatus(outcome);
+                emit actionCompleted(qname, result.success);
+                if (result.success)
+                    startJobTracking(QString::fromStdString(result.processName));
             }, Qt::QueuedConnection);
     });
 }

@@ -12,6 +12,8 @@
 #include <QString>
 #include <vector>
 
+class QTimer;
+
 namespace OpenC3::ViewModels {
 
 class PluginTableModel final : public QAbstractTableModel {
@@ -104,12 +106,19 @@ signals:
     void statusMessageChanged();
     void validationComplete(bool valid, const QString& summary);
     void actionCompleted(const QString& pluginName, bool success);
+    void jobStatusChanged(const QString& processName,
+                          const QString& state,
+                          const QString& detail,
+                          bool finished,
+                          bool successful);
 
 private:
     [[nodiscard]] QString pluginRootPath() const noexcept;
 
     void setBusy(bool busy);
     void setStatus(const QString& msg);
+    void startJobTracking(const QString& processName);
+    void pollJobStatus();
 
     Services::IWorkspaceService&    workspace_;
     Services::ICosmosPluginService& cosmosPlugin_;
@@ -121,6 +130,12 @@ private:
     // one action runs at a time - every entry point returns early when busy_
     // is set - so a single future is sufficient.
     QFuture<void>             worker_;
+    QFuture<void>             jobWorker_;
+    QTimer*                   jobPollTimer_{nullptr};
+    QString                   activeProcessName_;
+    int                       jobPollAttempts_{0};
+    int                       jobPollFailures_{0};
+    bool                      jobPollInFlight_{false};
 
     bool                      busy_{false};
     QString                   statusMessage_;

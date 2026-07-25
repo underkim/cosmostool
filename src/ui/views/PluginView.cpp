@@ -1040,6 +1040,12 @@ void PluginView::setupUi()
     installedToolbar->addStretch();
     installedLayout->addLayout(installedToolbar);
 
+    jobStatusLabel_ = new QLabel(tr("No active plugin job."), installedGroup);
+    jobStatusLabel_->setObjectName("PluginJobStatus");
+    jobStatusLabel_->setWordWrap(true);
+    jobStatusLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    installedLayout->addWidget(jobStatusLabel_);
+
     installedTableView_ = new QTableView(installedGroup);
     installedTableView_->setObjectName("InstalledPluginTable");
     installedTableView_->setModel(vm_.installedPluginModel());
@@ -1232,6 +1238,23 @@ void PluginView::bindViewModel()
     });
     connect(&vm_, &ViewModels::PluginViewModel::pluginListChanged,
             this, &PluginView::restoreSelectionAfterRefresh);
+    connect(&vm_, &ViewModels::PluginViewModel::jobStatusChanged,
+            this, [this](const QString& processName, const QString& state,
+                         const QString& detail, bool finished, bool successful) {
+                QString heading;
+                if (!finished)
+                    heading = tr("Plugin job in progress");
+                else if (successful)
+                    heading = tr("Plugin job finished");
+                else
+                    heading = tr("Plugin job failed");
+
+                QString text = tr("%1: %2\nProcess: %3")
+                                   .arg(heading, state, processName);
+                if (!detail.trimmed().isEmpty()) text += "\n" + detail.trimmed();
+                jobStatusLabel_->setText(text);
+                jobStatusLabel_->setToolTip(text);
+            });
     connect(installBtn_, &QPushButton::clicked, this, &PluginView::onInstallClicked);
     connect(buildInstallBtn_, &QPushButton::clicked,
             this, &PluginView::onBuildAndInstallClicked);
@@ -1494,8 +1517,9 @@ void PluginView::bindViewModel()
                     if (ok)
                         QMessageBox::information(this, tr("Build && Install"),
                             tr("The gem was built and uploaded successfully.\n"
-                               "COSMOS has started the install job. Refresh the "
-                               "Installed list shortly to see the new instance."));
+                               "COSMOS has started the install job. Its status is "
+                               "tracked below and the Installed list will refresh "
+                               "automatically when it finishes."));
                     else
                         QMessageBox::warning(this, tr("Build && Install"),
                             tr("Build or install failed. Check the Overview tab "

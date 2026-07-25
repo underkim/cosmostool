@@ -41,6 +41,28 @@ struct PluginOperationResult {
     explicit operator bool() const noexcept { return success; }
 };
 
+/// Snapshot of the ProcessStatusModel created by COSMOS ProcessManager.
+struct PluginJobStatus {
+    bool        querySucceeded{false};
+    bool        found{false};
+    std::string processName;
+    std::string state;
+    std::string detail;
+    std::string output;
+    std::string errorMessage;
+
+    [[nodiscard]] bool isTerminal() const noexcept
+    {
+        return state == "Complete" || state == "Warning" || state == "Error"
+            || state == "Crashed" || state == "Expired";
+    }
+
+    [[nodiscard]] bool completedSuccessfully() const noexcept
+    {
+        return state == "Complete" || state == "Warning";
+    }
+};
+
 /// Plugin lifecycle against a *running* COSMOS instance, over the HTTP API.
 ///
 /// WHY THIS EXISTS SEPARATELY FROM IPluginService
@@ -97,6 +119,12 @@ public:
     /// listInstalled(), not the bare gem name). Spawns `openc3cli unload`.
     [[nodiscard]] virtual PluginOperationResult uninstall(
         const std::string& pluginId) = 0;
+
+    /// Reads the ProcessStatusModel for a processName returned by install or
+    /// uninstall. A successful query may temporarily have found == false while
+    /// ProcessManager is still creating the status model.
+    [[nodiscard]] virtual PluginJobStatus jobStatus(
+        const std::string& processName) = 0;
 
     /// True when the underlying API client currently has a live, authenticated
     /// endpoint. Lets the UI distinguish "nothing installed" from "we cannot

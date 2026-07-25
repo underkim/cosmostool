@@ -166,6 +166,7 @@ private:
 
     QTableView*  tableView_{nullptr};
     QTableView*  installedTableView_{nullptr};
+    QLabel*      jobStatusLabel_{nullptr};
     QPushButton* refreshBtn_{nullptr};
     QPushButton* installedRefreshBtn_{nullptr};
     QPushButton* installBtn_{nullptr};

@@ -239,6 +239,60 @@ TEST(CosmosPluginServiceTest, UninstallFailureIsReportedNotSwallowed)
     EXPECT_NE(result.message.find("Plugin not found"), std::string::npos);
 }
 
+TEST(CosmosPluginServiceTest, JobStatusReadsTheExactProcessModel)
+{
+    MockCosmosApiClient api;
+    EXPECT_CALL(api, get("/openc3-api/process_status/plugin_install__42", _))
+        .WillOnce(Return(ApiResponse::fromHttp(200, R"({
+            "name":"plugin_install__42",
+            "state":"Running",
+            "detail":"demo.gem__0",
+            "output":"loading"
+        })")));
+
+    CosmosPluginService service(api);
+    const auto status = service.jobStatus("plugin_install__42");
+
+    EXPECT_TRUE(status.querySucceeded);
+    EXPECT_TRUE(status.found);
+    EXPECT_EQ(status.state, "Running");
+    EXPECT_EQ(status.detail, "demo.gem__0");
+    EXPECT_FALSE(status.isTerminal());
+}
+
+TEST(CosmosPluginServiceTest, JobStatusClassifiesTerminalFailure)
+{
+    MockCosmosApiClient api;
+    EXPECT_CALL(api, get(_, _))
+        .WillOnce(Return(ApiResponse::fromHttp(200, R"({
+            "name":"plugin_install__43",
+            "state":"Error",
+            "detail":"demo.gem__0",
+            "output":"ERROR: invalid plugin.txt"
+        })")));
+
+    CosmosPluginService service(api);
+    const auto status = service.jobStatus("plugin_install__43");
+
+    EXPECT_TRUE(status.isTerminal());
+    EXPECT_FALSE(status.completedSuccessfully());
+    EXPECT_EQ(status.output, "ERROR: invalid plugin.txt");
+}
+
+TEST(CosmosPluginServiceTest, JobStatusAllowsProcessModelCreationDelay)
+{
+    MockCosmosApiClient api;
+    EXPECT_CALL(api, get(_, _))
+        .WillOnce(Return(ApiResponse::fromHttp(200, "null")));
+
+    CosmosPluginService service(api);
+    const auto status = service.jobStatus("plugin_install__44");
+
+    EXPECT_TRUE(status.querySucceeded);
+    EXPECT_FALSE(status.found);
+    EXPECT_FALSE(status.isTerminal());
+}
+
 // ── Availability ──────────────────────────────────────────────────────────────
 
 TEST(CosmosPluginServiceTest, AvailabilityTracksTheApiClient)

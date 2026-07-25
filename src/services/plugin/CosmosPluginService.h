@@ -29,6 +29,9 @@ public:
     [[nodiscard]] PluginOperationResult uninstall(
         const std::string& pluginId) override;
 
+    [[nodiscard]] PluginJobStatus jobStatus(
+        const std::string& processName) override;
+
     [[nodiscard]] bool isAvailable() const override;
 
 private:

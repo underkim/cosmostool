@@ -221,4 +221,55 @@ PluginOperationResult CosmosPluginService::uninstall(const std::string& pluginId
         processName);
 }
 
+PluginJobStatus CosmosPluginService::jobStatus(const std::string& processName)
+{
+    PluginJobStatus result;
+    result.processName = processName;
+    if (processName.empty()) {
+        result.errorMessage = "COSMOS returned an empty process name.";
+        return result;
+    }
+
+    const auto response = api_.get(Core::Api::Routes::processStatus(processName), {});
+    if (!response) {
+        result.errorMessage = describeFailure(response, "Reading plugin job status");
+        return result;
+    }
+    result.querySucceeded = true;
+
+    try {
+        const auto parsed = json::parse(response.body);
+        const json* status = nullptr;
+
+        if (parsed.is_object() && parsed.contains("state")) {
+            status = &parsed;
+        } else if (parsed.is_object()) {
+            const auto it = parsed.find(processName);
+            if (it != parsed.end() && it->is_object()) status = &(*it);
+        } else if (parsed.is_array()) {
+            for (const auto& entry : parsed) {
+                if (entry.is_object()
+                    && stringField(entry, "name") == processName)
+                {
+                    status = &entry;
+                    break;
+                }
+            }
+        }
+
+        if (status == nullptr) return result;
+
+        result.found  = true;
+        result.state  = stringField(*status, "state");
+        result.detail = stringField(*status, "detail");
+        result.output = stringField(*status, "output");
+        return result;
+    } catch (const json::exception& e) {
+        result.querySucceeded = false;
+        result.errorMessage =
+            std::string("Could not parse the COSMOS process status: ") + e.what();
+        return result;
+    }
+}
+
 } // namespace OpenC3::Services
