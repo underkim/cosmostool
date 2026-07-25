@@ -440,7 +440,18 @@ HealthCheckResult DoctorService::checkRedis()
     r.name     = "Redis (configuration store)";
     r.category = "COSMOS";
 
-    const std::string container = findContainer("openc3-redis");
+    std::string container;
+    for (const auto& name : runningContainers()) {
+        // "openc3-redis" is also a substring of
+        // "openc3-redis-ephemeral". Accepting the first substring match can
+        // make both Redis checks ping the ephemeral instance and report the
+        // persistent configuration store healthy while it is actually down.
+        if (name.find("openc3-redis") != std::string::npos
+            && name.find("openc3-redis-ephemeral") == std::string::npos) {
+            container = name;
+            break;
+        }
+    }
     if (container.empty()) {
         r.status     = HealthStatus::Fail;
         r.detail     = "Redis container is not running";

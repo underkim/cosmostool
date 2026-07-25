@@ -183,6 +183,23 @@ TEST_F(PluginViewModelTest, RemoveGoesThroughTheCosmosApi)
     EXPECT_TRUE(spy.at(0).at(1).toBool());
 }
 
+TEST_F(PluginViewModelTest, RemoveRejectsAWorkspaceSourceName)
+{
+    // PluginModel#create always assigns __<counter> to an installed instance.
+    // A Workspace row lacks that identity and cannot safely select between
+    // multiple installed instances of the same gem.
+    EXPECT_CALL(cosmos_, isAvailable()).Times(0);
+    EXPECT_CALL(cosmos_, uninstall(_)).Times(0);
+
+    QSignalSpy spy(vm_.get(), &ViewModels::PluginViewModel::actionCompleted);
+    vm_->remove("openc3-cosmos-demo");
+
+    ASSERT_EQ(spy.count(), 1);
+    EXPECT_FALSE(spy.at(0).at(1).toBool());
+    EXPECT_THAT(vm_->statusMessage().toStdString(),
+                ::testing::HasSubstr("source folder"));
+}
+
 TEST_F(PluginViewModelTest, RemoveIsRefusedUpFrontWhenTheApiIsUnavailable)
 {
     EXPECT_CALL(cosmos_, isAvailable()).WillRepeatedly(Return(false));

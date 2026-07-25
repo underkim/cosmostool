@@ -193,6 +193,33 @@ TEST_F(DoctorServiceTest, UnknownCheckIdReturnsFail)
 // on a host with an empty folder and failed on a perfectly healthy COSMOS
 // whose plugins were installed from elsewhere.
 
+TEST_F(DoctorServiceTest, PersistentRedisDoesNotMistakeEphemeralForIt)
+{
+    // docker ps order is not stable. If ephemeral appears first, a naive
+    // substring match for "openc3-redis" selects the wrong container and both
+    // Doctor checks ping the same instance.
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-openc3-redis-ephemeral-1\n"
+            "cosmos-openc3-redis-1\n")));
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr(
+        "docker exec 'cosmos-openc3-redis-1' redis-cli ping")))
+        .WillOnce(Return(ExecutorResult::ok("PONG\n")));
+
+    EXPECT_EQ(sut_.runCheck("redis").status, HealthStatus::Pass);
+}
+
+TEST_F(DoctorServiceTest, PersistentRedisFailsWhenOnlyEphemeralIsRunning)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-openc3-redis-ephemeral-1\n")));
+
+    const auto r = sut_.runCheck("redis");
+    EXPECT_EQ(r.status, HealthStatus::Fail);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("Redis container"));
+}
+
 TEST_F(DoctorServiceTest, ApiChecksAreSkippedNotFailedWhenApiIsUnconfigured)
 {
     // A shell-only profile is a legitimate setup. Reporting it as a failure

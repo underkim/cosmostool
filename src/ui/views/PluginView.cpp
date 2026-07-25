@@ -257,8 +257,15 @@ void PluginView::setupUi()
     installBtn_ = new QPushButton(tr("Install Gem"), this);
     refreshBtn_ = new QPushButton(QString::fromUtf8("↻"), this);
     removeBtn_ = new QPushButton(tr("Remove"), this);
-
+    removeBtn_->setObjectName("DangerButton");
     removeBtn_->setEnabled(false);
+    // This table contains Workspace *source folders*. COSMOS uninstall needs
+    // an installed PluginModel instance id (always suffixed __<counter> in
+    // 6.10.4), and multiple instances of one gem may exist. Hiding the action
+    // is safer and more honest than guessing from a source-folder name. It can
+    // be exposed when this view gains a separate Installed Plugins list backed
+    // by ICosmosPluginService::listInstalled().
+    removeBtn_->setVisible(false);
     buildBtn_->setEnabled(false);
     addTargetBtn_->setEnabled(false);
 

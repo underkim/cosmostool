@@ -218,6 +218,21 @@ void PluginViewModel::remove(const QString& pluginName)
     if (busy_) return;
     const std::string name = pluginName.toStdString();
 
+    // COSMOS 6.10.4 PluginModel#create assigns every installed instance an
+    // `__<counter>` suffix, including the first one (__0). Workspace rows are
+    // source-folder names and do not carry that identity. Sending a source
+    // name to DELETE /plugins/:id either fails or can target the wrong thing;
+    // multiple instances make guessing fundamentally ambiguous. Refuse the
+    // unsafe operation until the UI exposes an Installed Plugins list whose
+    // rows come from ICosmosPluginService::listInstalled().
+    if (!pluginName.contains("__")) {
+        setStatus("Remove requires an installed COSMOS plugin instance "
+                  "(for example name.gem__0). The selected Workspace row is "
+                  "a source folder, not an installed instance.");
+        emit actionCompleted(pluginName, false);
+        return;
+    }
+
     if (!cosmosPlugin_.isAvailable()) {
         setStatus("Not connected to the COSMOS API - "
                   "set an API password in the connection profile to remove plugins.");
