@@ -9,6 +9,7 @@ add_library(opencosmos_ui STATIC
     widgets/CmdTlmHighlighter.cpp
     widgets/ScreenPreviewWidget.cpp
     widgets/InstalledPluginsPanel.cpp
+    widgets/ScriptRunnerPanel.cpp
     views/DashboardView.cpp
     views/DockerView.cpp
     views/DoctorView.cpp

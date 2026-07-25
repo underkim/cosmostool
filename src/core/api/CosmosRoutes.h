@@ -110,4 +110,35 @@ inline constexpr const char* kCompletedScripts = "/script-api/completed-scripts"
     return std::string("/script-api/running-script/") + id;
 }
 
+// ── Script Runner: script bodies and lifecycle actions ─────────────────────────
+// routes.rb (script-api scope):
+//   get  "/scripts" => "scripts#index"
+//   post "/scripts/*name/run(/:disconnect)" => "scripts#run"
+//   post "/running-script/:id/stop"   => "running_script#stop"
+//   post "/running-script/:id/pause"  => "running_script#pause"
+//   post "/running-script/:id/go"     => "running_script#go"
+// `name` is a bucket-relative script path (e.g. "INST/procedures/foo.rb"),
+// never a local filesystem path - it must be exactly what scripts#index
+// returned, wildcard-matched by Rails' `*name` segment.
+
+[[nodiscard]] inline std::string scriptRunDisconnected(const std::string& name)
+{
+    return std::string("/script-api/scripts/") + name + "/run/disconnect";
+}
+
+[[nodiscard]] inline std::string runningScriptStop(const std::string& id)
+{
+    return std::string("/script-api/running-script/") + id + "/stop";
+}
+
+[[nodiscard]] inline std::string runningScriptPause(const std::string& id)
+{
+    return std::string("/script-api/running-script/") + id + "/pause";
+}
+
+[[nodiscard]] inline std::string runningScriptGo(const std::string& id)
+{
+    return std::string("/script-api/running-script/") + id + "/go";
+}
+
 } // namespace OpenC3::Core::Api::Routes

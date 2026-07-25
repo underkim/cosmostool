@@ -12,6 +12,7 @@ add_library(opencosmos_viewmodels STATIC
     plugin/PluginViewModel.cpp
     plugin/PluginTemplateEngine.cpp
     plugin/PluginManifestParser.cpp
+    script/ScriptViewModel.cpp
     screen/ScreenLayoutParser.cpp
     cmdtlm/CmdTlmViewModel.cpp
     cmdtlm/CmdTlmParser.cpp

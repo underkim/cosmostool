@@ -7,6 +7,7 @@ add_library(opencosmos_services STATIC
     system/SystemService.cpp
     doctor/DoctorService.cpp
     plugin/CosmosPluginService.cpp
+    script/CosmosScriptService.cpp
     workspace/WorkspaceService.cpp
     settings/SettingsService.cpp
     filesystem/RemoteFileService.cpp

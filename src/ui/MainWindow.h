@@ -12,6 +12,7 @@
 #include "viewmodels/logviewer/LogViewerViewModel.h"
 #include "viewmodels/infra/InfraViewModel.h"
 #include "viewmodels/validator/ValidatorViewModel.h"
+#include "viewmodels/script/ScriptViewModel.h"
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -46,6 +47,7 @@ public:
         ViewModels::PacketToolsViewModel&  packetTools,
         ViewModels::LogViewerViewModel&    logViewer,
         ViewModels::ValidatorViewModel&    validator,
+        ViewModels::ScriptViewModel&       script,
         QWidget*                           parent = nullptr);
 
     ~MainWindow() override = default;
@@ -99,6 +101,7 @@ private:
     ViewModels::PacketToolsViewModel&  packetToolsVm_;
     ViewModels::LogViewerViewModel&    logViewerVm_;
     ViewModels::ValidatorViewModel&    validatorVm_;
+    ViewModels::ScriptViewModel&       scriptVm_;
 
     QWidget*        centralWidget_{nullptr};
     QListWidget*    navRail_{nullptr};

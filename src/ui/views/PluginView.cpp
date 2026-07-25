@@ -197,6 +197,7 @@ PluginView::PluginView(
     ViewModels::CmdTlmViewModel& cmdTlmVm,
     ViewModels::ValidatorViewModel& validatorVm,
     ViewModels::LogViewerViewModel& logViewerVm,
+    ViewModels::ScriptViewModel& scriptVm,
     QWidget* parent)
     : QWidget(parent)
     , vm_(vm)
@@ -204,6 +205,7 @@ PluginView::PluginView(
     , cmdTlmVm_(cmdTlmVm)
     , validatorVm_(validatorVm)
     , logViewerVm_(logViewerVm)
+    , scriptVm_(scriptVm)
 {
     setupUi();
     bindViewModel();
@@ -1032,6 +1034,13 @@ void PluginView::setupUi()
     installedPluginsPanel_ = new Widgets::InstalledPluginsPanel(vm_, installedGroup);
     installedGroupLayout->addWidget(installedPluginsPanel_);
     wizardBuildPageLayout->addWidget(installedGroup);
+
+    auto* scriptGroup = new QGroupBox(tr("COSMOS Script Runner"), this);
+    auto* scriptGroupLayout = new QVBoxLayout(scriptGroup);
+    scriptGroupLayout->setContentsMargins(0, 0, 0, 0);
+    scriptRunnerPanel_ = new Widgets::ScriptRunnerPanel(scriptVm_, scriptGroup);
+    scriptGroupLayout->addWidget(scriptRunnerPanel_);
+    wizardBuildPageLayout->addWidget(scriptGroup);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
