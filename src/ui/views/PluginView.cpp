@@ -254,7 +254,12 @@ void PluginView::setupUi()
     addTargetBtn_ = new QPushButton(tr("Add Target"), this);
     validateBtn_ = new QPushButton(tr("Check"), this);
     buildBtn_ = new QPushButton(tr("Build Gem"), this);
-    installBtn_ = new QPushButton(tr("Install Gem"), this);
+    buildInstallBtn_ = new QPushButton(tr("Build && Install"), this);
+    installBtn_ = new QPushButton(tr("Install Local Gem"), this);
+    installedRefreshBtn_ = new QPushButton(tr("Refresh Installed"), this);
+    installedRemoveBtn_ = new QPushButton(tr("Uninstall Instance"), this);
+    installedRemoveBtn_->setObjectName("DangerButton");
+    installedRemoveBtn_->setEnabled(false);
     refreshBtn_ = new QPushButton(QString::fromUtf8("↻"), this);
     removeBtn_ = new QPushButton(tr("Remove"), this);
     removeBtn_->setObjectName("DangerButton");
@@ -262,11 +267,12 @@ void PluginView::setupUi()
     // This table contains Workspace *source folders*. COSMOS uninstall needs
     // an installed PluginModel instance id (always suffixed __<counter> in
     // 6.10.4), and multiple instances of one gem may exist. Hiding the action
-    // is safer and more honest than guessing from a source-folder name. It can
-    // be exposed when this view gains a separate Installed Plugins list backed
-    // by ICosmosPluginService::listInstalled().
+    // is safer and more honest than guessing from a source-folder name. The
+    // separate Installed Plugins table below exposes the safe action using
+    // ICosmosPluginService::listInstalled() instance ids instead.
     removeBtn_->setVisible(false);
     buildBtn_->setEnabled(false);
+    buildInstallBtn_->setEnabled(false);
     addTargetBtn_->setEnabled(false);
 
     progressBar_ = new QProgressBar(this);
@@ -277,7 +283,12 @@ void PluginView::setupUi()
     scaffoldBtn_->setToolTip(tr("Create a new plugin locally."));
     validateBtn_->setToolTip(tr("Check that this plugin folder has the expected files (plugin.txt, .gemspec, targets/)."));
     buildBtn_->setToolTip(tr("Build the selected plugin into a gem. Save any open file first."));
-    installBtn_->setToolTip(tr("Install a local .gem file into OpenC3."));
+    buildInstallBtn_->setToolTip(tr(
+        "Build on the connected WSL/SSH host, download the gem temporarily, "
+        "and install it through the COSMOS API."));
+    installBtn_->setToolTip(tr("Install an existing local .gem file through the COSMOS API."));
+    installedRemoveBtn_->setToolTip(tr(
+        "Uninstall the selected COSMOS instance using its exact __<counter> id."));
     refreshBtn_->setToolTip(tr("Refresh the local/remote plugin list."));
 
     // Add Target and Remove are secondary/less-frequent actions - kept as
@@ -301,7 +312,7 @@ void PluginView::setupUi()
     // decides the true minimum. A fixed magic-number floor smaller than that
     // sizeHint is exactly what let text get clipped on other font/DPI setups.
     const QList<QPushButton*> topButtons = {
-        scaffoldBtn_, validateBtn_, buildBtn_, installBtn_
+        scaffoldBtn_, validateBtn_, buildBtn_, buildInstallBtn_, installBtn_
     };
     for (auto* button : topButtons)
         button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
@@ -1015,10 +1026,34 @@ void PluginView::setupUi()
     auto* buildPageToolbar = new QHBoxLayout;
     buildPageToolbar->setSpacing(8);
     buildPageToolbar->addWidget(buildBtn_);
+    buildPageToolbar->addWidget(buildInstallBtn_);
     buildPageToolbar->addWidget(installBtn_);
     buildPageToolbar->addStretch();
     wizardBuildPageLayout->addLayout(buildPageToolbar);
     wizardBuildPageLayout->addWidget(detailTabs_, 1);
+
+    auto* installedGroup = new QGroupBox(tr("Installed in COSMOS"), this);
+    auto* installedLayout = new QVBoxLayout(installedGroup);
+    auto* installedToolbar = new QHBoxLayout;
+    installedToolbar->addWidget(installedRefreshBtn_);
+    installedToolbar->addWidget(installedRemoveBtn_);
+    installedToolbar->addStretch();
+    installedLayout->addLayout(installedToolbar);
+
+    installedTableView_ = new QTableView(installedGroup);
+    installedTableView_->setObjectName("InstalledPluginTable");
+    installedTableView_->setModel(vm_.installedPluginModel());
+    installedTableView_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    installedTableView_->setSelectionMode(QAbstractItemView::SingleSelection);
+    installedTableView_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    installedTableView_->horizontalHeader()->setStretchLastSection(true);
+    installedTableView_->horizontalHeader()->setSectionResizeMode(
+        ViewModels::InstalledPluginTableModel::Instance, QHeaderView::ResizeToContents);
+    installedTableView_->horizontalHeader()->setSectionResizeMode(
+        ViewModels::InstalledPluginTableModel::Gem, QHeaderView::ResizeToContents);
+    installedTableView_->setMinimumHeight(150);
+    installedLayout->addWidget(installedTableView_);
+    wizardBuildPageLayout->addWidget(installedGroup);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
     insertTlmBtn_->setVisible(false);
@@ -1198,6 +1233,18 @@ void PluginView::bindViewModel()
     connect(&vm_, &ViewModels::PluginViewModel::pluginListChanged,
             this, &PluginView::restoreSelectionAfterRefresh);
     connect(installBtn_, &QPushButton::clicked, this, &PluginView::onInstallClicked);
+    connect(buildInstallBtn_, &QPushButton::clicked,
+            this, &PluginView::onBuildAndInstallClicked);
+    connect(installedRefreshBtn_, &QPushButton::clicked,
+            &vm_, &ViewModels::PluginViewModel::refreshInstalled);
+    connect(installedRemoveBtn_, &QPushButton::clicked,
+            this, &PluginView::onInstalledRemoveClicked);
+    connect(installedTableView_->selectionModel(),
+            &QItemSelectionModel::selectionChanged,
+            this, [this] {
+                installedRemoveBtn_->setEnabled(
+                    !vm_.isBusy() && installedTableView_->selectionModel()->hasSelection());
+            });
     connect(removeBtn_, &QPushButton::clicked, this, &PluginView::onRemoveClicked);
     connect(removeAction_, &QAction::triggered, this, &PluginView::onRemoveClicked);
     connect(validateBtn_, &QPushButton::clicked, this, &PluginView::onValidateClicked);
@@ -1348,9 +1395,14 @@ void PluginView::bindViewModel()
                 progressBar_->setVisible(busy);
                 refreshBtn_->setEnabled(!busy);
                 installBtn_->setEnabled(!busy);
+                installedRefreshBtn_->setEnabled(!busy);
                 validateBtn_->setEnabled(!busy);
                 buildBtn_->setEnabled(!busy && tableView_->selectionModel()->hasSelection());
+                buildInstallBtn_->setEnabled(
+                    !busy && tableView_->selectionModel()->hasSelection());
                 removeBtn_->setEnabled(!busy && tableView_->selectionModel()->hasSelection());
+                installedRemoveBtn_->setEnabled(
+                    !busy && installedTableView_->selectionModel()->hasSelection());
                 updateActionHints();
             });
 
@@ -1396,6 +1448,14 @@ void PluginView::bindViewModel()
     connect(&vm_, &ViewModels::PluginViewModel::validationComplete,
             this, [this](bool valid, const QString& summary) {
                 detailTabs_->setCurrentIndex(0);
+                if (pendingBuildInstall_) {
+                    detailEdit_->setPlainText(valid
+                        ? tr("[Build succeeded; COSMOS install job starting]\n\n"
+                             "--- Build log ---\n%1").arg(summary)
+                        : tr("[Build & Install failed]\n\n"
+                             "--- Details ---\n%1").arg(summary));
+                    return;
+                }
                 if (pendingBuild_) {
                     // Build result: surface the gem path / failure log clearly.
                     // The popup is shown from actionCompleted to avoid duplicates.
@@ -1429,6 +1489,19 @@ void PluginView::bindViewModel()
 
     connect(&vm_, &ViewModels::PluginViewModel::actionCompleted,
             this, [this](const QString& name, bool ok) {
+                if (pendingBuildInstall_) {
+                    pendingBuildInstall_ = false;
+                    if (ok)
+                        QMessageBox::information(this, tr("Build && Install"),
+                            tr("The gem was built and uploaded successfully.\n"
+                               "COSMOS has started the install job. Refresh the "
+                               "Installed list shortly to see the new instance."));
+                    else
+                        QMessageBox::warning(this, tr("Build && Install"),
+                            tr("Build or install failed. Check the Overview tab "
+                               "for the exact cause."));
+                    return;
+                }
                 if (pendingBuild_) {
                     pendingBuild_ = false;
                     if (ok)
@@ -1612,6 +1685,29 @@ void PluginView::onInstallClicked()
         vm_.install(path);
 }
 
+void PluginView::onBuildAndInstallClicked()
+{
+    if (componentDirty_) {
+        QMessageBox::information(this, tr("Build && Install"),
+            tr("Save the open file before building and installing the plugin."));
+        return;
+    }
+
+    const QString root = selectedPluginRoot();
+    if (root.isEmpty()) {
+        QMessageBox::information(this, tr("Build && Install"),
+            tr("Select a plugin source folder first."));
+        return;
+    }
+
+    pendingBuildInstall_ = true;
+    detailTabs_->setCurrentIndex(0);
+    detailEdit_->setPlainText(tr(
+        "Building on the connected host, downloading the gem, and starting "
+        "the COSMOS install job...\n%1").arg(root));
+    vm_.buildAndInstall(root);
+}
+
 void PluginView::onRemoveClicked()
 {
     const QString name = selectedPluginName();
@@ -1620,6 +1716,24 @@ void PluginView::onRemoveClicked()
             tr("Remove plugin: %1?").arg(name),
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         vm_.remove(name);
+}
+
+void PluginView::onInstalledRemoveClicked()
+{
+    const auto rows = installedTableView_->selectionModel()->selectedRows();
+    if (rows.isEmpty()) return;
+
+    const auto* plugin = vm_.installedPluginModel()->pluginAt(rows.first().row());
+    if (!plugin) return;
+    const QString instanceId = QString::fromStdString(plugin->name);
+
+    if (QMessageBox::question(this, tr("Confirm Uninstall"),
+            tr("Start uninstalling this exact COSMOS plugin instance?\n\n%1")
+                .arg(instanceId),
+            QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+    {
+        vm_.remove(instanceId);
+    }
 }
 
 void PluginView::onScaffoldClicked()
@@ -1762,6 +1876,7 @@ void PluginView::onTableSelectionChanged()
 
     removeBtn_->setEnabled(hasSel && !vm_.isBusy());
     buildBtn_->setEnabled(hasSel && !vm_.isBusy());
+    buildInstallBtn_->setEnabled(hasSel && !vm_.isBusy());
     addTargetBtn_->setEnabled(hasSel && !infraVm_.isBusy());
 
     componentList_->clear();

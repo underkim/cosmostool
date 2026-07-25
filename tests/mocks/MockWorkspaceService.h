@@ -18,6 +18,12 @@ public:
 
     MOCK_METHOD(std::string, build, (const std::string&), (override));
 
+    MOCK_METHOD(Services::PluginBuildResult, buildArtifact,
+                (const std::string&), (override));
+
+    MOCK_METHOD(bool, downloadArtifact,
+                (const std::string&, const std::string&), (override));
+
     MOCK_METHOD(bool, backup,
                 (const std::string&, const std::string&, const std::string&),
                 (override));

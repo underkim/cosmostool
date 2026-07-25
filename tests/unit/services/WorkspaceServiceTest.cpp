@@ -181,3 +181,39 @@ TEST_F(WorkspaceServiceTest, BuildSurfacesFailureTextInsteadOfGenericMessage)
     EXPECT_THAT(output, HasSubstr("ERROR"));
     EXPECT_THAT(output, HasSubstr("No .gemspec file found"));
 }
+
+TEST_F(WorkspaceServiceTest, BuildArtifactReturnsTheExactRemoteGemPath)
+{
+    EXPECT_CALL(mock_, execute(HasSubstr("OPENC3_ARTIFACT")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "Successfully built RubyGem\n"
+            "OPENC3_ARTIFACT=/cosmos/plugins/demo/openc3-cosmos-demo-1.0.0.gem\n")));
+
+    const auto result = sut_.buildArtifact("/cosmos/plugins/demo");
+
+    ASSERT_TRUE(result.success);
+    EXPECT_EQ(result.remoteGemPath,
+              "/cosmos/plugins/demo/openc3-cosmos-demo-1.0.0.gem");
+    EXPECT_THAT(result.output, HasSubstr("Successfully built"));
+}
+
+TEST_F(WorkspaceServiceTest, BuildArtifactFailsWithoutAnArtifactMarker)
+{
+    EXPECT_CALL(mock_, execute(_))
+        .WillOnce(Return(ExecutorResult::ok("Successfully built RubyGem\n")));
+
+    const auto result = sut_.buildArtifact("/cosmos/plugins/demo");
+
+    EXPECT_FALSE(result.success);
+    EXPECT_THAT(result.output, HasSubstr("without reporting an artifact"));
+}
+
+TEST_F(WorkspaceServiceTest, DownloadArtifactDelegatesExactPathsToExecutor)
+{
+    EXPECT_CALL(mock_, downloadFile(
+        "/remote/openc3-cosmos-demo.gem", "C:/temp/openc3-cosmos-demo.gem"))
+        .WillOnce(Return(true));
+
+    EXPECT_TRUE(sut_.downloadArtifact(
+        "/remote/openc3-cosmos-demo.gem", "C:/temp/openc3-cosmos-demo.gem"));
+}

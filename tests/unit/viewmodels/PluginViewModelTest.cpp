@@ -99,6 +99,26 @@ TEST_F(PluginViewModelTest, RefreshReadsSourcesFromTheWorkspaceService)
     EXPECT_EQ(vm_->pluginModel()->rowCount(), 1);
 }
 
+TEST_F(PluginViewModelTest, RefreshInstalledReadsInstancesFromTheCosmosApi)
+{
+    Models::Plugin plugin;
+    plugin.name    = "openc3-cosmos-demo-1.0.0.gem__0";
+    plugin.version = "openc3-cosmos-demo-1.0.0.gem";
+
+    EXPECT_CALL(cosmos_, isAvailable()).WillOnce(Return(true));
+    EXPECT_CALL(cosmos_, listInstalled())
+        .WillOnce(Return(std::vector<Models::Plugin>{plugin}));
+    EXPECT_CALL(workspace_, listSources(_)).Times(0);
+
+    QSignalSpy spy(vm_.get(),
+                   &ViewModels::PluginViewModel::installedPluginListChanged);
+    vm_->refreshInstalled();
+
+    ASSERT_TRUE(waitFor(spy));
+    ASSERT_EQ(vm_->installedPluginModel()->rowCount(), 1);
+    EXPECT_EQ(vm_->installedPluginModel()->pluginAt(0)->name, plugin.name);
+}
+
 // ── install: API transport ───────────────────────────────────────────────────
 
 TEST_F(PluginViewModelTest, InstallGoesThroughTheCosmosApiNotTheShell)
@@ -166,6 +186,47 @@ TEST_F(PluginViewModelTest, InstallReportsJobStartedRatherThanCompleted)
     ASSERT_TRUE(waitFor(spy));
     EXPECT_THAT(vm_->statusMessage().toStdString(),
                 ::testing::HasSubstr("started"));
+}
+
+TEST_F(PluginViewModelTest, BuildAndInstallDownloadsRemoteGemBeforeApiUpload)
+{
+    const std::string remote =
+        "/cosmos/plugins/demo/openc3-cosmos-demo-1.0.0.gem";
+    EXPECT_CALL(cosmos_, isAvailable()).WillOnce(Return(true));
+    EXPECT_CALL(workspace_, buildArtifact("/cosmos/plugins/demo"))
+        .WillOnce(Return(Services::PluginBuildResult::ok(
+            remote, "Successfully built RubyGem")));
+    EXPECT_CALL(workspace_, downloadArtifact(remote, ::testing::HasSubstr(
+        "openc3-cosmos-demo-1.0.0.gem")))
+        .WillOnce(Return(true));
+    EXPECT_CALL(cosmos_, installGem(::testing::HasSubstr(
+        "openc3-cosmos-demo-1.0.0.gem")))
+        .WillOnce(Return(PluginOperationResult::ok(
+            "COSMOS started installing demo.")));
+
+    QSignalSpy spy(vm_.get(), &ViewModels::PluginViewModel::actionCompleted);
+    vm_->buildAndInstall("/cosmos/plugins/demo");
+
+    ASSERT_TRUE(waitFor(spy));
+    EXPECT_TRUE(spy.at(0).at(1).toBool());
+}
+
+TEST_F(PluginViewModelTest, BuildAndInstallStopsWhenArtifactDownloadFails)
+{
+    const std::string remote = "/remote/demo.gem";
+    EXPECT_CALL(cosmos_, isAvailable()).WillOnce(Return(true));
+    EXPECT_CALL(workspace_, buildArtifact(_))
+        .WillOnce(Return(Services::PluginBuildResult::ok(remote)));
+    EXPECT_CALL(workspace_, downloadArtifact(remote, _)).WillOnce(Return(false));
+    EXPECT_CALL(cosmos_, installGem(_)).Times(0);
+
+    QSignalSpy spy(vm_.get(), &ViewModels::PluginViewModel::actionCompleted);
+    vm_->buildAndInstall("/cosmos/plugins/demo");
+
+    ASSERT_TRUE(waitFor(spy));
+    EXPECT_FALSE(spy.at(0).at(1).toBool());
+    EXPECT_THAT(vm_->statusMessage().toStdString(),
+                ::testing::HasSubstr("could not be downloaded"));
 }
 
 // ── remove: API transport ────────────────────────────────────────────────────

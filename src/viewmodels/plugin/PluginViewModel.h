@@ -38,6 +38,30 @@ private:
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Installed COSMOS instances, deliberately separate from PluginTableModel's
+/// host source folders. The full instance id (including __<counter>) is the
+/// only safe identifier for uninstall.
+class InstalledPluginTableModel final : public QAbstractTableModel {
+    Q_OBJECT
+public:
+    enum Column { Instance = 0, Gem, Description, ColCount };
+
+    explicit InstalledPluginTableModel(QObject* parent = nullptr);
+
+    void setPlugins(std::vector<Models::Plugin> plugins);
+    [[nodiscard]] const Models::Plugin* pluginAt(int row) const noexcept;
+
+    [[nodiscard]] int      rowCount(const QModelIndex& = {}) const override;
+    [[nodiscard]] int      columnCount(const QModelIndex& = {}) const override;
+    [[nodiscard]] QVariant data(const QModelIndex&, int role) const override;
+    [[nodiscard]] QVariant headerData(int, Qt::Orientation, int) const override;
+
+private:
+    std::vector<Models::Plugin> plugins_;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 class PluginViewModel final : public ViewModelBase {
     Q_OBJECT
 
@@ -59,19 +83,23 @@ public:
     // destroys it repeatedly.
     ~PluginViewModel() override;
 
-    [[nodiscard]] PluginTableModel* pluginModel()    const noexcept;
+    [[nodiscard]] PluginTableModel* pluginModel() const noexcept;
+    [[nodiscard]] InstalledPluginTableModel* installedPluginModel() const noexcept;
     [[nodiscard]] bool              isBusy()         const noexcept;
     [[nodiscard]] QString           statusMessage()  const noexcept;
 
 public slots:
     void refresh();
+    void refreshInstalled();
     void install(const QString& gemFilePath);
+    void buildAndInstall(const QString& pluginRootPath);
     void remove(const QString& pluginName);
     void validate(const QString& localPath);
     void build(const QString& pluginRootPath);
 
 signals:
     void pluginListChanged();
+    void installedPluginListChanged();
     void busyChanged();
     void statusMessageChanged();
     void validationComplete(bool valid, const QString& summary);
@@ -87,6 +115,7 @@ private:
     Services::ICosmosPluginService& cosmosPlugin_;
     Services::IConnectionService& connection_;
     PluginTableModel*             tableModel_{nullptr};
+    InstalledPluginTableModel*    installedTableModel_{nullptr};
 
     // Handle on the in-flight worker so the destructor can wait for it. Only
     // one action runs at a time - every entry point returns early when busy_

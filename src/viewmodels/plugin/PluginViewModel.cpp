@@ -4,7 +4,9 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QMetaObject>
 #include <QColor>
+#include <QFileInfo>
 #include <QStringList>
+#include <QTemporaryDir>
 
 namespace OpenC3::ViewModels {
 
@@ -88,6 +90,64 @@ QVariant PluginTableModel::headerData(int section,
     }
 }
 
+InstalledPluginTableModel::InstalledPluginTableModel(QObject* parent)
+    : QAbstractTableModel(parent)
+{}
+
+void InstalledPluginTableModel::setPlugins(std::vector<Models::Plugin> plugins)
+{
+    beginResetModel();
+    plugins_ = std::move(plugins);
+    endResetModel();
+}
+
+const Models::Plugin* InstalledPluginTableModel::pluginAt(int row) const noexcept
+{
+    if (row < 0 || row >= static_cast<int>(plugins_.size())) return nullptr;
+    return &plugins_[static_cast<std::size_t>(row)];
+}
+
+int InstalledPluginTableModel::rowCount(const QModelIndex&) const
+{
+    return static_cast<int>(plugins_.size());
+}
+
+int InstalledPluginTableModel::columnCount(const QModelIndex&) const
+{
+    return ColCount;
+}
+
+QVariant InstalledPluginTableModel::data(const QModelIndex& index, int role) const
+{
+    if (!index.isValid() || index.row() >= static_cast<int>(plugins_.size()))
+        return {};
+
+    const auto& plugin = plugins_[static_cast<std::size_t>(index.row())];
+    if (role == Qt::DisplayRole) {
+        switch (index.column()) {
+        case Instance:    return QString::fromStdString(plugin.name);
+        case Gem:         return QString::fromStdString(plugin.version);
+        case Description: return QString::fromStdString(plugin.description);
+        default:          return {};
+        }
+    }
+    if (role == Qt::ToolTipRole)
+        return QString::fromStdString(plugin.name);
+    return {};
+}
+
+QVariant InstalledPluginTableModel::headerData(
+    int section, Qt::Orientation orientation, int role) const
+{
+    if (orientation != Qt::Horizontal || role != Qt::DisplayRole) return {};
+    switch (section) {
+    case Instance:    return "COSMOS Instance ID";
+    case Gem:         return "Gem";
+    case Description: return "Description";
+    default:          return {};
+    }
+}
+
 PluginViewModel::PluginViewModel(
     Services::IWorkspaceService&    workspace,
     Services::ICosmosPluginService& cosmosPlugin,
@@ -98,6 +158,7 @@ PluginViewModel::PluginViewModel(
     , cosmosPlugin_(cosmosPlugin)
     , connection_(connection)
     , tableModel_(new PluginTableModel(this))
+    , installedTableModel_(new InstalledPluginTableModel(this))
 {}
 
 PluginViewModel::~PluginViewModel()
@@ -117,6 +178,11 @@ PluginViewModel::~PluginViewModel()
 PluginTableModel* PluginViewModel::pluginModel() const noexcept
 {
     return tableModel_;
+}
+
+InstalledPluginTableModel* PluginViewModel::installedPluginModel() const noexcept
+{
+    return installedTableModel_;
 }
 
 bool PluginViewModel::isBusy() const noexcept { return busy_; }
@@ -170,6 +236,32 @@ void PluginViewModel::refresh()
     });
 }
 
+void PluginViewModel::refreshInstalled()
+{
+    if (busy_) return;
+    if (!cosmosPlugin_.isAvailable()) {
+        installedTableModel_->setPlugins({});
+        emit installedPluginListChanged();
+        setStatus("COSMOS API is not connected; installed plugins are unavailable.");
+        return;
+    }
+
+    setBusy(true);
+    setStatus("Loading installed COSMOS plugins");
+    worker_ = QtConcurrent::run([this] {
+        auto plugins = cosmosPlugin_.listInstalled();
+        QMetaObject::invokeMethod(this,
+            [this, list = std::move(plugins)]() mutable {
+                installedTableModel_->setPlugins(std::move(list));
+                emit installedPluginListChanged();
+                setBusy(false);
+                setStatus(QString("Loaded %1 installed plugin instance(s)")
+                              .arg(installedTableModel_->rowCount()));
+            },
+            Qt::QueuedConnection);
+    });
+}
+
 void PluginViewModel::install(const QString& gemFilePath)
 {
     if (busy_) return;
@@ -201,15 +293,95 @@ void PluginViewModel::install(const QString& gemFilePath)
                 const QString outcome = QString::fromStdString(
                     result.success ? result.message
                                    : "Install failed: " + result.message);
-                if (result.success) {
-                    // refresh() overwrites statusMessage with its own
-                    // "Loading..." text, which would erase the outcome the
-                    // user needs to read. Re-assert it afterwards so the
-                    // result survives the reload.
-                    refresh();
-                }
                 setStatus(outcome);
             }, Qt::QueuedConnection);
+    });
+}
+
+void PluginViewModel::buildAndInstall(const QString& pluginRootPath)
+{
+    if (busy_) return;
+    if (!cosmosPlugin_.isAvailable()) {
+        setStatus("Not connected to the COSMOS API - set an API password in "
+                  "the connection profile before building and installing.");
+        emit actionCompleted(pluginRootPath, false);
+        return;
+    }
+
+    const std::string root = pluginRootPath.toStdString();
+    setBusy(true);
+    setStatus("Building, downloading, and installing " + pluginRootPath);
+
+    worker_ = QtConcurrent::run([this, root] {
+        const auto buildResult = workspace_.buildArtifact(root);
+        if (!buildResult) {
+            QMetaObject::invokeMethod(this,
+                [this, root, detail = buildResult.output] {
+                    setBusy(false);
+                    setStatus(QString::fromStdString(
+                        detail.empty() ? "Build failed" : detail));
+                    emit validationComplete(false, QString::fromStdString(detail));
+                    emit actionCompleted(QString::fromStdString(root), false);
+                },
+                Qt::QueuedConnection);
+            return;
+        }
+
+        QTemporaryDir temporaryDir;
+        if (!temporaryDir.isValid()) {
+            QMetaObject::invokeMethod(this,
+                [this, root] {
+                    setBusy(false);
+                    const QString detail =
+                        "Could not create a temporary directory for the built gem.";
+                    setStatus(detail);
+                    emit validationComplete(false, detail);
+                    emit actionCompleted(QString::fromStdString(root), false);
+                },
+                Qt::QueuedConnection);
+            return;
+        }
+
+        const QString fileName = QFileInfo(
+            QString::fromStdString(buildResult.remoteGemPath)).fileName();
+        const QString localPath = temporaryDir.filePath(fileName);
+        if (fileName.isEmpty()
+            || !workspace_.downloadArtifact(
+                buildResult.remoteGemPath, localPath.toStdString()))
+        {
+            QMetaObject::invokeMethod(this,
+                [this, root, remote = buildResult.remoteGemPath] {
+                    setBusy(false);
+                    const QString detail =
+                        "Build succeeded, but the gem could not be downloaded from "
+                        + QString::fromStdString(remote);
+                    setStatus(detail);
+                    emit validationComplete(false, detail);
+                    emit actionCompleted(QString::fromStdString(root), false);
+                },
+                Qt::QueuedConnection);
+            return;
+        }
+
+        const auto installResult = cosmosPlugin_.installGem(localPath.toStdString());
+        QMetaObject::invokeMethod(this,
+            [this, root, output = buildResult.output, installResult] {
+                setBusy(false);
+                const QString detail = installResult.success
+                    ? QString::fromStdString(output)
+                    : QString::fromStdString(
+                        "Build succeeded, but COSMOS did not start the install job: "
+                        + installResult.message + "\n\n" + output);
+                emit validationComplete(installResult.success, detail);
+                emit actionCompleted(QString::fromStdString(root), installResult.success);
+                setStatus(QString::fromStdString(
+                    installResult.success
+                        ? installResult.message
+                            + " Refresh Installed Plugins shortly to see the new instance."
+                        : "Install failed after a successful build: "
+                            + installResult.message));
+            },
+            Qt::QueuedConnection);
     });
 }
 
@@ -249,12 +421,9 @@ void PluginViewModel::remove(const QString& pluginName)
             [this, result, qname = QString::fromStdString(name)] {
                 emit actionCompleted(qname, result.success);
                 setBusy(false);
-                // Same ordering hazard as install(): refresh() would clobber
-                // the outcome message, so re-assert it after the reload.
                 const QString outcome = QString::fromStdString(
                     result.success ? result.message
                                    : "Remove failed: " + result.message);
-                if (result.success) refresh();
                 setStatus(outcome);
             }, Qt::QueuedConnection);
     });

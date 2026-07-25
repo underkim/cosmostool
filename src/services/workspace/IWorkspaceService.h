@@ -3,9 +3,38 @@
 #include "models/Plugin.h"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace OpenC3::Services {
+
+/// Structured outcome of building a plugin source folder.
+/// remoteGemPath is on the WSL/SSH host and must be downloaded before the
+/// desktop HTTP client can upload it to COSMOS.
+struct PluginBuildResult {
+    bool        success{false};
+    std::string output;
+    std::string remoteGemPath;
+
+    [[nodiscard]] static PluginBuildResult ok(
+        std::string artifact, std::string detail = {})
+    {
+        PluginBuildResult result;
+        result.success       = true;
+        result.output        = std::move(detail);
+        result.remoteGemPath = std::move(artifact);
+        return result;
+    }
+
+    [[nodiscard]] static PluginBuildResult fail(std::string detail)
+    {
+        PluginBuildResult result;
+        result.output = std::move(detail);
+        return result;
+    }
+
+    explicit operator bool() const noexcept { return success; }
+};
 
 /// Plugin *sources* on the connected host - what the developer is working on.
 ///
@@ -60,6 +89,16 @@ public:
     /// "ERROR". Callers sniff for that (see PluginViewModel::build).
     [[nodiscard]] virtual std::string build(
         const std::string& pluginRootPath) = 0;
+
+    /// Builds and returns the exact remote path of the resulting gem.
+    [[nodiscard]] virtual PluginBuildResult buildArtifact(
+        const std::string& pluginRootPath) = 0;
+
+    /// Copies a remote build artifact to a local path suitable for multipart
+    /// upload by ICosmosPluginService.
+    [[nodiscard]] virtual bool downloadArtifact(
+        const std::string& remoteGemPath,
+        const std::string& localGemPath) = 0;
 
     /// Copies a built .gem off the host to a local path.
     [[nodiscard]] virtual bool backup(

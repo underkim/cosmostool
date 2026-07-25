@@ -26,6 +26,13 @@ public:
     [[nodiscard]] std::string build(
         const std::string& pluginRootPath) override;
 
+    [[nodiscard]] PluginBuildResult buildArtifact(
+        const std::string& pluginRootPath) override;
+
+    [[nodiscard]] bool downloadArtifact(
+        const std::string& remoteGemPath,
+        const std::string& localGemPath) override;
+
     [[nodiscard]] bool backup(
         const std::string& pluginName,
         const std::string& localBackupPath,

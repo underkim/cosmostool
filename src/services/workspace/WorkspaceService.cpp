@@ -245,6 +245,56 @@ std::string WorkspaceService::build(const std::string& pluginRootPath)
     return r ? std::string{} : r.errorMessage;
 }
 
+PluginBuildResult WorkspaceService::buildArtifact(const std::string& pluginRootPath)
+{
+    // Emit one machine-readable marker after a successful build. This avoids
+    // asking the ViewModel to infer success or scrape a path from RubyGems'
+    // human-readable output.
+    auto r = executor_.execute(
+        "cd " + shellQuote(pluginRootPath) +
+        " && if ! command -v gem >/dev/null 2>&1; then"
+        "      echo 'ERROR: gem (RubyGems) is not installed on this host - Ruby is required to build a plugin.';"
+        "      exit 1;"
+        "    fi"
+        " && gemspec=$(find . -maxdepth 1 -type f -name '*.gemspec' | head -n 1)"
+        " && if [ -z \"$gemspec\" ]; then"
+        "      echo 'ERROR: No .gemspec file found in the plugin folder.';"
+        "      exit 1;"
+        "    fi"
+        " && gem build \"$gemspec\" 2>&1"
+        " && artifact=$(find . -maxdepth 1 -type f -name '*.gem' -printf '%T@ %p\\n' 2>/dev/null | sort -nr | head -n 1 | cut -d' ' -f2-)"
+        " && if [ -z \"$artifact\" ]; then"
+        "      echo 'ERROR: gem build reported success but no .gem artifact was found.';"
+        "      exit 1;"
+        "    fi"
+        " && printf '\\nOPENC3_ARTIFACT=%s/%s\\n' \"$PWD\" \"${artifact#./}\"");
+
+    const std::string output = !r.stdOut.empty() ? r.stdOut : r.errorMessage;
+    if (!r) return PluginBuildResult::fail(output);
+
+    constexpr std::string_view marker = "OPENC3_ARTIFACT=";
+    const auto markerPos = output.rfind(marker);
+    if (markerPos == std::string::npos)
+        return PluginBuildResult::fail(
+            output + "\nERROR: Build completed without reporting an artifact path.");
+
+    const auto pathStart = markerPos + marker.size();
+    const auto pathEnd   = output.find_first_of("\r\n", pathStart);
+    std::string artifact = output.substr(pathStart, pathEnd - pathStart);
+    if (artifact.empty())
+        return PluginBuildResult::fail(
+            output + "\nERROR: Build reported an empty artifact path.");
+
+    return PluginBuildResult::ok(std::move(artifact), output);
+}
+
+bool WorkspaceService::downloadArtifact(
+    const std::string& remoteGemPath, const std::string& localGemPath)
+{
+    if (remoteGemPath.empty() || localGemPath.empty()) return false;
+    return executor_.downloadFile(remoteGemPath, localGemPath);
+}
+
 bool WorkspaceService::backup(
     const std::string& pluginName,
     const std::string& localBackupPath,

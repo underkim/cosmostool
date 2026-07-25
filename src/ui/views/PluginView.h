@@ -55,7 +55,9 @@ public:
 
 private slots:
     void onInstallClicked();
+    void onBuildAndInstallClicked();
     void onRemoveClicked();
+    void onInstalledRemoveClicked();
     void onValidateClicked();
     void onBuildClicked();
     void onScaffoldClicked();
@@ -163,9 +165,13 @@ private:
     ViewModels::LogViewerViewModel& logViewerVm_;
 
     QTableView*  tableView_{nullptr};
+    QTableView*  installedTableView_{nullptr};
     QPushButton* refreshBtn_{nullptr};
+    QPushButton* installedRefreshBtn_{nullptr};
     QPushButton* installBtn_{nullptr};
+    QPushButton* buildInstallBtn_{nullptr};
     QPushButton* removeBtn_{nullptr};
+    QPushButton* installedRemoveBtn_{nullptr};
     QPushButton* validateBtn_{nullptr};
     QPushButton* buildBtn_{nullptr};
     QPushButton* scaffoldBtn_{nullptr};
@@ -258,6 +264,7 @@ private:
     QString     firstCmdTlmComponentPath_;
     bool        componentDirty_{false};
     bool        pendingBuild_{false};
+    bool        pendingBuildInstall_{false};
     bool        pendingOfflineValidation_{false};
     bool        updatingStructureTable_{false};
     QVector<ViewModels::CmdTlmBlock> currentBlocks_;
