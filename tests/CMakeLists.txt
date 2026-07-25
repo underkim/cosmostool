@@ -33,6 +33,7 @@ add_executable(opencosmos_tests
     unit/viewmodels/RuleValidatorRegistryTest.cpp
     unit/viewmodels/ValidatorViewModelTest.cpp
     unit/viewmodels/PacketSimulatorTest.cpp
+    unit/viewmodels/PluginViewModelTest.cpp
     unit/widgets/CmdTlmHighlighterTest.cpp
 )
 

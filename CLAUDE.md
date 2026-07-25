@@ -125,6 +125,13 @@ precedent `PluginTemplateEngine` set). Services therefore depend only on the
 interface and are testable with `tests/mocks/MockCosmosApiClient.h` — no
 network, no Qt event loop, no running COSMOS.
 
+`PluginViewModel` owns a `QFuture<void>` for its single in-flight worker and
+waits in its destructor. Do not revert this to fire-and-forget
+`(void)QtConcurrent::run(...)`: every worker captures `this`, so destroying the
+view model while a task runs otherwise produces a real use-after-free. Its
+unit tests intentionally construct/destroy the view model repeatedly and drive
+the queued completion callbacks through a `QCoreApplication` event loop.
+
 Every remote command executor call funnels through `ShellQuote`
 (`src/core/connection/ShellQuote.h`) when interpolating user-controlled
 strings (paths, container names, plugin names) into shell commands — this was

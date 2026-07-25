@@ -100,6 +100,20 @@ PluginViewModel::PluginViewModel(
     , tableModel_(new PluginTableModel(this))
 {}
 
+PluginViewModel::~PluginViewModel()
+{
+    // Blocks until any in-flight worker finishes. The worker captures `this`
+    // and posts a queued invocation back to this object, so returning here
+    // while it runs would leave it writing into freed memory.
+    //
+    // Safe against the install/remove completion handlers calling refresh():
+    // that happens on the GUI thread inside the queued invocation, by which
+    // point the original worker has already returned, so worker_ is only ever
+    // reassigned when the future it replaces has finished.
+    if (worker_.isRunning())
+        worker_.waitForFinished();
+}
+
 PluginTableModel* PluginViewModel::pluginModel() const noexcept
 {
     return tableModel_;
@@ -145,7 +159,7 @@ void PluginViewModel::refresh()
     setStatus("Loading plugin folders");
 
     const std::string cosmosRoot = pluginRootPath().toStdString();
-    (void)QtConcurrent::run([this, cosmosRoot] {
+    worker_ = QtConcurrent::run([this, cosmosRoot] {
         auto plugins = workspace_.listSources(cosmosRoot);
         QMetaObject::invokeMethod(this, [this, list = std::move(plugins)] () mutable {
             tableModel_->setPlugins(std::move(list));
@@ -175,7 +189,7 @@ void PluginViewModel::install(const QString& gemFilePath)
     setBusy(true);
     setStatus("Installing " + gemFilePath);
 
-    (void)QtConcurrent::run([this, path] {
+    worker_ = QtConcurrent::run([this, path] {
         const auto result = cosmosPlugin_.installGem(path);
         QMetaObject::invokeMethod(this,
             [this, result, qpath = QString::fromStdString(path)] {
@@ -184,10 +198,17 @@ void PluginViewModel::install(const QString& gemFilePath)
                 // COSMOS spawns openc3cli and returns immediately, so this
                 // reports that the job started - result.message says as much
                 // rather than claiming a finished install.
-                setStatus(QString::fromStdString(
+                const QString outcome = QString::fromStdString(
                     result.success ? result.message
-                                   : "Install failed: " + result.message));
-                if (result.success) refresh();
+                                   : "Install failed: " + result.message);
+                if (result.success) {
+                    // refresh() overwrites statusMessage with its own
+                    // "Loading..." text, which would erase the outcome the
+                    // user needs to read. Re-assert it afterwards so the
+                    // result survives the reload.
+                    refresh();
+                }
+                setStatus(outcome);
             }, Qt::QueuedConnection);
     });
 }
@@ -207,16 +228,19 @@ void PluginViewModel::remove(const QString& pluginName)
     setBusy(true);
     setStatus("Removing " + pluginName);
 
-    (void)QtConcurrent::run([this, name] {
+    worker_ = QtConcurrent::run([this, name] {
         const auto result = cosmosPlugin_.uninstall(name);
         QMetaObject::invokeMethod(this,
             [this, result, qname = QString::fromStdString(name)] {
                 emit actionCompleted(qname, result.success);
                 setBusy(false);
-                setStatus(QString::fromStdString(
+                // Same ordering hazard as install(): refresh() would clobber
+                // the outcome message, so re-assert it after the reload.
+                const QString outcome = QString::fromStdString(
                     result.success ? result.message
-                                   : "Remove failed: " + result.message));
+                                   : "Remove failed: " + result.message);
                 if (result.success) refresh();
+                setStatus(outcome);
             }, Qt::QueuedConnection);
     });
 }
@@ -228,7 +252,7 @@ void PluginViewModel::validate(const QString& localPath)
     setBusy(true);
     setStatus("Validating " + localPath);
 
-    (void)QtConcurrent::run([this, path] {
+    worker_ = QtConcurrent::run([this, path] {
         const auto result = workspace_.validate(path);
         QMetaObject::invokeMethod(this, [this, result] {
             setBusy(false);
@@ -256,7 +280,7 @@ void PluginViewModel::build(const QString& pluginRootPath)
     setBusy(true);
     setStatus("Building " + pluginRootPath);
 
-    (void)QtConcurrent::run([this, path] {
+    worker_ = QtConcurrent::run([this, path] {
         const auto output = workspace_.build(path);
         QMetaObject::invokeMethod(this, [this,
             qpath = QString::fromStdString(path),

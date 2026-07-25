@@ -6,6 +6,8 @@
 #include "services/connection/IConnectionService.h"
 #include "models/Plugin.h"
 
+#include <QFuture>
+
 #include <QAbstractTableModel>
 #include <QString>
 #include <vector>
@@ -49,6 +51,14 @@ public:
         Services::IConnectionService&   connection,
         QObject*                        parent = nullptr);
 
+    // Every action dispatches a worker that captures `this` and marshals its
+    // result back with a queued invocation. Without waiting for that worker
+    // here, destroying the ViewModel while one is in flight leaves the worker
+    // dereferencing freed memory - a use-after-free that surfaced as an
+    // intermittent crash once the ViewModel gained a test that constructs and
+    // destroys it repeatedly.
+    ~PluginViewModel() override;
+
     [[nodiscard]] PluginTableModel* pluginModel()    const noexcept;
     [[nodiscard]] bool              isBusy()         const noexcept;
     [[nodiscard]] QString           statusMessage()  const noexcept;
@@ -77,6 +87,12 @@ private:
     Services::ICosmosPluginService& cosmosPlugin_;
     Services::IConnectionService& connection_;
     PluginTableModel*             tableModel_{nullptr};
+
+    // Handle on the in-flight worker so the destructor can wait for it. Only
+    // one action runs at a time - every entry point returns early when busy_
+    // is set - so a single future is sufficient.
+    QFuture<void>             worker_;
+
     bool                      busy_{false};
     QString                   statusMessage_;
 };
