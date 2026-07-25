@@ -7,6 +7,7 @@
 #include "viewmodels/validator/ValidatorViewModel.h"
 #include "viewmodels/logviewer/LogViewerViewModel.h"
 #include "ui/widgets/ScreenPreviewWidget.h"
+#include "ui/widgets/InstalledPluginsPanel.h"
 
 #include <QWidget>
 #include <QTableView>
@@ -57,7 +58,6 @@ private slots:
     void onInstallClicked();
     void onBuildAndInstallClicked();
     void onRemoveClicked();
-    void onInstalledRemoveClicked();
     void onValidateClicked();
     void onBuildClicked();
     void onScaffoldClicked();
@@ -165,14 +165,11 @@ private:
     ViewModels::LogViewerViewModel& logViewerVm_;
 
     QTableView*  tableView_{nullptr};
-    QTableView*  installedTableView_{nullptr};
-    QLabel*      jobStatusLabel_{nullptr};
+    Widgets::InstalledPluginsPanel* installedPluginsPanel_{nullptr};
     QPushButton* refreshBtn_{nullptr};
-    QPushButton* installedRefreshBtn_{nullptr};
     QPushButton* installBtn_{nullptr};
     QPushButton* buildInstallBtn_{nullptr};
     QPushButton* removeBtn_{nullptr};
-    QPushButton* installedRemoveBtn_{nullptr};
     QPushButton* validateBtn_{nullptr};
     QPushButton* buildBtn_{nullptr};
     QPushButton* scaffoldBtn_{nullptr};

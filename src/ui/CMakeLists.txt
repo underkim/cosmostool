@@ -8,6 +8,7 @@ add_library(opencosmos_ui STATIC
     widgets/MetricCard.cpp
     widgets/CmdTlmHighlighter.cpp
     widgets/ScreenPreviewWidget.cpp
+    widgets/InstalledPluginsPanel.cpp
     views/DashboardView.cpp
     views/DockerView.cpp
     views/DoctorView.cpp

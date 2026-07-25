@@ -256,10 +256,6 @@ void PluginView::setupUi()
     buildBtn_ = new QPushButton(tr("Build Gem"), this);
     buildInstallBtn_ = new QPushButton(tr("Build && Install"), this);
     installBtn_ = new QPushButton(tr("Install Local Gem"), this);
-    installedRefreshBtn_ = new QPushButton(tr("Refresh Installed"), this);
-    installedRemoveBtn_ = new QPushButton(tr("Uninstall Instance"), this);
-    installedRemoveBtn_->setObjectName("DangerButton");
-    installedRemoveBtn_->setEnabled(false);
     refreshBtn_ = new QPushButton(QString::fromUtf8("↻"), this);
     removeBtn_ = new QPushButton(tr("Remove"), this);
     removeBtn_->setObjectName("DangerButton");
@@ -268,7 +264,7 @@ void PluginView::setupUi()
     // an installed PluginModel instance id (always suffixed __<counter> in
     // 6.10.4), and multiple instances of one gem may exist. Hiding the action
     // is safer and more honest than guessing from a source-folder name. The
-    // separate Installed Plugins table below exposes the safe action using
+    // separate InstalledPluginsPanel exposes the safe action using
     // ICosmosPluginService::listInstalled() instance ids instead.
     removeBtn_->setVisible(false);
     buildBtn_->setEnabled(false);
@@ -287,8 +283,6 @@ void PluginView::setupUi()
         "Build on the connected WSL/SSH host, download the gem temporarily, "
         "and install it through the COSMOS API."));
     installBtn_->setToolTip(tr("Install an existing local .gem file through the COSMOS API."));
-    installedRemoveBtn_->setToolTip(tr(
-        "Uninstall the selected COSMOS instance using its exact __<counter> id."));
     refreshBtn_->setToolTip(tr("Refresh the local/remote plugin list."));
 
     // Add Target and Remove are secondary/less-frequent actions - kept as
@@ -1033,32 +1027,10 @@ void PluginView::setupUi()
     wizardBuildPageLayout->addWidget(detailTabs_, 1);
 
     auto* installedGroup = new QGroupBox(tr("Installed in COSMOS"), this);
-    auto* installedLayout = new QVBoxLayout(installedGroup);
-    auto* installedToolbar = new QHBoxLayout;
-    installedToolbar->addWidget(installedRefreshBtn_);
-    installedToolbar->addWidget(installedRemoveBtn_);
-    installedToolbar->addStretch();
-    installedLayout->addLayout(installedToolbar);
-
-    jobStatusLabel_ = new QLabel(tr("No active plugin job."), installedGroup);
-    jobStatusLabel_->setObjectName("PluginJobStatus");
-    jobStatusLabel_->setWordWrap(true);
-    jobStatusLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    installedLayout->addWidget(jobStatusLabel_);
-
-    installedTableView_ = new QTableView(installedGroup);
-    installedTableView_->setObjectName("InstalledPluginTable");
-    installedTableView_->setModel(vm_.installedPluginModel());
-    installedTableView_->setSelectionBehavior(QAbstractItemView::SelectRows);
-    installedTableView_->setSelectionMode(QAbstractItemView::SingleSelection);
-    installedTableView_->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    installedTableView_->horizontalHeader()->setStretchLastSection(true);
-    installedTableView_->horizontalHeader()->setSectionResizeMode(
-        ViewModels::InstalledPluginTableModel::Instance, QHeaderView::ResizeToContents);
-    installedTableView_->horizontalHeader()->setSectionResizeMode(
-        ViewModels::InstalledPluginTableModel::Gem, QHeaderView::ResizeToContents);
-    installedTableView_->setMinimumHeight(150);
-    installedLayout->addWidget(installedTableView_);
+    auto* installedGroupLayout = new QVBoxLayout(installedGroup);
+    installedGroupLayout->setContentsMargins(0, 0, 0, 0);
+    installedPluginsPanel_ = new Widgets::InstalledPluginsPanel(vm_, installedGroup);
+    installedGroupLayout->addWidget(installedPluginsPanel_);
     wizardBuildPageLayout->addWidget(installedGroup);
     validateOfflineBtn_->setVisible(false);
     insertCmdBtn_->setVisible(false);
@@ -1238,36 +1210,9 @@ void PluginView::bindViewModel()
     });
     connect(&vm_, &ViewModels::PluginViewModel::pluginListChanged,
             this, &PluginView::restoreSelectionAfterRefresh);
-    connect(&vm_, &ViewModels::PluginViewModel::jobStatusChanged,
-            this, [this](const QString& processName, const QString& state,
-                         const QString& detail, bool finished, bool successful) {
-                QString heading;
-                if (!finished)
-                    heading = tr("Plugin job in progress");
-                else if (successful)
-                    heading = tr("Plugin job finished");
-                else
-                    heading = tr("Plugin job failed");
-
-                QString text = tr("%1: %2\nProcess: %3")
-                                   .arg(heading, state, processName);
-                if (!detail.trimmed().isEmpty()) text += "\n" + detail.trimmed();
-                jobStatusLabel_->setText(text);
-                jobStatusLabel_->setToolTip(text);
-            });
     connect(installBtn_, &QPushButton::clicked, this, &PluginView::onInstallClicked);
     connect(buildInstallBtn_, &QPushButton::clicked,
             this, &PluginView::onBuildAndInstallClicked);
-    connect(installedRefreshBtn_, &QPushButton::clicked,
-            &vm_, &ViewModels::PluginViewModel::refreshInstalled);
-    connect(installedRemoveBtn_, &QPushButton::clicked,
-            this, &PluginView::onInstalledRemoveClicked);
-    connect(installedTableView_->selectionModel(),
-            &QItemSelectionModel::selectionChanged,
-            this, [this] {
-                installedRemoveBtn_->setEnabled(
-                    !vm_.isBusy() && installedTableView_->selectionModel()->hasSelection());
-            });
     connect(removeBtn_, &QPushButton::clicked, this, &PluginView::onRemoveClicked);
     connect(removeAction_, &QAction::triggered, this, &PluginView::onRemoveClicked);
     connect(validateBtn_, &QPushButton::clicked, this, &PluginView::onValidateClicked);
@@ -1418,14 +1363,11 @@ void PluginView::bindViewModel()
                 progressBar_->setVisible(busy);
                 refreshBtn_->setEnabled(!busy);
                 installBtn_->setEnabled(!busy);
-                installedRefreshBtn_->setEnabled(!busy);
                 validateBtn_->setEnabled(!busy);
                 buildBtn_->setEnabled(!busy && tableView_->selectionModel()->hasSelection());
                 buildInstallBtn_->setEnabled(
                     !busy && tableView_->selectionModel()->hasSelection());
                 removeBtn_->setEnabled(!busy && tableView_->selectionModel()->hasSelection());
-                installedRemoveBtn_->setEnabled(
-                    !busy && installedTableView_->selectionModel()->hasSelection());
                 updateActionHints();
             });
 
@@ -1740,24 +1682,6 @@ void PluginView::onRemoveClicked()
             tr("Remove plugin: %1?").arg(name),
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         vm_.remove(name);
-}
-
-void PluginView::onInstalledRemoveClicked()
-{
-    const auto rows = installedTableView_->selectionModel()->selectedRows();
-    if (rows.isEmpty()) return;
-
-    const auto* plugin = vm_.installedPluginModel()->pluginAt(rows.first().row());
-    if (!plugin) return;
-    const QString instanceId = QString::fromStdString(plugin->name);
-
-    if (QMessageBox::question(this, tr("Confirm Uninstall"),
-            tr("Start uninstalling this exact COSMOS plugin instance?\n\n%1")
-                .arg(instanceId),
-            QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
-    {
-        vm_.remove(instanceId);
-    }
 }
 
 void PluginView::onScaffoldClicked()
