@@ -2,6 +2,7 @@
 #include "core/api/CosmosRoutes.h"
 #include "core/connection/ShellQuote.h"
 #include "core/logging/Logger.h"
+#include "services/runtime/detail/JsonDrbCall.h"
 
 #include <nlohmann/json.hpp>
 
@@ -692,28 +693,69 @@ HealthCheckResult DoctorService::checkMicroservices()
         return r;
     }
 
+    std::vector<std::string> names;
     try {
         const auto parsed = json::parse(res.body);
         // index renders `names(...)`, an array of strings.
-        const auto count = parsed.is_array()  ? parsed.size()
-                         : parsed.is_object() ? parsed.size()
-                                              : 0U;
-        if (count == 0) {
-            // This is the classic post-install failure: the plugin installed
-            // but the operator never started its microservices, so nothing
-            // actually runs while the plugin list still looks correct.
-            r.status     = HealthStatus::Warning;
-            r.detail     = "No microservices are defined";
-            r.suggestion = "If you have plugins installed, the operator may have "
-                           "failed to start them - check: docker logs <operator>";
-        } else {
-            r.status = HealthStatus::Pass;
-            r.detail = std::to_string(count) + " microservice(s) defined";
+        if (parsed.is_array()) {
+            for (const auto& entry : parsed)
+                if (entry.is_string()) names.push_back(entry.get<std::string>());
+        } else if (parsed.is_object()) {
+            for (const auto& [key, _] : parsed.items())
+                names.push_back(key);
         }
     } catch (const json::exception& e) {
         r.status = HealthStatus::Skipped;
         r.detail = std::string("Could not parse microservice list: ") + e.what();
+        return r;
     }
+
+    if (names.empty()) {
+        // This is the classic post-install failure: the plugin installed
+        // but the operator never started its microservices, so nothing
+        // actually runs while the plugin list still looks correct.
+        r.status     = HealthStatus::Warning;
+        r.detail     = "No microservices are defined";
+        r.suggestion = "If you have plugins installed, the operator may have "
+                       "failed to start them - check: docker logs <operator>";
+        return r;
+    }
+
+    // Beyond "are any defined" (the count-only check above): each
+    // microservice_status#show reports the runtime state a Ruby thread has
+    // reached (MicroserviceStatusModel#state/#error) - a microservice can
+    // be fully *defined* and still have crashed after start, which the
+    // index route alone cannot reveal.
+    std::vector<std::string> errored;
+    for (const auto& name : names) {
+        auto statusRes = api_.get(Core::Api::Routes::microserviceStatus(name), {});
+        if (!statusRes) continue; // Best-effort: one bad lookup shouldn't hide the rest.
+        try {
+            const auto parsed = json::parse(statusRes.body);
+            if (parsed.is_object() && parsed.contains("error")
+                && !parsed["error"].is_null())
+                errored.push_back(name);
+        } catch (const json::exception&) {
+            // Not JSON or unexpected shape - skip rather than false-positive.
+        }
+    }
+
+    if (!errored.empty()) {
+        std::string joined;
+        for (std::size_t i = 0; i < errored.size(); ++i) {
+            if (i > 0) joined += ", ";
+            joined += errored[i];
+        }
+        r.status     = HealthStatus::Fail;
+        r.detail     = std::to_string(names.size()) + " microservice(s) defined; "
+                       "erroring: " + joined;
+        r.suggestion = "Check logs for the listed microservice(s), e.g. "
+                       "docker logs <operator> or the microservice's own container.";
+        return r;
+    }
+
+    r.status = HealthStatus::Pass;
+    r.detail = std::to_string(names.size()) + " microservice(s) defined, none reporting an error";
     return r;
 }
 
@@ -727,32 +769,87 @@ HealthCheckResult DoctorService::checkInterfaces()
     if (!api_.isConnected())
         return apiUnavailable("interfaces", "Interfaces");
 
-    auto res = api_.get(Core::Api::Routes::kInterfaces, {});
-    if (!res) {
-        r.status = HealthStatus::Fail;
-        r.detail = "Could not list interfaces";
-        const auto message = apiMessage(res.body);
-        if (!message.empty()) r.detail += ": " + message;
+    // get_all_interface_info (JSON-DRB) is the only route that carries live
+    // CONNECTED/DISCONNECTED state (InterfaceStatusModel) - plain GET
+    // /interfaces only renders InterfaceModel, the static configuration, and
+    // says nothing about whether the interface's own thread ever connected.
+    // Each row is [name, state, clients, txsize, rxsize, txbytes, rxbytes,
+    // txcnt, rxcnt, disable_disconnect] per interface_api.rb.
+    const auto call = detail::callJsonDrb(
+        api_, "get_all_interface_info", json::array(), nextRequestId_.fetch_add(1));
+
+    if (!call.success) {
+        // Fall back to the plain REST route so this check still reports
+        // *something* useful (defined-but-unknown-state) rather than
+        // failing outright if get_all_interface_info is ever unavailable
+        // (e.g. an older/newer COSMOS with a different JSON-DRB surface).
+        auto res = api_.get(Core::Api::Routes::kInterfaces, {});
+        if (!res) {
+            r.status = HealthStatus::Fail;
+            r.detail = "Could not list interfaces";
+            const auto message = apiMessage(res.body);
+            if (!message.empty()) r.detail += ": " + message;
+            return r;
+        }
+        try {
+            const auto parsed = json::parse(res.body);
+            const auto count = parsed.is_array()  ? parsed.size()
+                             : parsed.is_object() ? parsed.size()
+                                                  : 0U;
+            if (count == 0) {
+                r.status     = HealthStatus::Warning;
+                r.detail     = "No interfaces are defined";
+                r.suggestion = "Interfaces come from installed plugins' plugin.txt.";
+            } else {
+                r.status = HealthStatus::Warning;
+                r.detail = std::to_string(count)
+                    + " interface(s) defined; live connection state unavailable ("
+                    + call.errorMessage + ")";
+            }
+        } catch (const json::exception& e) {
+            r.status = HealthStatus::Skipped;
+            r.detail = std::string("Could not parse interface list: ") + e.what();
+        }
         return r;
     }
 
-    try {
-        const auto parsed = json::parse(res.body);
-        const auto count = parsed.is_array()  ? parsed.size()
-                         : parsed.is_object() ? parsed.size()
-                                              : 0U;
-        if (count == 0) {
-            r.status = HealthStatus::Warning;
-            r.detail = "No interfaces are defined";
-            r.suggestion = "Interfaces come from installed plugins' plugin.txt.";
-        } else {
-            r.status = HealthStatus::Pass;
-            r.detail = std::to_string(count) + " interface(s) defined";
-        }
-    } catch (const json::exception& e) {
-        r.status = HealthStatus::Skipped;
-        r.detail = std::string("Could not parse interface list: ") + e.what();
+    if (!call.result.is_array() || call.result.empty()) {
+        r.status     = HealthStatus::Warning;
+        r.detail     = "No interfaces are defined";
+        r.suggestion = "Interfaces come from installed plugins' plugin.txt.";
+        return r;
     }
+
+    std::vector<std::string> disconnected;
+    for (const auto& row : call.result) {
+        if (!row.is_array() || row.size() < 2 || !row[0].is_string()) continue;
+        const std::string name  = row[0].get<std::string>();
+        const std::string state = row[1].is_string() ? row[1].get<std::string>()
+                                                       : row[1].dump();
+        // ATTEMPTING/CONNECTING are legitimate transient states (interface
+        // retrying per its auto_reconnect config), not necessarily a fault -
+        // only a settled DISCONNECTED is flagged.
+        if (state == "DISCONNECTED")
+            disconnected.push_back(name);
+    }
+
+    if (!disconnected.empty()) {
+        std::string joined;
+        for (std::size_t i = 0; i < disconnected.size(); ++i) {
+            if (i > 0) joined += ", ";
+            joined += disconnected[i];
+        }
+        r.status     = HealthStatus::Warning;
+        r.detail     = std::to_string(call.result.size())
+            + " interface(s) defined; disconnected: " + joined;
+        r.suggestion = "A disconnected interface receives no telemetry and cannot "
+                       "send commands - check its target hardware/network and "
+                       "auto_reconnect configuration.";
+        return r;
+    }
+
+    r.status = HealthStatus::Pass;
+    r.detail = std::to_string(call.result.size()) + " interface(s) defined, all connected";
     return r;
 }
 

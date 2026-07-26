@@ -349,3 +349,101 @@ TEST(DoctorServicePathTest, VersionCheckUsesConfiguredCosmosRoot)
     const auto r = doctor.runCheck("openc3_version");
     EXPECT_EQ(r.status, HealthStatus::Pass);
 }
+
+// ── L3: interfaces via JSON-DRB (real connection state) ──────────────────────
+//
+// Plain GET /interfaces only ever renders InterfaceModel, the static
+// configuration - it cannot say whether the interface's own thread is
+// actually CONNECTED. checkInterfaces() now calls get_all_interface_info
+// over JSON-DRB (the same endpoint CosmosRuntimeService/CosmosCommandService
+// use) to get InterfaceStatusModel's live state instead.
+
+namespace {
+std::string jsonRpcSuccess(const std::string& resultJson, int id = 1)
+{
+    return R"({"jsonrpc":"2.0","id":)" + std::to_string(id)
+         + R"(,"result":)" + resultJson + "}";
+}
+} // namespace
+
+TEST_F(DoctorServiceTest, InterfacesPassWhenAllConnected)
+{
+    OpenC3::Core::Api::ApiConfig config;
+    config.scope = "DEFAULT";
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, config()).WillRepeatedly(::testing::ReturnRef(config));
+    EXPECT_CALL(api_, post(::testing::HasSubstr("/openc3-api/api"), _, _))
+        .WillOnce([](const std::string&, const std::string& body, const auto&) {
+            EXPECT_THAT(body, ::testing::HasSubstr("get_all_interface_info"));
+            return ApiResponse::ok(jsonRpcSuccess(
+                R"([["INST_INT","CONNECTED",1,0,0,0,0,10,20,false]])"));
+        });
+
+    const auto r = sut_.runCheck("interfaces");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("all connected"));
+}
+
+TEST_F(DoctorServiceTest, InterfacesWarnsAndNamesDisconnectedOnes)
+{
+    OpenC3::Core::Api::ApiConfig config;
+    config.scope = "DEFAULT";
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, config()).WillRepeatedly(::testing::ReturnRef(config));
+    EXPECT_CALL(api_, post(::testing::HasSubstr("/openc3-api/api"), _, _))
+        .WillOnce(Return(ApiResponse::ok(jsonRpcSuccess(
+            R"([["INST_INT","CONNECTED",1,0,0,0,0,10,20,false],)"
+            R"(["GSE_INT","DISCONNECTED",0,0,0,0,0,0,0,false]])"))));
+
+    const auto r = sut_.runCheck("interfaces");
+    EXPECT_EQ(r.status, HealthStatus::Warning);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("GSE_INT"));
+    EXPECT_THAT(r.detail, ::testing::Not(::testing::HasSubstr("INST_INT;")));
+}
+
+TEST_F(DoctorServiceTest, InterfacesFallsBackToPlainRouteWhenJsonDrbFails)
+{
+    OpenC3::Core::Api::ApiConfig config;
+    config.scope = "DEFAULT";
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, config()).WillRepeatedly(::testing::ReturnRef(config));
+    EXPECT_CALL(api_, post(::testing::HasSubstr("/openc3-api/api"), _, _))
+        .WillOnce(Return(ApiResponse::fromHttp(500, "")));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/interfaces"), _))
+        .WillOnce(Return(ApiResponse::ok(R"(["INST_INT"])")));
+
+    const auto r = sut_.runCheck("interfaces");
+    // Degrades to Warning (defined, state unknown), never a silent Pass.
+    EXPECT_EQ(r.status, HealthStatus::Warning);
+}
+
+// ── L3: microservices runtime error state ─────────────────────────────────────
+
+TEST_F(DoctorServiceTest, MicroservicesFailWhenOneReportsAnError)
+{
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/microservices"), _))
+        .WillOnce(Return(ApiResponse::ok(R"(["DEFAULT__DECOM__INST","DEFAULT__COSMOS__EXAMPLE"])")));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/microservice_status/DEFAULT__DECOM__INST"), _))
+        .WillOnce(Return(ApiResponse::ok(R"({"name":"DEFAULT__DECOM__INST","state":"ERROR","error":"boom"})")));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/microservice_status/DEFAULT__COSMOS__EXAMPLE"), _))
+        .WillOnce(Return(ApiResponse::ok(R"({"name":"DEFAULT__COSMOS__EXAMPLE","state":"RUNNING","error":null})")));
+
+    const auto r = sut_.runCheck("microservices");
+    EXPECT_EQ(r.status, HealthStatus::Fail);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("DEFAULT__DECOM__INST"));
+    EXPECT_THAT(r.detail, ::testing::Not(::testing::HasSubstr("DEFAULT__COSMOS__EXAMPLE;")));
+}
+
+TEST_F(DoctorServiceTest, MicroservicesPassWhenNoneErroring)
+{
+    EXPECT_CALL(api_, isConnected()).WillRepeatedly(Return(true));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/microservices"), _))
+        .WillOnce(Return(ApiResponse::ok(R"(["DEFAULT__COSMOS__EXAMPLE"])")));
+    EXPECT_CALL(api_, get(::testing::HasSubstr("/microservice_status/DEFAULT__COSMOS__EXAMPLE"), _))
+        .WillOnce(Return(ApiResponse::ok(R"({"name":"DEFAULT__COSMOS__EXAMPLE","state":"RUNNING","error":null})")));
+
+    const auto r = sut_.runCheck("microservices");
+    EXPECT_EQ(r.status, HealthStatus::Pass);
+    EXPECT_THAT(r.detail, ::testing::HasSubstr("none reporting an error"));
+}

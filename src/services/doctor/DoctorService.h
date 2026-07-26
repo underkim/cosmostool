@@ -4,6 +4,7 @@
 #include "core/api/ICosmosApiClient.h"
 #include "core/connection/ICommandExecutor.h"
 
+#include <atomic>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -26,8 +27,19 @@ namespace OpenC3::Services {
 ///   L2 COSMOS stack    Each expected container up; Redis and MinIO reachable
 ///                      (shell, via `docker ps` / `docker exec`)
 ///   L3 COSMOS logic    API reachable and authenticated; scope present;
-///                      plugins installed; microservices alive; interfaces
-///                      connected (HTTP API)
+///                      plugins installed; microservices alive and not
+///                      erroring; interfaces actually connected (not just
+///                      defined) - all through the HTTP API
+///
+/// checkMicroservices() and checkInterfaces() go beyond "does the model
+/// exist" to actual runtime state: microservice_status#show
+/// (MicroserviceStatusModel) reports 'error' when a microservice's own
+/// thread has crashed even though its definition is still present, and the
+/// JSON-DRB get_all_interface_info call reports each interface's live
+/// CONNECTED/DISCONNECTED state (InterfaceStatusModel) - information the
+/// plain GET /interfaces route (InterfaceModel only) does not carry at all.
+/// Both were the two "looks configured but isn't actually working" classes
+/// of failure the count-only versions of these checks could not catch.
 ///
 /// L3 needs the API transport, so the client is injected alongside the shell
 /// executor. When no API endpoint is configured those checks report Skipped
@@ -79,7 +91,6 @@ private:
     Models::HealthCheckResult checkPlugins();
     Models::HealthCheckResult checkMicroservices();
     Models::HealthCheckResult checkInterfaces();
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// Names of the running containers, one per line. Uses no name filter -
@@ -101,6 +112,11 @@ private:
     std::function<std::string()>        cosmosRootProvider_;
     std::vector<std::pair<std::string, CheckFn>> checks_; // ordered
     std::unordered_map<std::string, CheckFn>     checkMap_;
+
+    // Request id for the JSON-DRB call checkInterfaces() makes
+    // (get_all_interface_info) - only needs to be unique within this
+    // service's lifetime; COSMOS simply echoes it back.
+    std::atomic<int> nextRequestId_{1};
 };
 
 } // namespace OpenC3::Services
