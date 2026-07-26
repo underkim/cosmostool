@@ -182,9 +182,13 @@ PluginOperationResult CosmosPluginService::installGem(const std::string& localGe
     auto uploaded = uploadGem(localGemPath);
     if (!uploaded) return uploaded;
 
-    // The id for phase 2 is the name COSMOS assigned in phase 1, which already
-    // includes the installation suffix. Re-deriving it from the local filename
-    // would produce a different string and 404.
+    // The id for phase 2 is the gem name COSMOS returned in phase 1. On a real
+    // 6.10.4 Core instance this is the *bare* gem filename (for example
+    // "openc3-cosmos-demo-1.0.0.gem"); the installation suffix (__0, __1,
+    // ...) is assigned by the asynchronous load job and only appears later in
+    // listInstalled(). Phase 2 still requires the phase-1 name verbatim - do
+    // not invent a suffix here. Uninstall, in contrast, must use the exact
+    // suffixed instance id obtained from listInstalled().
     std::string pluginId;
     try {
         pluginId = stringField(json::parse(uploaded.message), "name");

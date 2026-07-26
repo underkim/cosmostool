@@ -109,6 +109,49 @@ cmake --build build\api-debug --target opencosmos_api_livecheck
 
 It needs no running COSMOS instance — it stands up its own capture server.
 
+### Real COSMOS integration check (manual)
+
+`opencosmos_live_cosmos_check` is the actual end-to-end companion to the local
+capture-server check above. It connects production `HttpCosmosApiClient`,
+`WslExecutor`, and the Doctor/Runtime/Plugin/Script/Command services to a
+running COSMOS 6.10.4 Core stack. It verifies authenticated API/scopes,
+Docker and file access through WSL, all expected containers, both Redis
+instances (the restricted `healthcheck` ACL user on ports 6379/6380), Doctor
+L3 runtime state, installed plugins, target/packet/telemetry reads, Script
+Runner listing, and the command service's non-existent-command error path.
+It never sends a valid command.
+
+The credential is accepted only through an environment variable so it is not
+embedded in source or exposed in a process command line:
+
+```powershell
+cmake --build build\api-debug --target opencosmos_live_cosmos_check
+$env:OPENC3_LIVE_PASSWORD = '<live Core token>'
+.\build\api-debug\bin\opencosmos_live_cosmos_check.exe `
+    http://127.0.0.1:2900 DEFAULT
+```
+
+By default this is read-only. Setting `OPENC3_LIVE_MUTATING=1` additionally
+creates a reserved temporary plugin, builds/downloads/uploads it, polls the
+real install `ProcessStatusModel`, runs harmless temporary Script Runner
+procedures (including pause/resume/stop), uninstalls by the exact suffixed
+instance id returned by `listInstalled()`, polls uninstall to completion, and
+checks that plugin/script/source residues are gone. It never touches a plugin
+whose gem name does not start with the probe's reserved
+`openc3-cosmos-hermes-livecheck-` prefix:
+
+```powershell
+$env:OPENC3_LIVE_MUTATING = '1'
+.\build\api-debug\bin\opencosmos_live_cosmos_check.exe `
+    http://127.0.0.1:2900 DEFAULT
+```
+
+The production Workspace build still requires RubyGems on the connected WSL
+host. If it is absent, the probe verifies the real actionable error and uses
+the COSMOS cmd-tlm-api container's Ruby only as integration-test scaffolding
+so the API lifecycle can continue; the application itself does not silently
+fall back to building inside a COSMOS container.
+
 ### Startup wiring check (manual)
 
 > **Do not try to verify startup by running `OpenC3DevToolkit.exe` and reading

@@ -88,6 +88,35 @@ target_link_libraries(opencosmos_api_livecheck
         Qt6::Network
 )
 
+# ── Real COSMOS integration check (manual) ───────────────────────────────────
+# Unlike opencosmos_api_livecheck's local capture server, this executable talks
+# to a running COSMOS 6.10.4 stack through the production HttpCosmosApiClient
+# and service implementations. It is EXCLUDE_FROM_ALL and is never registered
+# with CTest because it requires an explicitly supplied live credential and
+# environment. Its default mode performs reads plus one deliberately
+# nonexistent command (error-path only) and never sends a valid command.
+# OPENC3_LIVE_MUTATING=1 additionally installs/runs/uninstalls only a reserved
+# temporary live-check plugin and verifies cleanup.
+#   cmake --build <dir> --target opencosmos_live_cosmos_check
+#   OPENC3_LIVE_PASSWORD=... <dir>/bin/opencosmos_live_cosmos_check [url] [scope]
+add_executable(opencosmos_live_cosmos_check EXCLUDE_FROM_ALL
+    manual/LiveCosmosIntegrationCheck.cpp
+)
+
+target_include_directories(opencosmos_live_cosmos_check
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
+target_link_libraries(opencosmos_live_cosmos_check
+    PRIVATE
+        opencosmos_services
+        opencosmos_viewmodels
+        Qt6::Core
+        Qt6::Network
+)
+
 # ── Startup wiring check (manual) ─────────────────────────────────────────────
 # The shipped app is WIN32_EXECUTABLE, so its console log sink goes nowhere and
 # its file sink only flushes at warn level - a GUI run killed by a timeout

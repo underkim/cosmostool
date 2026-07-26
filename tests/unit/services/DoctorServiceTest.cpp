@@ -203,7 +203,8 @@ TEST_F(DoctorServiceTest, PersistentRedisDoesNotMistakeEphemeralForIt)
             "cosmos-openc3-redis-ephemeral-1\n"
             "cosmos-openc3-redis-1\n")));
     EXPECT_CALL(mock_, execute(::testing::HasSubstr(
-        "docker exec 'cosmos-openc3-redis-1' redis-cli ping")))
+        "docker exec 'cosmos-openc3-redis-1' redis-cli --no-auth-warning "
+        "-u 'redis://healthcheck:@127.0.0.1:6379' ping")))
         .WillOnce(Return(ExecutorResult::ok("PONG\n")));
 
     EXPECT_EQ(sut_.runCheck("redis").status, HealthStatus::Pass);
@@ -218,6 +219,20 @@ TEST_F(DoctorServiceTest, PersistentRedisFailsWhenOnlyEphemeralIsRunning)
     const auto r = sut_.runCheck("redis");
     EXPECT_EQ(r.status, HealthStatus::Fail);
     EXPECT_THAT(r.detail, ::testing::HasSubstr("Redis container"));
+}
+
+TEST_F(DoctorServiceTest, EphemeralRedisUsesItsRealPortAndHealthcheckAcl)
+{
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr("docker ps")))
+        .WillOnce(Return(ExecutorResult::ok(
+            "cosmos-openc3-redis-ephemeral-1\n")));
+    EXPECT_CALL(mock_, execute(::testing::HasSubstr(
+        "docker exec 'cosmos-openc3-redis-ephemeral-1' "
+        "redis-cli --no-auth-warning "
+        "-u 'redis://healthcheck:@127.0.0.1:6380' ping")))
+        .WillOnce(Return(ExecutorResult::ok("PONG\n")));
+
+    EXPECT_EQ(sut_.runCheck("redis_ephemeral").status, HealthStatus::Pass);
 }
 
 TEST_F(DoctorServiceTest, ApiChecksAreSkippedNotFailedWhenApiIsUnconfigured)

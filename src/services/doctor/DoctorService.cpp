@@ -461,8 +461,14 @@ HealthCheckResult DoctorService::checkRedis()
         return r;
     }
 
+    // COSMOS 6.10.4 disables Redis's default ACL user and provides a
+    // restricted nopass `healthcheck` user. An explicit empty password in
+    // the URI makes redis-cli issue AUTH without reading or exposing the
+    // real Redis credential.
     auto res = executor_.execute(
-        "docker exec " + shellQuote(container) + " redis-cli ping 2>&1");
+        "docker exec " + shellQuote(container)
+        + " redis-cli --no-auth-warning -u 'redis://healthcheck:@127.0.0.1:6379'"
+          " ping 2>&1");
     if (res && res.stdOut.find("PONG") != std::string::npos) {
         r.status = HealthStatus::Pass;
         r.detail = container + " responded to PING";
@@ -494,8 +500,12 @@ HealthCheckResult DoctorService::checkRedisEphemeral()
         return r;
     }
 
+    // The ephemeral instance listens on 6380 (not Redis's default 6379) and
+    // exposes the same restricted healthcheck ACL user.
     auto res = executor_.execute(
-        "docker exec " + shellQuote(container) + " redis-cli ping 2>&1");
+        "docker exec " + shellQuote(container)
+        + " redis-cli --no-auth-warning -u 'redis://healthcheck:@127.0.0.1:6380'"
+          " ping 2>&1");
     if (res && res.stdOut.find("PONG") != std::string::npos) {
         r.status = HealthStatus::Pass;
         r.detail = container + " responded to PING";

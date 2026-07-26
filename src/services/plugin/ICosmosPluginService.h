@@ -105,7 +105,9 @@ public:
         const std::string& localGemPath) = 0;
 
     /// Phase 2 of install: hand the phase-1 plugin hash back to COSMOS, which
-    /// spawns `openc3cli load` to perform the real installation.
+    /// spawns `openc3cli load` to perform the real installation. In 6.10.4
+    /// phase 1 reports a bare gem filename; the eventual `__N` instance suffix
+    /// is assigned asynchronously and must later be read from listInstalled().
     [[nodiscard]] virtual PluginOperationResult installUploaded(
         const std::string& pluginId,
         const std::string& pluginHashJson) = 0;
