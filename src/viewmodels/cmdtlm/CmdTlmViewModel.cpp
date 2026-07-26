@@ -170,6 +170,8 @@ void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content
     });
 }
 
+// Content and source path are distinct and named at every call site.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void CmdTlmViewModel::parseContent(const QString& content, const QString& filePath)
 {
     const CmdTlmParseResult result = CmdTlmParser::parse(content);

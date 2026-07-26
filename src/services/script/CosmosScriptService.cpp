@@ -26,7 +26,7 @@ std::string describeFailure(const ApiResponse& response, const std::string& acti
                 if (message.is_string() && !message.get<std::string>().empty())
                     return action + " failed: " + message.get<std::string>();
             }
-        } catch (const json::exception&) {
+        } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
             // Not JSON (an HTML error page from traefik, say).
         }
     }
@@ -123,7 +123,7 @@ Models::ScriptRunResult CosmosScriptService::run(const std::string& scriptPath)
         const auto parsed = json::parse(response.body);
         if (parsed.is_string()) id = parsed.get<std::string>();
         else if (parsed.is_number()) id = parsed.dump();
-    } catch (const json::exception&) {
+    } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
         // Plain text body - use as-is.
     }
 

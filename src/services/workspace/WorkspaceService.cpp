@@ -53,6 +53,7 @@ std::string unescapeRubySingleQuoted(const std::string& text)
 // handling \\ and \' escapes inside the quoted string (see
 // PluginTemplateEngine::rubySingleQuoteEscape) so an escaped apostrophe in a
 // description doesn't truncate the match early.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 std::string extractGemspecField(const std::string& gemspecContent, const std::string& key)
 {
     const std::regex pattern(key + R"(\s*=\s*'((?:[^'\\]|\\.)*)')");
@@ -295,6 +296,8 @@ bool WorkspaceService::downloadArtifact(
     return executor_.downloadFile(remoteGemPath, localGemPath);
 }
 
+// Parameter order is fixed by IWorkspaceService and is explicit at call sites.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 bool WorkspaceService::backup(
     const std::string& pluginName,
     const std::string& localBackupPath,
@@ -304,5 +307,6 @@ bool WorkspaceService::backup(
     return executor_.downloadFile(
         root + "/plugins/" + pluginName + ".gem", localBackupPath);
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 } // namespace OpenC3::Services

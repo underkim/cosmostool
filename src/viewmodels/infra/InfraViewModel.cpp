@@ -269,6 +269,7 @@ void InfraViewModel::applyVolumeOverride(
             const auto        slash   = hostPath.rfind('/');
             const std::string dirPath = (slash == std::string::npos) ? std::string{}
                                                                        : hostPath.substr(0, slash);
+            // NOLINTNEXTLINE(bugprone-unused-local-non-trivial-variable)
             [[maybe_unused]] const std::string mkdirOut = dirPath.empty()
                 ? std::string{}
                 : fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
@@ -315,6 +316,7 @@ void InfraViewModel::writePluginFiles(const QString& pluginDir, const QMap<QStri
         // executeCommand returns stdout; mkdir -p errors go to stderr so
         // we rely on writeFile below to surface any actual failure.
         const std::string dirPath = fullPath.substr(0, fullPath.rfind('/'));
+        // NOLINTNEXTLINE(bugprone-unused-local-non-trivial-variable)
         [[maybe_unused]] const std::string mkdirOut =
             fs_.executeCommand("mkdir -p " + Core::Connection::shellQuote(dirPath));
 
@@ -337,6 +339,8 @@ void InfraViewModel::writePluginFiles(const QString& pluginDir, const QMap<QStri
     }, Qt::QueuedConnection);
 }
 
+// mkdir stdout is intentionally ignored because writeFile reports the result.
+// NOLINTBEGIN(bugprone-unused-local-non-trivial-variable)
 void InfraViewModel::scaffoldPlugin(
     const QString& remoteRoot,
     const QString& pluginName,
@@ -504,5 +508,7 @@ void InfraViewModel::addScriptToPlugin(
     }));
     pendingWork_.addFuture(watcher->future());
 }
+
+// NOLINTEND(bugprone-unused-local-non-trivial-variable)
 
 } // namespace OpenC3::ViewModels

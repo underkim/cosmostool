@@ -45,6 +45,8 @@ QString firstKeyword(const QString& content)
 
 } // namespace
 
+// Path and content are distinct and named at every call site.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 ConfigValidator::FileKind ConfigValidator::classify(const QString& path,
                                                     const QString& content)
 {

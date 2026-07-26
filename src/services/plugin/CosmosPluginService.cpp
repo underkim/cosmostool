@@ -25,7 +25,7 @@ std::string describeFailure(const ApiResponse& response, const std::string& acti
                 if (message.is_string() && !message.get<std::string>().empty())
                     return action + " failed: " + message.get<std::string>();
             }
-        } catch (const json::exception&) {
+        } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
             // Not JSON (an HTML error page from traefik, say) - fall through
             // to the transport-level message rather than surfacing raw markup.
         }
@@ -164,7 +164,7 @@ PluginOperationResult CosmosPluginService::installUploaded(
     try {
         const auto parsed = json::parse(response.body);
         if (parsed.is_string()) processName = parsed.get<std::string>();
-    } catch (const json::exception&) {
+    } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
         // Render of a bare string is still valid JSON; if it is not, keep the
         // raw body as the handle.
     }
@@ -214,7 +214,7 @@ PluginOperationResult CosmosPluginService::uninstall(const std::string& pluginId
     try {
         const auto parsed = json::parse(response.body);
         if (parsed.is_string()) processName = parsed.get<std::string>();
-    } catch (const json::exception&) {
+    } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
         // As above - keep the raw body when it is not a JSON string.
     }
 

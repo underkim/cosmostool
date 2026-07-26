@@ -59,7 +59,7 @@ std::string apiMessage(const std::string& body)
         if (parsed.is_object() && parsed.contains("message")
             && parsed["message"].is_string())
             return parsed["message"].get<std::string>();
-    } catch (const json::exception&) {
+    } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
         // Not JSON (e.g. an HTML error page from traefik).
     }
     return {};
@@ -745,7 +745,7 @@ HealthCheckResult DoctorService::checkMicroservices()
             if (parsed.is_object() && parsed.contains("error")
                 && !parsed["error"].is_null())
                 errored.push_back(name);
-        } catch (const json::exception&) {
+        } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
             // Not JSON or unexpected shape - skip rather than false-positive.
         }
     }

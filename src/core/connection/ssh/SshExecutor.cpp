@@ -247,6 +247,9 @@ void SshExecutor::cancelStreaming()
 
 // ── File operations ───────────────────────────────────────────────────────────
 
+// The ICommandExecutor contract fixes this local/remote path order, and the
+// distinct names make it explicit at every call site.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 bool SshExecutor::uploadFile(
     const std::string& localPath,
     const std::string& remotePath)
@@ -273,7 +276,9 @@ bool SshExecutor::uploadFile(
         "base64 -d > " + shellQuote(remotePath) + " << 'SSHB64'\n" + encoded + "SSHB64";
     return static_cast<bool>(execute(cmd));
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 bool SshExecutor::downloadFile(
     const std::string& remotePath,
     const std::string& localPath)
@@ -286,6 +291,7 @@ bool SshExecutor::downloadFile(
     out.write(r.stdOut.data(), static_cast<std::streamsize>(r.stdOut.size()));
     return static_cast<bool>(out);
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 bool SshExecutor::fileExists(const std::string& remotePath)
 {
@@ -372,7 +378,7 @@ bool SshExecutor::resolveAndConnect()
         const int timeoutMs = config_.connectTimeoutMs > 0 ? config_.connectTimeoutMs : 10'000;
         timeval tv{};
         tv.tv_sec  = timeoutMs / 1000;
-        tv.tv_usec = (timeoutMs % 1000) * 1000;
+        tv.tv_usec = static_cast<decltype(tv.tv_usec)>(timeoutMs % 1000) * 1000;
 
         const int selectRc = ::select(static_cast<int>(sock) + 1, nullptr, &writeSet, nullptr, &tv);
         if (selectRc > 0) {

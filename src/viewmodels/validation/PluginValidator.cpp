@@ -6,6 +6,8 @@
 
 namespace OpenC3::ViewModels::Validation {
 
+// Path and content are fixed by IRuleValidator and named at every call site.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 bool PluginValidator::appliesTo(const QString& path, const QString& content) const
 {
     if (QFileInfo(path).fileName().compare(QStringLiteral("plugin.txt"),

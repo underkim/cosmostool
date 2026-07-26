@@ -41,6 +41,8 @@ QVector<QPair<QString, QString>> ValidatorViewModel::availableValidators() const
     return out;
 }
 
+// Validator id and source content are distinct and named at every call site.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 void ValidatorViewModel::validateTextWith(const QString& validatorId,
                                           const QString& content)
 {

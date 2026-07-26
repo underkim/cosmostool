@@ -171,10 +171,9 @@ Models::ContainerStats DockerService::getStats(const std::string& nameOrId)
         ms >> used >> unit;
         if (unit == "TiB") stats.memUsageMb = used * 1024.0 * 1024.0;
         else if (unit == "GiB") stats.memUsageMb = used * 1024.0;
-        else if (unit == "MiB") stats.memUsageMb = used;
         else if (unit == "KiB") stats.memUsageMb = used / 1024.0;
         else if (unit == "B") stats.memUsageMb = used / (1024.0 * 1024.0);
-        else stats.memUsageMb = used;
+        else stats.memUsageMb = used; // MiB and Docker's default unit.
 
     } catch (const std::exception& e) {
         Logging::Logger::warn("[DockerService] getStats parse error: {}", e.what());

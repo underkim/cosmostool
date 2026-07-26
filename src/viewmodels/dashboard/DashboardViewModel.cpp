@@ -183,6 +183,8 @@ void DashboardViewModel::setRefreshIntervalMs(int ms)
 
 // ── Private slots ─────────────────────────────────────────────────────────────
 
+// Signal/slot order is fixed and every metric carries its unit in the name.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 void DashboardViewModel::onMetricsFetched(
     double cpu, double mem, double disk, const QString& /*hostname*/)
 {
@@ -192,6 +194,7 @@ void DashboardViewModel::onMetricsFetched(
     emit metricsChanged();
     emit refreshed();
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 void DashboardViewModel::onDockerFetched(int running, bool daemonOk)
 {

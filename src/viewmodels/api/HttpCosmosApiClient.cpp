@@ -226,6 +226,9 @@ ApiResponse HttpCosmosApiClient::awaitReply(
     return result;
 }
 
+// The private transport primitive uses strongly named parameters at its only
+// call sites; grouping them into a request object would obscure the verb flow.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 ApiResponse HttpCosmosApiClient::send(
     Verb               verb,
     const std::string& path,
@@ -248,6 +251,7 @@ ApiResponse HttpCosmosApiClient::send(
 
     return awaitReply(reply, config_.requestTimeoutMs, "Request to " + path);
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 ApiResponse HttpCosmosApiClient::get(
     const std::string& path, const QueryParams& params)
@@ -262,6 +266,8 @@ ApiResponse HttpCosmosApiClient::post(
                 QByteArray::fromStdString(jsonBody), "application/json");
 }
 
+// Parameter order is fixed by ICosmosApiClient.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 ApiResponse HttpCosmosApiClient::postForm(
     const std::string& path,
     const QueryParams& formFields,
@@ -276,7 +282,9 @@ ApiResponse HttpCosmosApiClient::postForm(
                 form.toString(QUrl::FullyEncoded).toUtf8(),
                 "application/x-www-form-urlencoded");
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 ApiResponse HttpCosmosApiClient::postFile(
     const std::string& path,
     const std::string& fieldName,
@@ -309,7 +317,7 @@ ApiResponse HttpCosmosApiClient::postFile(
     // The multipart takes ownership of the QFile so it outlives this scope
     // and stays readable until the upload completes.
     file->setParent(multiPart.get());
-    (void)file.release();
+    [[maybe_unused]] QFile* const transferredFile = file.release();
     multiPart->append(filePart);
 
     for (const auto& [key, value] : extraFields) {
@@ -328,13 +336,14 @@ ApiResponse HttpCosmosApiClient::postFile(
     QNetworkReply*        reply = manager.post(request, multiPart.get());
     if (reply != nullptr) {
         multiPart->setParent(reply);
-        (void)multiPart.release();
+        [[maybe_unused]] QHttpMultiPart* const transferredMultiPart = multiPart.release();
     }
 
     // Uploading a plugin .gem is far slower than a JSON call, so the deadline
     // is scaled up rather than reusing requestTimeoutMs directly.
     return awaitReply(reply, config_.requestTimeoutMs * 4, "Upload to " + path);
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 ApiResponse HttpCosmosApiClient::del(
     const std::string& path, const QueryParams& params)

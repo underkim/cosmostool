@@ -128,6 +128,9 @@ QMap<QString, QString> buildScreenAndProcedures(const QString& tgt)
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+// Inputs are deliberately kept as named fields because this public API is
+// consumed directly by the wizard and each name describes a distinct value.
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 QMap<QString, QString> PluginTemplateEngine::buildFiles(
     const QString& pluginName,
     const QString& targetName,
@@ -204,6 +207,7 @@ QMap<QString, QString> PluginTemplateEngine::buildFiles(
 
     return files;
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 QMap<QString, QString> PluginTemplateEngine::buildTargetFiles(
     const QString& targetName,
@@ -232,6 +236,7 @@ QString PluginTemplateEngine::buildInterfaceArgs(
     }
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters)
 QMap<QString, QString> PluginTemplateEngine::buildScriptFile(
     const QString& targetName, const QString& scriptName)
 {
@@ -254,5 +259,6 @@ QMap<QString, QString> PluginTemplateEngine::buildScriptFile(
     ).arg(tgt, name);
     return files;
 }
+// NOLINTEND(bugprone-easily-swappable-parameters)
 
 } // namespace OpenC3::ViewModels

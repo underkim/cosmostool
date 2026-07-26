@@ -51,7 +51,7 @@ DrbCallResult callJsonDrb(
                     if (error.contains("data"))
                         out.errorData = error["data"];
                 }
-            } catch (const json::exception&) {
+            } catch (const json::exception&) { // NOLINT(bugprone-empty-catch)
                 // Not JSON - keep the transport-level message.
             }
         }

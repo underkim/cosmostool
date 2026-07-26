@@ -7,6 +7,8 @@
 
 namespace OpenC3::ViewModels::Validation {
 
+// Path and content are fixed by IRuleValidator and named at every call site.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 bool ScreenValidator::appliesTo(const QString& path, const QString& content) const
 {
     const QStringList lines = content.split('\n');

@@ -33,7 +33,7 @@ json convertParamValue(const std::string& raw)
     if (isInt) {
         try {
             return json(std::stoll(raw));
-        } catch (const std::exception&) {
+        } catch (const std::exception&) { // NOLINT(bugprone-empty-catch)
             // Falls through to float/string below (e.g. overflow).
         }
     }
@@ -57,7 +57,7 @@ json convertParamValue(const std::string& raw)
     if (isFloat && seenDot) {
         try {
             return json(std::stod(raw));
-        } catch (const std::exception&) {
+        } catch (const std::exception&) { // NOLINT(bugprone-empty-catch)
             // Fall through to string.
         }
     }
