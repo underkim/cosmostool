@@ -10,6 +10,8 @@
 #include <QString>
 #include <vector>
 
+class QTimer;
+
 namespace OpenC3::ViewModels {
 
 /// Target names in the connected scope, read through ICosmosRuntimeService -
@@ -122,7 +124,7 @@ private:
 
     QFuture<void> worker_;
     QFuture<void> pollWorker_;
-    class QTimer* pollTimer_{nullptr};
+    QTimer*       pollTimer_{nullptr};
     QString       pollTarget_;
     QString       pollPacket_;
     bool          pollInFlight_{false};
