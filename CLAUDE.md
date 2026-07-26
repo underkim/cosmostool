@@ -232,7 +232,13 @@ adding a service, add a mock and a test in the corresponding paths.
   `bugprone-*`, `cppcoreguidelines-slicing`, `modernize-use-nullptr`,
   `cppcoreguidelines-avoid-non-const-global-variables`, and
   `performance-move-const-arg` are `WarningsAsErrors`. Enabled via the
-  `debug-analysis` preset (`ENABLE_CLANG_TIDY=ON`).
+  `debug-analysis` preset (`ENABLE_CLANG_TIDY=ON`). On a Windows dev machine
+  whose repo path contains non-ASCII characters, the bundled MSVC
+  `clang-tidy.exe` (VC\Tools\Llvm) crashes outright (`LLVM ERROR: Cannot
+  chdir`) regardless of this setting - that is an environment defect, not a
+  project one; clone to an ASCII-only path (or use WSL/Linux, where
+  `tests.yml`'s CI runner already builds successfully) to actually run it
+  locally.
 - Naming: classes/structs `CamelCase`, functions/variables `camelCase`,
   private members suffixed `_` (e.g. `busy_`, `connected_`).
 - SRP/DIP/ISP/OCP conventions are spelled out with examples in
