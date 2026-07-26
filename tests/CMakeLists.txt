@@ -16,6 +16,7 @@ add_executable(opencosmos_tests
     unit/services/CosmosPluginServiceTest.cpp
     unit/services/CosmosScriptServiceTest.cpp
     unit/services/CosmosRuntimeServiceTest.cpp
+    unit/services/CosmosCommandServiceTest.cpp
     unit/services/WorkspaceServiceTest.cpp
     unit/services/SettingsServiceTest.cpp
     unit/viewmodels/CmdTlmParserTest.cpp
@@ -38,6 +39,7 @@ add_executable(opencosmos_tests
     unit/viewmodels/PluginViewModelTest.cpp
     unit/viewmodels/ScriptViewModelTest.cpp
     unit/viewmodels/RuntimeViewModelTest.cpp
+    unit/viewmodels/CommandSenderViewModelTest.cpp
     unit/widgets/CmdTlmHighlighterTest.cpp
 )
 

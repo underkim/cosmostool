@@ -8,6 +8,7 @@
 #include "viewmodels/logviewer/LogViewerViewModel.h"
 #include "viewmodels/script/ScriptViewModel.h"
 #include "viewmodels/runtime/RuntimeViewModel.h"
+#include "viewmodels/runtime/CommandSenderViewModel.h"
 #include "ui/widgets/ScreenPreviewWidget.h"
 #include "ui/widgets/InstalledPluginsPanel.h"
 #include "ui/widgets/ScriptRunnerPanel.h"
@@ -56,6 +57,7 @@ public:
                         ViewModels::LogViewerViewModel& logViewerVm,
                         ViewModels::ScriptViewModel& scriptVm,
                         ViewModels::RuntimeViewModel& runtimeVm,
+                        ViewModels::CommandSenderViewModel& commandVm,
                         QWidget*                     parent = nullptr);
 
     void setStepStripMode(StepStripMode mode);
@@ -171,6 +173,7 @@ private:
     ViewModels::LogViewerViewModel& logViewerVm_;
     ViewModels::ScriptViewModel& scriptVm_;
     ViewModels::RuntimeViewModel& runtimeVm_;
+    ViewModels::CommandSenderViewModel& commandVm_;
 
     QTableView*  tableView_{nullptr};
     Widgets::InstalledPluginsPanel* installedPluginsPanel_{nullptr};

@@ -4,17 +4,46 @@
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListView>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QTableView>
 #include <QVBoxLayout>
 
 namespace OpenC3::UI::Widgets {
 
-RuntimePanel::RuntimePanel(ViewModels::RuntimeViewModel& vm, QWidget* parent)
+namespace {
+
+// Parses a simple "PARAM1=value1, PARAM2=value2" text into (name, value)
+// pairs. Deliberately not COSMOS's own `cmd_string` grammar (quoting,
+// arrays, etc.) - this is a minimal, honest parameter editor for the first
+// write-path UI, not a full reimplementation of extract.rb's parser.
+QVector<QPair<QString, QString>> parseParameterText(const QString& text)
+{
+    QVector<QPair<QString, QString>> params;
+    const auto parts = text.split(',', Qt::SkipEmptyParts);
+    for (const auto& part : parts) {
+        const auto eq = part.indexOf('=');
+        if (eq < 0) continue;
+        const QString name = part.left(eq).trimmed();
+        const QString value = part.mid(eq + 1).trimmed();
+        if (!name.isEmpty()) params.append({name, value});
+    }
+    return params;
+}
+
+} // namespace
+
+RuntimePanel::RuntimePanel(
+    ViewModels::RuntimeViewModel& vm,
+    ViewModels::CommandSenderViewModel& commandVm,
+    QWidget* parent)
     : QWidget(parent)
     , vm_(vm)
+    , commandVm_(commandVm)
 {
     refreshTargetsBtn_ = new QPushButton(tr("Refresh Targets"), this);
     refreshTargetsBtn_->setToolTip(tr(
@@ -40,6 +69,18 @@ RuntimePanel::RuntimePanel(ViewModels::RuntimeViewModel& vm, QWidget* parent)
     packetList_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     packetList_->setMaximumWidth(220);
 
+    sendCommandBtn_ = new QPushButton(tr("Send Command..."), this);
+    sendCommandBtn_->setObjectName("DangerButton");
+    sendCommandBtn_->setEnabled(false);
+    sendCommandBtn_->setToolTip(tr(
+        "Sends the selected command through the COSMOS API with full range "
+        "and hazardous checks. A confirmation dialog always appears first; "
+        "a hazardous command requires a second, explicit confirmation."));
+
+    commandStatusLabel_ = new QLabel(tr("No command sent."), this);
+    commandStatusLabel_->setObjectName("CommandSendStatus");
+    commandStatusLabel_->setWordWrap(true);
+
     telemetryTable_ = new QTableView(this);
     telemetryTable_->setObjectName("CosmosTelemetryTable");
     telemetryTable_->setModel(vm_.telemetryModel());
@@ -59,6 +100,8 @@ RuntimePanel::RuntimePanel(ViewModels::RuntimeViewModel& vm, QWidget* parent)
     packetColumn->addWidget(new QLabel(tr("Packets"), this));
     packetColumn->addWidget(packetKindCombo_);
     packetColumn->addWidget(packetList_, 1);
+    packetColumn->addWidget(sendCommandBtn_);
+    packetColumn->addWidget(commandStatusLabel_);
 
     auto* valueColumn = new QVBoxLayout;
     valueColumn->addWidget(new QLabel(tr("Current Telemetry Values"), this));
@@ -86,6 +129,15 @@ RuntimePanel::RuntimePanel(ViewModels::RuntimeViewModel& vm, QWidget* parent)
             this, &RuntimePanel::onBusyChanged);
     connect(&vm_, &ViewModels::RuntimeViewModel::statusMessageChanged,
             this, [this] { statusLabel_->setText(vm_.statusMessage()); });
+
+    connect(sendCommandBtn_, &QPushButton::clicked,
+            this, &RuntimePanel::onSendClicked);
+    connect(&commandVm_, &ViewModels::CommandSenderViewModel::hazardousConfirmationNeeded,
+            this, &RuntimePanel::onHazardousConfirmationNeeded);
+    connect(&commandVm_, &ViewModels::CommandSenderViewModel::commandCompleted,
+            this, &RuntimePanel::onCommandCompleted);
+    connect(&commandVm_, &ViewModels::CommandSenderViewModel::busyChanged,
+            this, &RuntimePanel::onBusyChanged);
 }
 
 QString RuntimePanel::selectedTargetName() const
@@ -94,6 +146,11 @@ QString RuntimePanel::selectedTargetName() const
     if (rows.isEmpty()) return {};
     const auto* target = vm_.targetModel()->targetAt(rows.first().row());
     return target ? QString::fromStdString(target->name) : QString{};
+}
+
+bool RuntimePanel::isCommandKindSelected() const noexcept
+{
+    return packetKindCombo_->currentIndex() == 1;
 }
 
 void RuntimePanel::onTargetSelectionChanged()
@@ -109,6 +166,7 @@ void RuntimePanel::onPacketKindChanged(int)
 {
     vm_.setTelemetryPolling({}, {});
     reloadPacketsForSelection();
+    sendCommandBtn_->setEnabled(false);
 }
 
 void RuntimePanel::reloadPacketsForSelection()
@@ -116,7 +174,7 @@ void RuntimePanel::reloadPacketsForSelection()
     const QString target = selectedTargetName();
     if (target.isEmpty()) return;
 
-    if (packetKindCombo_->currentIndex() == 0)
+    if (!isCommandKindSelected())
         vm_.loadTelemetry(target);
     else
         vm_.loadCommands(target);
@@ -127,27 +185,93 @@ void RuntimePanel::onPacketSelectionChanged()
     // Only telemetry packets have live values to poll - selecting a command
     // packet leaves the values table showing whatever it last had, since a
     // command has no "current value" concept.
-    if (packetKindCombo_->currentIndex() != 0) return;
-
-    const auto rows = packetList_->selectionModel()->selectedRows();
-    if (rows.isEmpty()) {
-        vm_.setTelemetryPolling({}, {});
+    if (!isCommandKindSelected()) {
+        const auto rows = packetList_->selectionModel()->selectedRows();
+        if (rows.isEmpty()) {
+            vm_.setTelemetryPolling({}, {});
+            return;
+        }
+        const auto* packet = vm_.packetModel()->packetAt(rows.first().row());
+        if (!packet) return;
+        vm_.setTelemetryPolling(
+            QString::fromStdString(packet->targetName),
+            QString::fromStdString(packet->packetName));
         return;
     }
 
-    const auto* packet = vm_.packetModel()->packetAt(rows.first().row());
-    if (!packet) return;
-
-    vm_.setTelemetryPolling(
-        QString::fromStdString(packet->targetName),
-        QString::fromStdString(packet->packetName));
+    sendCommandBtn_->setEnabled(
+        !commandVm_.isBusy() && packetList_->selectionModel()->hasSelection());
 }
 
 void RuntimePanel::onBusyChanged()
 {
-    const bool busy = vm_.isBusy();
-    refreshTargetsBtn_->setEnabled(!busy);
+    const bool busy = vm_.isBusy() || commandVm_.isBusy();
+    refreshTargetsBtn_->setEnabled(!vm_.isBusy());
     packetKindCombo_->setEnabled(!busy);
+    if (isCommandKindSelected())
+        sendCommandBtn_->setEnabled(
+            !busy && packetList_->selectionModel()->hasSelection());
+    else
+        sendCommandBtn_->setEnabled(false);
+}
+
+void RuntimePanel::onSendClicked()
+{
+    if (!isCommandKindSelected()) return;
+    const auto rows = packetList_->selectionModel()->selectedRows();
+    if (rows.isEmpty()) return;
+    const auto* packet = vm_.packetModel()->packetAt(rows.first().row());
+    if (!packet) return;
+
+    const QString target = QString::fromStdString(packet->targetName);
+    const QString command = QString::fromStdString(packet->packetName);
+
+    bool ok = false;
+    const QString paramText = QInputDialog::getText(
+        this, tr("Command Parameters"),
+        tr("Enter parameters as PARAM1=value1, PARAM2=value2 (leave empty "
+           "for a command with no parameters):"),
+        QLineEdit::Normal, {}, &ok);
+    if (!ok) return;
+
+    const auto parameters = parseParameterText(paramText);
+
+    if (QMessageBox::question(this, tr("Confirm Send"),
+            tr("Send this command to the connected COSMOS instance?\n\n%1 %2")
+                .arg(target, command),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
+        != QMessageBox::Yes)
+        return;
+
+    commandVm_.send(target, command, parameters);
+}
+
+void RuntimePanel::onHazardousConfirmationNeeded(
+    const QString& targetName, const QString& commandName, const QString& description)
+{
+    const QString detail = description.isEmpty()
+        ? tr("COSMOS reports this command as hazardous.")
+        : tr("COSMOS reports this command as hazardous:\n\n%1").arg(description);
+
+    if (QMessageBox::warning(this, tr("Hazardous Command"),
+            tr("%1\n\n%2 %3 will be sent WITHOUT the hazardous check if you "
+               "confirm. Continue?").arg(detail, targetName, commandName),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
+        == QMessageBox::Yes)
+    {
+        commandVm_.sendConfirmed();
+    } else {
+        commandStatusLabel_->setText(
+            tr("Hazardous command cancelled: %1 %2").arg(targetName, commandName));
+    }
+}
+
+void RuntimePanel::onCommandCompleted(
+    const QString& targetName, const QString& commandName, bool success, const QString& detail)
+{
+    commandStatusLabel_->setText(
+        (success ? tr("Sent %1 %2\n%3") : tr("Failed %1 %2\n%3"))
+            .arg(targetName, commandName, detail));
 }
 
 } // namespace OpenC3::UI::Widgets

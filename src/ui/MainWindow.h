@@ -14,6 +14,7 @@
 #include "viewmodels/validator/ValidatorViewModel.h"
 #include "viewmodels/script/ScriptViewModel.h"
 #include "viewmodels/runtime/RuntimeViewModel.h"
+#include "viewmodels/runtime/CommandSenderViewModel.h"
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -50,6 +51,7 @@ public:
         ViewModels::ValidatorViewModel&    validator,
         ViewModels::ScriptViewModel&       script,
         ViewModels::RuntimeViewModel&      runtime,
+        ViewModels::CommandSenderViewModel& command,
         QWidget*                           parent = nullptr);
 
     ~MainWindow() override = default;
@@ -105,6 +107,7 @@ private:
     ViewModels::ValidatorViewModel&    validatorVm_;
     ViewModels::ScriptViewModel&       scriptVm_;
     ViewModels::RuntimeViewModel&      runtimeVm_;
+    ViewModels::CommandSenderViewModel& commandVm_;
 
     QWidget*        centralWidget_{nullptr};
     QListWidget*    navRail_{nullptr};

@@ -9,6 +9,8 @@ add_library(opencosmos_services STATIC
     plugin/CosmosPluginService.cpp
     script/CosmosScriptService.cpp
     runtime/CosmosRuntimeService.cpp
+    runtime/CosmosCommandService.cpp
+    runtime/detail/JsonDrbCall.cpp
     workspace/WorkspaceService.cpp
     settings/SettingsService.cpp
     filesystem/RemoteFileService.cpp
