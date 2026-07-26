@@ -96,7 +96,8 @@ target_link_libraries(opencosmos_api_livecheck
 # environment. Its default mode performs reads plus one deliberately
 # nonexistent command (error-path only) and never sends a valid command.
 # OPENC3_LIVE_MUTATING=1 additionally installs/runs/uninstalls only a reserved
-# temporary live-check plugin and verifies cleanup.
+# temporary live-check plugin, sends NOOP commands through that plugin's
+# in-memory interface (including hazardous confirmation), and verifies cleanup.
 #   cmake --build <dir> --target opencosmos_live_cosmos_check
 #   OPENC3_LIVE_PASSWORD=... <dir>/bin/opencosmos_live_cosmos_check [url] [scope]
 add_executable(opencosmos_live_cosmos_check EXCLUDE_FROM_ALL

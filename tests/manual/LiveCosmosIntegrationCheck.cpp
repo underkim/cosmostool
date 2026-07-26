@@ -18,6 +18,7 @@
 #include "services/doctor/DoctorService.h"
 #include "services/runtime/CosmosRuntimeService.h"
 #include "services/runtime/CosmosCommandService.h"
+#include "services/runtime/detail/JsonDrbCall.h"
 #include "services/plugin/CosmosPluginService.h"
 #include "services/script/CosmosScriptService.h"
 #include "services/workspace/WorkspaceService.h"
@@ -240,7 +241,10 @@ int main(int argc, char** argv)
         const std::string setupCommand =
             "rm -rf " + Core::Connection::shellQuote(remoteRoot)
             + " && mkdir -p " + Core::Connection::shellQuote(
-                remoteRoot + "/targets/HERMES_LIVECHECK/procedures");
+                remoteRoot + "/targets/HERMES_LIVECHECK/procedures")
+            + " " + Core::Connection::shellQuote(
+                remoteRoot + "/targets/HERMES_LIVECHECK/cmd_tlm")
+            + " " + Core::Connection::shellQuote(remoteRoot + "/lib");
         check(static_cast<bool>(liveShell.execute(setupCommand)),
               "temporary WSL plugin directory created");
 
@@ -252,7 +256,7 @@ int main(int argc, char** argv)
             "  s.description = s.summary\n"
             "  s.authors = ['OpenC3 Developer Toolkit']\n"
             "  s.email = ['noreply@example.invalid']\n"
-            "  s.files = Dir['plugin.txt', 'targets/**/*']\n"
+            "  s.files = Dir['plugin.txt', 'targets/**/*', 'lib/**/*']\n"
             "  s.licenses = ['MIT']\n"
             "  s.required_ruby_version = '>= 3.1'\n"
             "end\n";
@@ -262,8 +266,38 @@ int main(int argc, char** argv)
         check(liveShell.writeFile(
                   remoteRoot + "/plugin.txt",
                   "VARIABLE hermes_livecheck_marker verified\n"
-                  "TARGET HERMES_LIVECHECK HERMES_LIVECHECK\n"),
+                  "TARGET HERMES_LIVECHECK HERMES_LIVECHECK\n"
+                  "INTERFACE HERMES_LIVECHECK_INT "
+                  "hermes_livecheck_interface.rb\n"
+                  "  MAP_TARGET HERMES_LIVECHECK\n"),
               "temporary plugin.txt written through WslExecutor");
+        check(liveShell.writeFile(
+                  remoteRoot + "/lib/hermes_livecheck_interface.rb",
+                  "require 'openc3/interfaces/interface'\n\n"
+                  "module OpenC3\n"
+                  "  class HermesLivecheckInterface < Interface\n"
+                  "    def initialize\n"
+                  "      super()\n"
+                  "      @connected = false\n"
+                  "      @read_allowed = false\n"
+                  "    end\n\n"
+                  "    def connect\n"
+                  "      super()\n"
+                  "      @connected = true\n"
+                  "    end\n\n"
+                  "    def connected?\n"
+                  "      @connected\n"
+                  "    end\n\n"
+                  "    def disconnect\n"
+                  "      super()\n"
+                  "      @connected = false\n"
+                  "    end\n\n"
+                  "    def write_interface(data, _extra = nil)\n"
+                  "      data\n"
+                  "    end\n"
+                  "  end\n"
+                  "end\n"),
+              "temporary in-memory command interface written");
         check(liveShell.writeFile(
                   remoteRoot
                       + "/targets/HERMES_LIVECHECK/procedures/hermes_livecheck.rb",
@@ -277,6 +311,19 @@ int main(int argc, char** argv)
                   "  sleep 0.5\n"
                   "end\n"),
               "temporary long-running control procedure written");
+        check(liveShell.writeFile(
+                  remoteRoot
+                      + "/targets/HERMES_LIVECHECK/cmd_tlm/hermes_cmds.txt",
+                  "COMMAND HERMES_LIVECHECK NOOP BIG_ENDIAN "
+                  "\"Toolkit in-memory interface live-check command\"\n"
+                  "  APPEND_PARAMETER VALUE 8 UINT 0 255 7 "
+                  "\"Harmless marker value\"\n\n"
+                  "COMMAND HERMES_LIVECHECK HAZARDOUS_NOOP BIG_ENDIAN "
+                  "\"Toolkit hazardous-confirmation live check\"\n"
+                  "  HAZARDOUS \"Dedicated no-interface integration test\"\n"
+                  "  APPEND_PARAMETER VALUE 8 UINT 0 255 9 "
+                  "\"Harmless marker value\"\n"),
+              "temporary in-memory command definitions written");
 
         const auto built = workspace.buildArtifact(remoteRoot);
         std::string remoteGemPath;
@@ -350,6 +397,50 @@ int main(int argc, char** argv)
                       "installed plugin appears with an assigned instance suffix");
 
                 if (!instanceId.empty()) {
+                    CosmosCommandService commands(api);
+                    bool commandInterfaceReady = false;
+                    for (int attempt = 0; attempt < 120; ++attempt) {
+                        const auto interfaces = OpenC3::Services::detail::callJsonDrb(
+                            api, "get_all_interface_info", nlohmann::json::array(),
+                            8000 + attempt);
+                        if (interfaces.success && interfaces.result.is_array()) {
+                            for (const auto& row : interfaces.result) {
+                                if (row.is_array() && row.size() >= 2
+                                    && row[0] == "HERMES_LIVECHECK_INT"
+                                    && row[1] == "CONNECTED") {
+                                    commandInterfaceReady = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (commandInterfaceReady) break;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+                    }
+                    check(commandInterfaceReady,
+                          "temporary in-memory command interface reaches CONNECTED");
+
+                    if (commandInterfaceReady) {
+                        const std::vector<CommandParameter> noopParameters{
+                            {"VALUE", "42"}};
+                        const auto noop = commands.send(
+                            "HERMES_LIVECHECK", "NOOP", noopParameters);
+                        check(noop.success && !noop.cmdString.empty(),
+                              "valid NOOP command sends through the in-memory interface");
+
+                        const auto hazardous = commands.send(
+                            "HERMES_LIVECHECK", "HAZARDOUS_NOOP", noopParameters);
+                        check(!hazardous.success && hazardous.hazardous
+                                  && !hazardous.hazardousDescription.empty(),
+                              "hazardous NOOP is refused pending explicit confirmation");
+                        if (hazardous.hazardous) {
+                            const auto confirmed = commands.sendConfirmed(
+                                "HERMES_LIVECHECK", "HAZARDOUS_NOOP",
+                                noopParameters);
+                            check(confirmed.success && !confirmed.cmdString.empty(),
+                                  "confirmed hazardous NOOP sends only after refusal");
+                        }
+                    }
+
                     CosmosScriptService scripts(api);
                     constexpr const char* kScriptPath =
                         "HERMES_LIVECHECK/procedures/hermes_livecheck.rb";
@@ -453,6 +544,74 @@ int main(int argc, char** argv)
                 for (const auto& item : plugins.listInstalled())
                     if (item.name.starts_with(kGemBase)) remains = true;
                 check(!remains, "temporary plugin is absent after uninstall");
+
+                bool targetRemains = true;
+                bool interfaceRemains = true;
+                bool scriptRemains = true;
+                bool targetObserved = false;
+                bool interfaceObserved = false;
+                bool scriptObserved = false;
+                for (int attempt = 0; attempt < 120; ++attempt) {
+                    targetObserved = false;
+                    const auto targets = OpenC3::Services::detail::callJsonDrb(
+                        api, "get_target_names", nlohmann::json::array(),
+                        8500 + attempt);
+                    if (targets.success && targets.result.is_array()) {
+                        targetObserved = true;
+                        targetRemains = false;
+                        for (const auto& target : targets.result)
+                            if (target.is_string()
+                                && target == "HERMES_LIVECHECK")
+                                targetRemains = true;
+                    }
+
+                    interfaceObserved = false;
+                    const auto interfaces = OpenC3::Services::detail::callJsonDrb(
+                        api, "get_all_interface_info", nlohmann::json::array(),
+                        9000 + attempt);
+                    if (interfaces.success && interfaces.result.is_array()) {
+                        interfaceObserved = true;
+                        interfaceRemains = false;
+                        for (const auto& row : interfaces.result)
+                            if (row.is_array() && !row.empty()
+                                && row[0] == "HERMES_LIVECHECK_INT")
+                                interfaceRemains = true;
+                    }
+
+                    scriptObserved = false;
+                    const auto scriptResponse = api.get(
+                        Core::Api::Routes::kScripts,
+                        {{"target", "HERMES_LIVECHECK"}});
+                    if (scriptResponse) {
+                        try {
+                            const auto parsed = nlohmann::json::parse(
+                                scriptResponse.body);
+                            if (parsed.is_array()) {
+                                scriptObserved = true;
+                                scriptRemains = false;
+                                for (const auto& script : parsed)
+                                    if (script.is_string()
+                                        && script.get<std::string>().find(
+                                               "HERMES_LIVECHECK/")
+                                            != std::string::npos)
+                                        scriptRemains = true;
+                            }
+                        } catch (const nlohmann::json::exception&) {
+                            // Unknown, not absent: retry until a parse succeeds.
+                        }
+                    }
+
+                    if (targetObserved && interfaceObserved && scriptObserved
+                        && !targetRemains && !interfaceRemains && !scriptRemains)
+                        break;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+                }
+                check(targetObserved && !targetRemains,
+                      "temporary target is observed absent after uninstall");
+                check(interfaceObserved && !interfaceRemains,
+                      "temporary command interface is absent after uninstall");
+                check(scriptObserved && !scriptRemains,
+                      "temporary scripts are observed absent after uninstall");
             }
         }
 

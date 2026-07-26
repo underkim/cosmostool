@@ -119,7 +119,7 @@ Docker and file access through WSL, all expected containers, both Redis
 instances (the restricted `healthcheck` ACL user on ports 6379/6380), Doctor
 L3 runtime state, installed plugins, target/packet/telemetry reads, Script
 Runner listing, and the command service's non-existent-command error path.
-It never sends a valid command.
+The default mode never sends a valid command.
 
 The credential is accepted only through an environment variable so it is not
 embedded in source or exposed in a process command line:
@@ -134,10 +134,14 @@ $env:OPENC3_LIVE_PASSWORD = '<live Core token>'
 By default this is read-only. Setting `OPENC3_LIVE_MUTATING=1` additionally
 creates a reserved temporary plugin, builds/downloads/uploads it, polls the
 real install `ProcessStatusModel`, runs harmless temporary Script Runner
-procedures (including pause/resume/stop), uninstalls by the exact suffixed
+procedures (including pause/resume/stop), waits for a dedicated in-memory
+interface to reach `CONNECTED`, sends a valid NOOP command, verifies hazardous
+refusal and explicit-confirmation resend, uninstalls by the exact suffixed
 instance id returned by `listInstalled()`, polls uninstall to completion, and
-checks that plugin/script/source residues are gone. It never touches a plugin
-whose gem name does not start with the probe's reserved
+checks that plugin/script/source residues are gone. The temporary interface
+opens no socket or file and maps only the reserved `HERMES_LIVECHECK` target;
+the probe never sends a command to an existing deployment target. It never
+touches a plugin whose gem name does not start with the probe's reserved
 `openc3-cosmos-hermes-livecheck-` prefix:
 
 ```powershell
