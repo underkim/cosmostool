@@ -21,18 +21,31 @@ namespace {
 // pairs. Deliberately not COSMOS's own `cmd_string` grammar (quoting,
 // arrays, etc.) - this is a minimal, honest parameter editor for the first
 // write-path UI, not a full reimplementation of extract.rb's parser.
-QVector<QPair<QString, QString>> parseParameterText(const QString& text)
+//
+// Returns false (and leaves `params` untouched) when any comma-separated
+// entry does not parse as NAME=VALUE, or has an empty NAME - a malformed
+// entry must never be silently dropped on a command-sending path, since
+// COSMOS would then send the command with that parameter left at its
+// packet-defined default rather than what the operator actually typed.
+bool parseParameterText(const QString& text, QVector<QPair<QString, QString>>& params,
+                        QString& errorDetail)
 {
-    QVector<QPair<QString, QString>> params;
+    QVector<QPair<QString, QString>> parsed;
     const auto parts = text.split(',', Qt::SkipEmptyParts);
     for (const auto& part : parts) {
-        const auto eq = part.indexOf('=');
-        if (eq < 0) continue;
-        const QString name = part.left(eq).trimmed();
-        const QString value = part.mid(eq + 1).trimmed();
-        if (!name.isEmpty()) params.append({name, value});
+        const QString trimmedPart = part.trimmed();
+        const auto eq = trimmedPart.indexOf('=');
+        const QString name = eq >= 0 ? trimmedPart.left(eq).trimmed() : QString();
+        if (eq < 0 || name.isEmpty()) {
+            errorDetail = QObject::tr(
+                "\"%1\" is not a valid PARAM=value entry.").arg(trimmedPart);
+            return false;
+        }
+        const QString value = trimmedPart.mid(eq + 1).trimmed();
+        parsed.append({name, value});
     }
-    return params;
+    params = std::move(parsed);
+    return true;
 }
 
 } // namespace
@@ -234,7 +247,14 @@ void RuntimePanel::onSendClicked()
         QLineEdit::Normal, {}, &ok);
     if (!ok) return;
 
-    const auto parameters = parseParameterText(paramText);
+    QVector<QPair<QString, QString>> parameters;
+    QString parseError;
+    if (!parseParameterText(paramText, parameters, parseError)) {
+        QMessageBox::warning(this, tr("Invalid Parameters"),
+            tr("Could not send the command - %1\n\nUse PARAM1=value1, "
+               "PARAM2=value2, one entry per parameter.").arg(parseError));
+        return;
+    }
 
     if (QMessageBox::question(this, tr("Confirm Send"),
             tr("Send this command to the connected COSMOS instance?\n\n%1 %2")
