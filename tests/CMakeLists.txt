@@ -40,6 +40,9 @@ add_executable(opencosmos_tests
     unit/viewmodels/ScriptViewModelTest.cpp
     unit/viewmodels/RuntimeViewModelTest.cpp
     unit/viewmodels/CommandSenderViewModelTest.cpp
+    unit/viewmodels/DoctorViewModelTest.cpp
+    unit/viewmodels/PacketToolsViewModelTest.cpp
+    unit/viewmodels/InfraViewModelTest.cpp
     unit/widgets/CmdTlmHighlighterTest.cpp
 )
 

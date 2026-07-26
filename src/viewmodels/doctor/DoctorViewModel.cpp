@@ -114,6 +114,12 @@ DoctorViewModel::DoctorViewModel(
     , resultsModel_(new HealthCheckTableModel(this))
 {}
 
+DoctorViewModel::~DoctorViewModel()
+{
+    if (checksFuture_.isRunning())
+        checksFuture_.waitForFinished();
+}
+
 HealthCheckTableModel* DoctorViewModel::resultsModel() const noexcept
 {
     return resultsModel_;
@@ -159,6 +165,7 @@ void DoctorViewModel::runAllChecks()
         }, Qt::QueuedConnection);
     });
     watcher->setFuture(future);
+    checksFuture_ = future;
 }
 
 } // namespace OpenC3::ViewModels

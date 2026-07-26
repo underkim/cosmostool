@@ -5,6 +5,7 @@
 #include "services/connection/IConnectionService.h"
 #include "services/filesystem/IRemoteFileService.h"
 
+#include <QFuture>
 #include <QStringList>
 #include <QString>
 
@@ -71,6 +72,14 @@ private:
     bool                          busy_{false};
     PacketSimulator               simulator_;
     QString                       status_;
+
+    // refreshLogList/openLogFile/analyzePackets are each gated by
+    // `if (busy_) return`, so only one QtConcurrent::run worker is ever in
+    // flight at a time - a single stored future (waited on in the
+    // destructor) is therefore enough to guarantee no worker's captured
+    // `this` outlives this object, matching PluginViewModel/
+    // CmdTlmViewModel's fix for the identical bug class.
+    QFuture<void>                 worker_;
 
     static constexpr const char* kLogDir = "/cosmos/outputs/logs/tlm/";
 };

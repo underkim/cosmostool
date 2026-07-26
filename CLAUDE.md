@@ -132,6 +132,30 @@ view model while a task runs otherwise produces a real use-after-free. Its
 unit tests intentionally construct/destroy the view model repeatedly and drive
 the queued completion callbacks through a `QCoreApplication` event loop.
 
+The same fix now applies to every ViewModel that launches a
+`QtConcurrent::run` worker: `DashboardViewModel`, `DoctorViewModel`,
+`SettingsViewModel`, `CmdTlmViewModel`, `PacketToolsViewModel`,
+`InfraViewModel`, and `DockerViewModel` all previously left their futures
+unwaited (some via a bare `QFutureWatcher` whose `deleteLater()` neither
+cancels nor blocks on the underlying task, some via a fully discarded
+`(void)QtConcurrent::run(...)`), which is the exact same use-after-free class
+`PluginViewModel` was fixed for. `InfraViewModel` and `DockerViewModel` have
+no single `busy_`-style gate — several of their slots can have workers in
+flight at once — so they use a `QFutureSynchronizer<void> pendingWork_`
+member instead of one `QFuture<void>`; every call site that starts a worker
+must `addFuture()` it into `pendingWork_`, and the destructor calls
+`pendingWork_.waitForFinished()`. The single-worker ViewModels
+(`DashboardViewModel` has three independent named futures;
+`DoctorViewModel`/`SettingsViewModel`/`CmdTlmViewModel`/`PacketToolsViewModel`
+each have one `worker_`) follow `PluginViewModel`'s simpler pattern.
+`LogViewerViewModel` was already safe via `QPointer<LogViewerViewModel>` plus
+a null check inside the worker instead of a stored future — an equally valid
+alternative when the worker's own callback can be made self-checking.
+`DoctorViewModelTest`/`PacketToolsViewModelTest`/`InfraViewModelTest` exercise
+the actual regression (destroying the view model while a mocked service call
+is deliberately sleeping); any new `QtConcurrent::run` call site in a
+ViewModel needs the same treatment and, ideally, the same kind of test.
+
 Every remote command executor call funnels through `ShellQuote`
 (`src/core/connection/ShellQuote.h`) when interpolating user-controlled
 strings (paths, container names, plugin names) into shell commands — this was

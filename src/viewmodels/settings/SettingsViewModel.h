@@ -6,6 +6,7 @@
 #include "models/ConnectionProfile.h"
 
 #include <QAbstractListModel>
+#include <QFuture>
 #include <vector>
 
 namespace OpenC3::ViewModels {
@@ -36,6 +37,13 @@ public:
         Services::IConnectionService& connection,
         QObject*                     parent = nullptr);
 
+    // connectToProfile()'s worker captures `this` raw and posts a queued
+    // invocation back to it on completion; waiting on the stored future in
+    // the destructor (not merely relying on the QFutureWatcher's
+    // deleteLater(), which neither cancels nor blocks on the underlying
+    // QtConcurrent task) guarantees no worker is still touching this
+    // object's memory after destruction - same fix as PluginViewModel/
+    // DashboardViewModel/DoctorViewModel for the identical bug class.
     ~SettingsViewModel() override;
 
     [[nodiscard]] ProfileListModel* profileModel() const noexcept;
@@ -71,6 +79,7 @@ private:
     Services::IConnectionService& connection_;
     ProfileListModel*             profileModel_{nullptr};
     Services::IConnectionService::SubscriptionId connSubscription_{0};
+    QFuture<void>                 connectFuture_;
 };
 
 } // namespace OpenC3::ViewModels

@@ -28,6 +28,8 @@ CmdTlmViewModel::CmdTlmViewModel(
 CmdTlmViewModel::~CmdTlmViewModel()
 {
     connection_.removeStateChanged(connSubscription_);
+    if (worker_.isRunning())
+        worker_.waitForFinished();
 }
 
 bool CmdTlmViewModel::isConnected() const noexcept
@@ -74,7 +76,7 @@ void CmdTlmViewModel::listDirectory(const QString& remotePath)
     setBusy(true);
     setStatus("Listing " + remotePath);
 
-    (void)QtConcurrent::run([this, path] {
+    worker_ = QtConcurrent::run([this, path] {
         auto entries = fs_.listDirectory(path);
         QMetaObject::invokeMethod(this, [this, entries = std::move(entries),
                                           qpath = QString::fromStdString(path)]() mutable {
@@ -96,7 +98,7 @@ void CmdTlmViewModel::listPluginFiles(const QString& pluginRootPath)
     setBusy(true);
     setStatus("Loading plugin files: " + pluginRootPath);
 
-    (void)QtConcurrent::run([this, root] {
+    worker_ = QtConcurrent::run([this, root] {
         using Core::Connection::shellQuote;
         const std::string command =
             "root=" + shellQuote(root) + "; "
@@ -136,7 +138,7 @@ void CmdTlmViewModel::openFile(const QString& remotePath)
     setBusy(true);
     setStatus("Loading " + remotePath);
 
-    (void)QtConcurrent::run([this, path] {
+    worker_ = QtConcurrent::run([this, path] {
         const std::string content = fs_.readFile(path);
         QMetaObject::invokeMethod(this,
             [this, content, qpath = QString::fromStdString(path)] {
@@ -158,7 +160,7 @@ void CmdTlmViewModel::saveFile(const QString& remotePath, const QString& content
     setBusy(true);
     setStatus("Saving");
 
-    (void)QtConcurrent::run([this, path, data] {
+    worker_ = QtConcurrent::run([this, path, data] {
         const bool ok = fs_.writeFile(path, data);
         QMetaObject::invokeMethod(this, [this, ok, qpath = QString::fromStdString(path)] {
             emit fileSaved(qpath, ok);

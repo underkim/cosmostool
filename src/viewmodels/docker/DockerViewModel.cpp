@@ -131,6 +131,10 @@ DockerViewModel::DockerViewModel(
 DockerViewModel::~DockerViewModel()
 {
     connection_.removeStateChanged(connSubscription_);
+    // refreshTimer_ is a QObject child of `this` and stops firing once this
+    // destructor has started running; waiting here still matters for any
+    // worker that was already in flight when destruction began.
+    pendingWork_.waitForFinished();
 }
 
 bool DockerViewModel::isConnected() const noexcept
@@ -180,55 +184,60 @@ void DockerViewModel::refresh()
         }
     });
     watcher->setFuture(future);
+    pendingWork_.addFuture(future);
 }
 
 void DockerViewModel::startContainer(const QString& nameOrId)
 {
-    (void)QtConcurrent::run([this, id = nameOrId.toStdString()] {
+    auto future = QtConcurrent::run([this, id = nameOrId.toStdString()] {
         bool ok = docker_.startContainer(id);
         QMetaObject::invokeMethod(this, [this, ok, qid = QString::fromStdString(id)] {
             emit containerActionCompleted(qid, ok);
             refresh();
         }, Qt::QueuedConnection);
     });
+    pendingWork_.addFuture(future);
 }
 
 void DockerViewModel::stopContainer(const QString& nameOrId)
 {
-    (void)QtConcurrent::run([this, id = nameOrId.toStdString()] {
+    auto future = QtConcurrent::run([this, id = nameOrId.toStdString()] {
         bool ok = docker_.stopContainer(id);
         QMetaObject::invokeMethod(this, [this, ok, qid = QString::fromStdString(id)] {
             emit containerActionCompleted(qid, ok);
             refresh();
         }, Qt::QueuedConnection);
     });
+    pendingWork_.addFuture(future);
 }
 
 void DockerViewModel::restartContainer(const QString& nameOrId)
 {
-    (void)QtConcurrent::run([this, id = nameOrId.toStdString()] {
+    auto future = QtConcurrent::run([this, id = nameOrId.toStdString()] {
         bool ok = docker_.restartContainer(id);
         QMetaObject::invokeMethod(this, [this, ok, qid = QString::fromStdString(id)] {
             emit containerActionCompleted(qid, ok);
             refresh();
         }, Qt::QueuedConnection);
     });
+    pendingWork_.addFuture(future);
 }
 
 void DockerViewModel::removeContainer(const QString& nameOrId)
 {
-    (void)QtConcurrent::run([this, id = nameOrId.toStdString()] {
+    auto future = QtConcurrent::run([this, id = nameOrId.toStdString()] {
         bool ok = docker_.removeContainer(id, false);
         QMetaObject::invokeMethod(this, [this, ok, qid = QString::fromStdString(id)] {
             emit containerActionCompleted(qid, ok);
             refresh();
         }, Qt::QueuedConnection);
     });
+    pendingWork_.addFuture(future);
 }
 
 void DockerViewModel::fetchLogs(const QString& nameOrId, int tail)
 {
-    (void)QtConcurrent::run([this, id = nameOrId.toStdString(), tail] {
+    auto future = QtConcurrent::run([this, id = nameOrId.toStdString(), tail] {
         auto logs = docker_.getLogs(id, tail);
         QMetaObject::invokeMethod(this, [this,
             qid   = QString::fromStdString(id),
@@ -236,6 +245,7 @@ void DockerViewModel::fetchLogs(const QString& nameOrId, int tail)
                 emit logsReady(qid, qlogs);
             }, Qt::QueuedConnection);
     });
+    pendingWork_.addFuture(future);
 }
 
 } // namespace OpenC3::ViewModels

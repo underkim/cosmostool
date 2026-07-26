@@ -70,6 +70,8 @@ SettingsViewModel::SettingsViewModel(
 SettingsViewModel::~SettingsViewModel()
 {
     connection_.removeStateChanged(connSubscription_);
+    if (connectFuture_.isRunning())
+        connectFuture_.waitForFinished();
 }
 
 ProfileListModel* SettingsViewModel::profileModel() const noexcept
@@ -131,6 +133,7 @@ void SettingsViewModel::connectToProfile(const QString& id)
         }, Qt::QueuedConnection);
     });
     watcher->setFuture(future);
+    connectFuture_ = future;
 }
 
 void SettingsViewModel::disconnect()

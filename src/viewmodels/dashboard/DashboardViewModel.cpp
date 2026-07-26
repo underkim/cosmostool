@@ -49,6 +49,14 @@ DashboardViewModel::DashboardViewModel(
 DashboardViewModel::~DashboardViewModel()
 {
     connection_.removeStateChanged(connSubscription_);
+    // Every refresh() worker captures `this` raw and posts a queued
+    // invocation back to it once done; waiting here (not just relying on
+    // the QFutureWatchers' deleteLater(), which neither cancels nor blocks
+    // on the underlying QtConcurrent task) guarantees no worker is still
+    // touching this object's memory after this destructor returns.
+    if (metricsFuture_.isRunning()) metricsFuture_.waitForFinished();
+    if (dockerFuture_.isRunning())  dockerFuture_.waitForFinished();
+    if (versionFuture_.isRunning()) versionFuture_.waitForFinished();
 }
 
 // ── Property accessors ────────────────────────────────────────────────────────
@@ -123,6 +131,7 @@ void DashboardViewModel::refresh()
         }
     });
     metricsWatcher->setFuture(metricsFuture);
+    metricsFuture_ = metricsFuture;
 
     // ── Docker status ─────────────────────────────────────────────────────────
     auto* dockerWatcher = new QFutureWatcher<void>(this);
@@ -144,6 +153,7 @@ void DashboardViewModel::refresh()
         }
     });
     dockerWatcher->setFuture(dockerFuture);
+    dockerFuture_ = dockerFuture;
 
     // ── OpenC3 version ────────────────────────────────────────────────────────
     auto* versionWatcher = new QFutureWatcher<void>(this);
@@ -163,6 +173,7 @@ void DashboardViewModel::refresh()
         }
     });
     versionWatcher->setFuture(versionFuture);
+    versionFuture_ = versionFuture;
 }
 
 void DashboardViewModel::setRefreshIntervalMs(int ms)

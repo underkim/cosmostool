@@ -4,6 +4,7 @@
 #include "services/connection/IConnectionService.h"
 #include "services/filesystem/IRemoteFileService.h"
 
+#include <QFutureSynchronizer>
 #include <QMap>
 #include <QString>
 
@@ -122,6 +123,19 @@ private:
     bool    connected_{false};
     bool    busy_{false};
     QString statusMessage_;
+
+    // Every public slot here (loadEnvFile, saveEnvFile, loadContainers,
+    // scaffoldPlugin, ...) launches its own independent QtConcurrent::run
+    // worker that captures `this` raw and later posts a queued invocation
+    // back to it - unlike PluginViewModel/ScriptViewModel's single busy_-
+    // gated worker_, several of these can legitimately be in flight at once
+    // (e.g. loadEnvFile() and loadContainers() have no shared guard), so one
+    // QFuture<void> member is not enough to track them all. A
+    // QFutureSynchronizer collects every future addFuture()'d into it and
+    // its destructor (or an explicit waitForFinished()) blocks until all of
+    // them complete, closing the same window PluginViewModel's stored
+    // worker_ closes for its single-worker case.
+    QFutureSynchronizer<void> pendingWork_;
 };
 
 } // namespace OpenC3::ViewModels

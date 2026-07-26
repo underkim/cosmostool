@@ -5,6 +5,7 @@
 #include "services/connection/IConnectionService.h"
 #include "services/filesystem/IRemoteFileService.h"
 
+#include <QFuture>
 #include <QStringList>
 #include <QString>
 
@@ -61,6 +62,14 @@ private:
     Services::IConnectionService::SubscriptionId connSubscription_{0};
     bool                          busy_{false};
     QString                       status_;
+
+    // listDirectory/listPluginFiles/openFile/saveFile are each gated by
+    // `if (busy_) return`, so only one QtConcurrent::run worker is ever in
+    // flight at a time - a single stored future (waited on in the
+    // destructor) is therefore enough to guarantee no worker's captured
+    // `this` outlives this object, matching PluginViewModel's fix for the
+    // identical bug class.
+    QFuture<void>                 worker_;
 };
 
 } // namespace OpenC3::ViewModels

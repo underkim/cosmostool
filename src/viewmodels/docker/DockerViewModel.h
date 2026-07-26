@@ -6,6 +6,7 @@
 #include "models/DockerContainer.h"
 
 #include <QAbstractTableModel>
+#include <QFutureSynchronizer>
 #include <QTimer>
 #include <memory>
 #include <vector>
@@ -74,6 +75,18 @@ private:
     QTimer*                       refreshTimer_{nullptr};
     QString                       dockerVersion_;
     Services::IConnectionService::SubscriptionId connSubscription_{0};
+
+    // refresh() (also called periodically by refreshTimer_) and each of the
+    // five container-action slots below launch their own independent
+    // QtConcurrent::run worker capturing `this` raw, and start/stop/
+    // restart/remove additionally trigger a further refresh() from inside
+    // their own completion callback - so several workers can legitimately
+    // be in flight at once. A QFutureSynchronizer collects every future
+    // addFuture()'d into it and blocks on all of them in its destructor (or
+    // an explicit waitForFinished()), closing the same use-after-free
+    // window PluginViewModel's single stored worker_ closes for the
+    // single-worker case.
+    QFutureSynchronizer<void>     pendingWork_;
 };
 
 } // namespace OpenC3::ViewModels

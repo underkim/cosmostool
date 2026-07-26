@@ -46,6 +46,8 @@ PacketToolsViewModel::PacketToolsViewModel(
 PacketToolsViewModel::~PacketToolsViewModel()
 {
     connection_.removeStateChanged(connSubscription_);
+    if (worker_.isRunning())
+        worker_.waitForFinished();
 }
 
 bool PacketToolsViewModel::isConnected() const noexcept
@@ -86,7 +88,7 @@ void PacketToolsViewModel::refreshLogList()
     setBusy(true);
     setStatus("Scanning packet log directory…");
 
-    (void)QtConcurrent::run([this] {
+    worker_ = QtConcurrent::run([this] {
         auto entries = fs_.listDirectory(kLogDir);
         QMetaObject::invokeMethod(this, [this, entries = std::move(entries)] () mutable {
             QStringList files;
@@ -107,7 +109,7 @@ void PacketToolsViewModel::openLogFile(const QString& remotePath)
     setBusy(true);
     setStatus("Loading " + remotePath + "…");
 
-    (void)QtConcurrent::run([this, path] {
+    worker_ = QtConcurrent::run([this, path] {
         const std::string content = fs_.readFile(path);
         QMetaObject::invokeMethod(this, [this, content, qpath = QString::fromStdString(path)] {
             emit logContentReady(qpath, QString::fromStdString(content));
@@ -126,7 +128,7 @@ void PacketToolsViewModel::analyzePackets(const QString& remotePath,
     setBusy(true);
     setStatus("Analyzing…");
 
-    (void)QtConcurrent::run([this, path, filt] {
+    worker_ = QtConcurrent::run([this, path, filt] {
         using OpenC3::Core::Connection::shellQuote;
 
         const std::string quotedPath = shellQuote(path);

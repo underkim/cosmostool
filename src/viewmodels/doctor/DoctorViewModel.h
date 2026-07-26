@@ -5,6 +5,7 @@
 #include "models/HealthCheckResult.h"
 
 #include <QAbstractTableModel>
+#include <QFuture>
 #include <vector>
 
 namespace OpenC3::ViewModels {
@@ -44,6 +45,14 @@ public:
         Services::IDoctorService& doctor,
         QObject*                  parent = nullptr);
 
+    // runAllChecks()'s worker captures `this` raw and posts a queued
+    // invocation back to it on completion; waiting here (not merely
+    // relying on the QFutureWatcher's deleteLater(), which neither cancels
+    // nor blocks on the underlying QtConcurrent task) guarantees no worker
+    // is still touching this object's memory after destruction - same fix
+    // as PluginViewModel/DashboardViewModel for the identical bug class.
+    ~DoctorViewModel() override;
+
     [[nodiscard]] HealthCheckTableModel* resultsModel() const noexcept;
     [[nodiscard]] int passCount()    const noexcept;
     [[nodiscard]] int warningCount() const noexcept;
@@ -60,6 +69,7 @@ signals:
 private:
     Services::IDoctorService& doctor_;
     HealthCheckTableModel*    resultsModel_{nullptr};
+    QFuture<void>             checksFuture_;
 };
 
 } // namespace OpenC3::ViewModels

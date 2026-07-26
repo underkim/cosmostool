@@ -6,6 +6,7 @@
 #include "services/system/ISystemService.h"
 
 #include <QTimer>
+#include <QFuture>
 #include <QString>
 #include <memory>
 
@@ -71,6 +72,20 @@ private:
 
     QTimer* timer_{nullptr};
     Services::IConnectionService::SubscriptionId connSubscription_{0};
+
+    // Handles on refresh()'s three parallel background fetches. Each is
+    // launched via QtConcurrent::run with a lambda that captures `this`
+    // raw and later posts a queued invocation back to it; a QFutureWatcher
+    // parented to `this` does NOT make this safe on its own; deleteLater()
+    // on the watcher neither cancels nor waits for the still-running
+    // QtConcurrent task, so destroying this object while the pool thread is
+    // mid-flight leaves it dereferencing freed memory. Storing the
+    // QFuture<void> here and waiting on it in the destructor closes that
+    // window - same fix already applied to PluginViewModel/ScriptViewModel/
+    // RuntimeViewModel/CommandSenderViewModel for the identical bug class.
+    QFuture<void> metricsFuture_;
+    QFuture<void> dockerFuture_;
+    QFuture<void> versionFuture_;
 
     Services::ConnectionState connectionState_{Services::ConnectionState::Disconnected};
     QString connectionErrorMessage_;

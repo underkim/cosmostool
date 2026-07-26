@@ -32,6 +32,11 @@ InfraViewModel::InfraViewModel(
 InfraViewModel::~InfraViewModel()
 {
     connection_.removeStateChanged(connSubscription_);
+    // Blocks until every future ever addFuture()'d below has finished, so
+    // no in-flight worker's queued invokeMethod() callback can run against
+    // this object after it is gone - see pendingWork_'s declaration for why
+    // a QFutureSynchronizer (not a single QFuture<void>) is needed here.
+    pendingWork_.waitForFinished();
 }
 
 // ── Properties ────────────────────────────────────────────────────────────────
@@ -112,6 +117,7 @@ void InfraViewModel::loadEnvFile(const QString& remotePath)
                 if (ok) emit envLoaded(p, txt);
             }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 void InfraViewModel::saveEnvFile(const QString& remotePath, const QString& content)
@@ -133,6 +139,7 @@ void InfraViewModel::saveEnvFile(const QString& remotePath, const QString& conte
                 emit fileSaved(p, ok);
             }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 void InfraViewModel::loadComposeFile(const QString& remotePath)
@@ -155,6 +162,7 @@ void InfraViewModel::loadComposeFile(const QString& remotePath)
                 if (ok) emit composeLoaded(p, txt);
             }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 void InfraViewModel::saveComposeFile(const QString& remotePath, const QString& content)
@@ -175,6 +183,7 @@ void InfraViewModel::saveComposeFile(const QString& remotePath, const QString& c
                 emit fileSaved(p, ok);
             }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 // ── Volume override workflow ──────────────────────────────────────────────────
@@ -200,6 +209,7 @@ void InfraViewModel::loadContainers()
             emit containersLoaded(names);
         }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 void InfraViewModel::extractContainerFile(
@@ -227,6 +237,7 @@ void InfraViewModel::extractContainerFile(
                     if (ok) emit containerFileExtracted(fpath, txt);
                 }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 void InfraViewModel::applyVolumeOverride(
@@ -287,6 +298,7 @@ void InfraViewModel::applyVolumeOverride(
                     emit overrideApplied(ok, hp);
                 }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 // ── Plugin scaffolding ────────────────────────────────────────────────────────
@@ -357,6 +369,7 @@ void InfraViewModel::scaffoldPlugin(
                 PluginTemplateEngine::buildFiles(pname, tname, desc, tmpl, itype, ihost, iport, ns);
             writePluginFiles(root + "/cosmos-" + pname, files);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 void InfraViewModel::scaffoldPluginFiles(
@@ -377,6 +390,7 @@ void InfraViewModel::scaffoldPluginFiles(
         files] {
             writePluginFiles(root + "/cosmos-" + pname, files);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 // ── Add target to existing plugin ────────────────────────────────────────────
@@ -433,6 +447,7 @@ void InfraViewModel::addTargetToPlugin(
                 emit targetAdded(tname, ok, detail);
             }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 // ── Add script to existing target ────────────────────────────────────────────
@@ -487,6 +502,7 @@ void InfraViewModel::addScriptToPlugin(
                 emit scriptAdded(sname, ok, detail);
             }, Qt::QueuedConnection);
     }));
+    pendingWork_.addFuture(watcher->future());
 }
 
 } // namespace OpenC3::ViewModels
