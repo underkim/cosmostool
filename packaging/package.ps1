@@ -112,16 +112,36 @@ Write-Host "  Portable zip: $ZipPath" -ForegroundColor Green
 Write-Host "[5/5] Checking for NSIS..." -ForegroundColor Yellow
 $makensisCommand = Get-Command "makensis" -ErrorAction SilentlyContinue
 $makensis = if ($makensisCommand) { $makensisCommand.Source } else { $null }
+if (-not $makensis) {
+    $defaultNsisPaths = @(
+        (Join-Path ${env:ProgramFiles(x86)} "NSIS\makensis.exe"),
+        (Join-Path $env:ProgramFiles "NSIS\makensis.exe")
+    )
+    $makensis = $defaultNsisPaths |
+        Where-Object { $_ -and (Test-Path $_) } |
+        Select-Object -First 1
+}
 if ($makensis) {
     Write-Host "  Building installer with makensis..." -ForegroundColor Yellow
-    $defines = "/DROOT_DIR=`"$Root`" /DDIST_DIR=`"$DistDir`""
-    & $makensis $defines $NsiFile
+    # installer.nsi is UTF-8 and contains non-ASCII punctuation. Pass every
+    # makensis option as a distinct native-process argument; combining the two
+    # /D values into one string makes DIST_DIR part of ROOT_DIR's value.
+    $arguments = @(
+        "/WX",
+        "/INPUTCHARSET", "UTF8",
+        "/DROOT_DIR=$Root",
+        "/DDIST_DIR=$DistDir",
+        $NsiFile
+    )
+    & $makensis @arguments
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "NSIS exited with $LASTEXITCODE"
-    } else {
-        $installer = Join-Path $Root "OpenC3DevToolkit-0.1.0-Setup.exe"
-        Write-Host "  Installer: $installer" -ForegroundColor Green
+        throw "NSIS failed with exit code $LASTEXITCODE"
     }
+    $installer = Join-Path $Root "OpenC3DevToolkit-0.1.0-Setup.exe"
+    if (-not (Test-Path $installer)) {
+        throw "NSIS reported success but the installer was not created: $installer"
+    }
+    Write-Host "  Installer: $installer" -ForegroundColor Green
 } else {
     Write-Host "  makensis not found; skipping installer." -ForegroundColor Gray
     Write-Host "  Install NSIS from https://nsis.sourceforge.io/ to build an installer."

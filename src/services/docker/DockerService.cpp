@@ -79,8 +79,14 @@ DockerService::listContainers(bool allContainers)
 
     auto result = executor_.execute(cmd);
     if (!result) {
+        std::string detail = !result.stdOut.empty() ? result.stdOut
+                           : !result.stdErr.empty() ? result.stdErr
+                                                    : result.errorMessage;
+        constexpr std::size_t kMaxLoggedDetail = 1024;
+        if (detail.size() > kMaxLoggedDetail)
+            detail.resize(kMaxLoggedDetail);
         Logging::Logger::error("[DockerService] listContainers failed: {}",
-                               result.errorMessage);
+                               detail);
         return {};
     }
 

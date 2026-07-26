@@ -26,15 +26,21 @@ InstallDir       "$PROGRAMFILES64\OpenC3 Developer Toolkit"
 InstallDirRegKey HKLM "${REGKEY}" "InstallDir"
 RequestExecutionLevel admin
 
+; Windows Explorer / Properties version metadata
+VIProductVersion "0.1.0.0"
+VIAddVersionKey /LANG=1033 "ProductName"     "${APP_NAME}"
+VIAddVersionKey /LANG=1033 "ProductVersion" "${APP_VERSION}"
+VIAddVersionKey /LANG=1033 "FileVersion"    "${APP_VERSION}"
+VIAddVersionKey /LANG=1033 "FileDescription" "${APP_NAME} Installer"
+VIAddVersionKey /LANG=1033 "CompanyName"    "${PUBLISHER}"
+VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright (c) 2026 ${PUBLISHER}"
+
 ; Modern UI
 !include MUI2.nsh
 !define MUI_ABORTWARNING
-!define MUI_ICON   "${DIST_DIR}\${APP_EXE}"
-!define MUI_UNICON "${DIST_DIR}\${APP_EXE}"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${ROOT_DIR}\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH

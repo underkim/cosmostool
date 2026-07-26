@@ -3,6 +3,8 @@ build/
 build-*/
 cmake-build-*/
 out/
+dist/
+OpenC3DevToolkit-portable-windows.zip
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake

@@ -61,6 +61,47 @@ The pre-existing local build tree used during development lives in
 > `bin\opencosmos_tests.exe` directly (the documented fallback above), or keep
 > the working tree on an ASCII-only path if you need `ctest` integration.
 
+## Windows Release Packaging
+
+`packaging/package.ps1` is the local end-to-end release entry point. It
+configures and builds the `release` preset, stages the `windeployqt` output and
+MSVC runtime DLLs into `dist/`, creates the portable ZIP, and builds the NSIS
+installer when NSIS 3.x is installed:
+
+```powershell
+# Optional, one-time installer-tool setup
+winget install --id NSIS.NSIS --exact
+
+# Clean release build + portable ZIP + installer
+powershell -ExecutionPolicy Bypass -File packaging\package.ps1
+
+# Repackage an already-built build/release/bin tree
+powershell -ExecutionPolicy Bypass -File packaging\package.ps1 -SkipBuild
+```
+
+The script finds `makensis` on `PATH` or under the standard 32/64-bit Program
+Files NSIS directories. NSIS input is explicitly parsed as UTF-8, and every
+`/D` define is passed as a separate native-process argument so repository paths
+containing spaces or non-ASCII characters remain valid. A non-zero NSIS exit or
+a missing installer is a packaging failure, not a warning.
+
+Expected outputs:
+
+```text
+dist/OpenC3DevToolkit.exe
+OpenC3DevToolkit-portable-windows.zip
+OpenC3DevToolkit-0.1.0-Setup.exe
+```
+
+Before publishing, verify at least `dist/platforms/qwindows.dll`, the Qt
+Core/Gui/Widgets/Network DLLs, and the MSVC runtime DLLs are present; test the
+ZIP integrity; and launch the portable executable long enough to reach the Qt
+event loop. The installer intentionally writes to Program Files and HKLM, so a
+real install/uninstall acceptance run requires interactive Windows UAC approval.
+The local and CI packaging flows do not currently Authenticode-sign either
+executable; public distribution should add a protected code-signing certificate
+and timestamping step rather than embedding signing credentials in the repo.
+
 ## Running Tests
 
 Primary fallback (direct binary; works without CMake/CTest on PATH if the

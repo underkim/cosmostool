@@ -15,6 +15,7 @@
 // Usage: OPENC3_LIVE_PASSWORD=... opencosmos_live_cosmos_check [baseUrl] [scope]
 #include "viewmodels/api/HttpCosmosApiClient.h"
 #include "core/api/CosmosRoutes.h"
+#include "services/docker/DockerService.h"
 #include "services/doctor/DoctorService.h"
 #include "services/runtime/CosmosRuntimeService.h"
 #include "services/runtime/CosmosCommandService.h"
@@ -118,6 +119,19 @@ int main(int argc, char** argv)
         check(static_cast<bool>(dockerPs), "docker ps executes through WslExecutor");
         check(dockerPs.stdOut.find("openc3-cosmos-cmd-tlm-api") != std::string::npos,
               "real COSMOS cmd-tlm-api container is visible through WSL");
+
+        DockerService docker(liveShell);
+        const auto containers = docker.listContainers(true);
+        bool cosmosContainerFound = false;
+        for (const auto& container : containers)
+            if (container.name.find("openc3-cosmos-cmd-tlm-api")
+                != std::string::npos)
+                cosmosContainerFound = true;
+        check(!containers.empty(),
+              "DockerService parses docker ps JSON through WslExecutor");
+        check(cosmosContainerFound,
+              "DockerService returns the real COSMOS cmd-tlm-api container");
+
         check(liveShell.fileExists(cosmosRoot + "/compose.yaml"),
               "configured COSMOS root is readable through WSL file transport");
 

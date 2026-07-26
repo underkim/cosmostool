@@ -8,6 +8,17 @@ qt_add_executable(OpenC3DevToolkit
     "${CMAKE_SOURCE_DIR}/resources/resources.qrc"
 )
 
+if(WIN32)
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/resources/windows/version.rc.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/OpenC3DevToolkitVersion.rc"
+        @ONLY
+    )
+    target_sources(OpenC3DevToolkit PRIVATE
+        "${CMAKE_CURRENT_BINARY_DIR}/OpenC3DevToolkitVersion.rc"
+    )
+endif()
+
 target_include_directories(OpenC3DevToolkit
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/.."
