@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install common build tools
         run: |
@@ -96,7 +96,7 @@ jobs:
             -exec cp --parents '{}' artifacts/linux/ \;
 
       - name: Upload Linux executable artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: executable-linux
           path: artifacts/linux
@@ -108,10 +108,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
         with:
           version: '6.7.2'
           arch: 'win64_msvc2019_64'
@@ -177,7 +177,7 @@ jobs:
       # use, and (since that key already exists) never get overwritten with
       # a Ninja-compatible one.
       - name: Cache CMake FetchContent dependencies
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/_deps
           key: ${{ runner.os }}-ninja-fetchcontent-${{ hashFiles('cmake/Dependencies.cmake') }}
@@ -249,14 +249,14 @@ jobs:
             -QtPath $env:QT_ROOT_DIR -VcVarsAll $vcVarsAll
 
       - name: Upload Windows portable package
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenC3DevToolkit-portable-windows
           path: OpenC3DevToolkit-portable-windows.zip
           if-no-files-found: error
 
       - name: Upload Windows installer
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: OpenC3DevToolkit-windows-installer
           path: OpenC3DevToolkit-0.1.0-Setup.exe
@@ -281,7 +281,7 @@ jobs:
           }
 
       - name: Upload Windows executable artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: executable-windows
           path: artifacts/windows
