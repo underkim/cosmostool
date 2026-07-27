@@ -106,6 +106,21 @@ structurally validated in CI;
 installing it is still a manual acceptance step because it writes to Program
 Files and HKLM and therefore requires interactive UAC approval.
 
+CI also creates GitHub build-provenance attestations for the ZIP and installer.
+After downloading either package, verify that it came from this repository's
+workflow with GitHub CLI:
+
+```powershell
+gh attestation verify .\OpenC3DevToolkit-portable-windows.zip `
+    --repo underkim/cosmostool
+gh attestation verify .\OpenC3DevToolkit-0.1.0-Setup.exe `
+    --repo underkim/cosmostool
+```
+
+Provenance proves which GitHub Actions workflow produced the exact artifact;
+it does not replace Authenticode, which is what Windows uses to identify a
+publisher before launch.
+
 Before publishing, verify at least `dist/platforms/qwindows.dll`, the Qt
 Core/Gui/Widgets/Network DLLs, and the MSVC runtime DLLs are present; test the
 ZIP integrity; and launch the portable executable long enough to reach the Qt
