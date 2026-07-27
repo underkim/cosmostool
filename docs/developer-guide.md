@@ -77,6 +77,10 @@ powershell -ExecutionPolicy Bypass -File packaging\package.ps1
 
 # Repackage an already-built build/release/bin tree
 powershell -ExecutionPolicy Bypass -File packaging\package.ps1 -SkipBuild
+
+# Repackage a different CMake tree whose executable is under <tree>/bin
+powershell -ExecutionPolicy Bypass -File packaging\package.ps1 `
+    -SkipBuild -BuildDir build\ci-release
 ```
 
 The script finds `makensis` on `PATH` or under the standard 32/64-bit Program
@@ -92,6 +96,13 @@ dist/OpenC3DevToolkit.exe
 OpenC3DevToolkit-portable-windows.zip
 OpenC3DevToolkit-0.1.0-Setup.exe
 ```
+
+The `Build Executable` GitHub Actions workflow runs the same packaging script
+against its already-built Windows tree. It publishes the portable ZIP and NSIS
+Setup executable as separate artifacts, in addition to the raw executable
+collection. The installer artifact is built and structurally validated in CI;
+installing it is still a manual acceptance step because it writes to Program
+Files and HKLM and therefore requires interactive UAC approval.
 
 Before publishing, verify at least `dist/platforms/qwindows.dll`, the Qt
 Core/Gui/Widgets/Network DLLs, and the MSVC runtime DLLs are present; test the

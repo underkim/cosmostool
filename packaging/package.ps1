@@ -17,6 +17,7 @@
 param(
     [switch] $SkipBuild,
     [string] $Preset    = "release",
+    [string] $BuildDir  = "",
     [string] $QtPath    = "C:\Qt\6.11.1\msvc2022_64",
     [string] $VcVarsAll = "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat"
 )
@@ -25,7 +26,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $Root     = Split-Path -Parent $PSScriptRoot
-$BuildDir = Join-Path $Root "build\$Preset"
+$BuildDir = if ([string]::IsNullOrWhiteSpace($BuildDir)) {
+    Join-Path $Root "build\$Preset"
+} elseif ([System.IO.Path]::IsPathRooted($BuildDir)) {
+    $BuildDir
+} else {
+    Join-Path $Root $BuildDir
+}
 $BinDir   = Join-Path $BuildDir "bin"
 $DistDir  = Join-Path $Root "dist"
 $Exe      = Join-Path $BinDir "OpenC3DevToolkit.exe"
@@ -99,6 +106,20 @@ if (Test-Path $licenseFile) {
 $readmeFile = Join-Path $Root "README.md"
 if (Test-Path $readmeFile) {
     Copy-Item $readmeFile $DistDir
+}
+
+$requiredRuntimeFiles = @(
+    "OpenC3DevToolkit.exe",
+    "Qt6Core.dll",
+    "Qt6Gui.dll",
+    "Qt6Widgets.dll",
+    "Qt6Network.dll",
+    "platforms\qwindows.dll"
+)
+$missingRuntimeFiles = $requiredRuntimeFiles |
+    Where-Object { -not (Test-Path (Join-Path $DistDir $_)) }
+if ($missingRuntimeFiles) {
+    throw "Staged package is missing required runtime files: $($missingRuntimeFiles -join ', ')"
 }
 Write-Host "  Staged to: $DistDir" -ForegroundColor Green
 
