@@ -95,12 +95,14 @@ Expected outputs:
 dist/OpenC3DevToolkit.exe
 OpenC3DevToolkit-portable-windows.zip
 OpenC3DevToolkit-0.1.0-Setup.exe
+OpenC3DevToolkit-0.1.0-SHA256SUMS.txt
 ```
 
 The `Build Executable` GitHub Actions workflow runs the same packaging script
 against its already-built Windows tree. It publishes the portable ZIP and NSIS
-Setup executable as separate artifacts, in addition to the raw executable
-collection. The installer artifact is built and structurally validated in CI;
+Setup executable and their SHA-256 manifest as separate artifacts, in addition
+to the raw executable collection. The installer artifact is built and
+structurally validated in CI;
 installing it is still a manual acceptance step because it writes to Program
 Files and HKLM and therefore requires interactive UAC approval.
 

@@ -38,6 +38,7 @@ $DistDir  = Join-Path $Root "dist"
 $Exe      = Join-Path $BinDir "OpenC3DevToolkit.exe"
 $NsiFile  = Join-Path $PSScriptRoot "installer.nsi"
 $ZipPath  = Join-Path $Root "OpenC3DevToolkit-portable-windows.zip"
+$ChecksumPath = Join-Path $Root "OpenC3DevToolkit-0.1.0-SHA256SUMS.txt"
 
 Write-Host ""
 Write-Host "=== OpenC3 Developer Toolkit Release Packaging ===" -ForegroundColor Cyan
@@ -142,6 +143,7 @@ if (-not $makensis) {
         Where-Object { $_ -and (Test-Path $_) } |
         Select-Object -First 1
 }
+$installer = $null
 if ($makensis) {
     Write-Host "  Building installer with makensis..." -ForegroundColor Yellow
     # installer.nsi is UTF-8 and contains non-ASCII punctuation. Pass every
@@ -168,7 +170,26 @@ if ($makensis) {
     Write-Host "  Install NSIS from https://nsis.sourceforge.io/ to build an installer."
 }
 
+$packageFiles = @($ZipPath)
+if ($installer) {
+    $packageFiles += $installer
+}
+$checksumLines = $packageFiles | ForEach-Object {
+    $hash = (Get-FileHash -Algorithm SHA256 -Path $_).Hash.ToLowerInvariant()
+    "$hash  $([System.IO.Path]::GetFileName($_))"
+}
+# Write explicit LF line endings so the manifest works with both PowerShell's
+# Get-FileHash and GNU sha256sum -c on Linux/MSYS without a trailing \r being
+# interpreted as part of each filename.
+$checksumContent = ($checksumLines -join "`n") + "`n"
+[System.IO.File]::WriteAllText(
+    $ChecksumPath,
+    $checksumContent,
+    [System.Text.Encoding]::ASCII)
+Write-Host "  SHA-256 manifest: $ChecksumPath" -ForegroundColor Green
+
 Write-Host ""
 Write-Host "=== Packaging complete ===" -ForegroundColor Cyan
 Write-Host "  Distribution: $DistDir"
 Write-Host "  Portable zip: $ZipPath"
+Write-Host "  SHA-256 manifest: $ChecksumPath"
