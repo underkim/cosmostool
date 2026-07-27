@@ -6,6 +6,13 @@ project(OpenC3DevToolkit
     LANGUAGES CXX
 )
 
+# Packaging reads this configure-time output so PROJECT_VERSION remains the
+# single source of truth for executable, installer, and checksum filenames.
+file(GENERATE
+    OUTPUT "${CMAKE_BINARY_DIR}/OpenC3DevToolkitVersion.txt"
+    CONTENT "${PROJECT_VERSION}\n"
+)
+
 # ── C++ Standard ──────────────────────────────────────────────────────────────
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

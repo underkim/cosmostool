@@ -89,6 +89,12 @@ Files NSIS directories. NSIS input is explicitly parsed as UTF-8, and every
 containing spaces or non-ASCII characters remain valid. A non-zero NSIS exit or
 a missing installer is a packaging failure, not a warning.
 
+The version declared by the top-level CMake `project(... VERSION ...)` is the
+single source of truth. CMake writes it to the configured build tree, and the
+packaging script uses that value for NSIS metadata, the Setup filename, and the
+SHA-256 manifest filename. Reconfigure an older build tree before using
+`-SkipBuild` if its version file is missing.
+
 Expected outputs:
 
 ```text

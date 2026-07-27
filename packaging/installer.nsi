@@ -2,7 +2,8 @@
 ; Requires NSIS 3.x   (https://nsis.sourceforge.io/)
 ;
 ; Usage (called automatically by package.ps1):
-;   makensis /DROOT_DIR="C:\..." /DDIST_DIR="C:\...\dist" installer.nsi
+;   makensis /DROOT_DIR="C:\..." /DDIST_DIR="C:\...\dist" \
+;     /DAPP_VERSION="0.1.0" installer.nsi
 
 !ifndef ROOT_DIR
   !define ROOT_DIR ".."
@@ -10,10 +11,12 @@
 !ifndef DIST_DIR
   !define DIST_DIR "..\dist"
 !endif
+!ifndef APP_VERSION
+  !error "APP_VERSION must be provided by packaging/package.ps1"
+!endif
 
 ; ── Metadata ──────────────────────────────────────────────────────────────────
 !define APP_NAME     "OpenC3 Developer Toolkit"
-!define APP_VERSION  "0.1.0"
 !define APP_EXE      "OpenC3DevToolkit.exe"
 !define PUBLISHER    "OpenC3 Toolkit Contributors"
 !define HELP_URL     "https://github.com/underkim/cosmostool"
@@ -27,7 +30,7 @@ InstallDirRegKey HKLM "${REGKEY}" "InstallDir"
 RequestExecutionLevel admin
 
 ; Windows Explorer / Properties version metadata
-VIProductVersion "0.1.0.0"
+VIProductVersion "${APP_VERSION}.0"
 VIAddVersionKey /LANG=1033 "ProductName"     "${APP_NAME}"
 VIAddVersionKey /LANG=1033 "ProductVersion" "${APP_VERSION}"
 VIAddVersionKey /LANG=1033 "FileVersion"    "${APP_VERSION}"

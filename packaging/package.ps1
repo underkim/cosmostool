@@ -38,7 +38,6 @@ $DistDir  = Join-Path $Root "dist"
 $Exe      = Join-Path $BinDir "OpenC3DevToolkit.exe"
 $NsiFile  = Join-Path $PSScriptRoot "installer.nsi"
 $ZipPath  = Join-Path $Root "OpenC3DevToolkit-portable-windows.zip"
-$ChecksumPath = Join-Path $Root "OpenC3DevToolkit-0.1.0-SHA256SUMS.txt"
 
 Write-Host ""
 Write-Host "=== OpenC3 Developer Toolkit Release Packaging ===" -ForegroundColor Cyan
@@ -66,6 +65,18 @@ if (-not $SkipBuild) {
 if (-not (Test-Path $Exe)) {
     throw "Executable not found: $Exe`nRun without -SkipBuild to build first."
 }
+
+$VersionFile = Join-Path $BuildDir "OpenC3DevToolkitVersion.txt"
+if (-not (Test-Path $VersionFile)) {
+    throw "Version file not found: $VersionFile`nReconfigure the CMake build tree first."
+}
+$Version = (Get-Content -Raw $VersionFile).Trim()
+if ($Version -notmatch '^\d+\.\d+\.\d+$') {
+    throw "Invalid project version '$Version' in $VersionFile"
+}
+$InstallerPath = Join-Path $Root "OpenC3DevToolkit-$Version-Setup.exe"
+$ChecksumPath = Join-Path $Root "OpenC3DevToolkit-$Version-SHA256SUMS.txt"
+Write-Host "  Version:    $Version"
 
 Write-Host "[3/5] Staging dist/..." -ForegroundColor Yellow
 if (Test-Path $DistDir) {
@@ -154,13 +165,14 @@ if ($makensis) {
         "/INPUTCHARSET", "UTF8",
         "/DROOT_DIR=$Root",
         "/DDIST_DIR=$DistDir",
+        "/DAPP_VERSION=$Version",
         $NsiFile
     )
     & $makensis @arguments
     if ($LASTEXITCODE -ne 0) {
         throw "NSIS failed with exit code $LASTEXITCODE"
     }
-    $installer = Join-Path $Root "OpenC3DevToolkit-0.1.0-Setup.exe"
+    $installer = $InstallerPath
     if (-not (Test-Path $installer)) {
         throw "NSIS reported success but the installer was not created: $installer"
     }
