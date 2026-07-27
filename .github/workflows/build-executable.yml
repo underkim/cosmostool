@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install common build tools
         run: |
@@ -96,7 +96,7 @@ jobs:
             -exec cp --parents '{}' artifacts/linux/ \;
 
       - name: Upload Linux executable artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: executable-linux
           path: artifacts/linux
@@ -108,7 +108,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -118,7 +118,51 @@ jobs:
           cache: true
 
       - name: Enable MSVC developer environment
-        uses: ilammy/msvc-dev-cmd@v1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            throw "vswhere.exe was not found at $vswhere"
+          }
+
+          $installPath = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath | Select-Object -First 1
+          if (-not $installPath) {
+            throw "A Visual Studio installation with the C++ toolchain was not found"
+          }
+
+          $devCmd = Join-Path $installPath "Common7\Tools\VsDevCmd.bat"
+          $captured = @{}
+          & $env:ComSpec /d /s /c "`"$devCmd`" -no_logo -arch=x64 -host_arch=x64 && set" |
+            ForEach-Object {
+              if ($_ -match '^([^=]+)=(.*)$') {
+                $captured[$Matches[1]] = $Matches[2]
+              }
+            }
+          if ($LASTEXITCODE -ne 0) {
+            throw "VsDevCmd.bat failed with exit code $LASTEXITCODE"
+          }
+
+          $required = @("PATH", "INCLUDE", "LIB", "LIBPATH", "VCToolsInstallDir")
+          $optional = @(
+            "VCINSTALLDIR", "VCToolsRedistDir", "VSINSTALLDIR",
+            "UniversalCRTSdkDir", "UCRTVersion", "WindowsSdkDir",
+            "WindowsSdkBinPath", "WindowsSdkVerBinPath", "WindowsSDKVersion"
+          )
+          foreach ($name in $required) {
+            if (-not $captured.ContainsKey($name)) {
+              throw "VsDevCmd.bat did not define required environment variable $name"
+            }
+            "$name=$($captured[$name])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }
+          foreach ($name in $optional) {
+            if ($captured.ContainsKey($name)) {
+              "$name=$($captured[$name])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            }
+          }
 
       # No system spdlog/nlohmann_json/libssh2 packages are installed on this
       # runner, so cmake/Dependencies.cmake falls back to building all three
@@ -133,7 +177,7 @@ jobs:
       # use, and (since that key already exists) never get overwritten with
       # a Ninja-compatible one.
       - name: Cache CMake FetchContent dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build/_deps
           key: ${{ runner.os }}-ninja-fetchcontent-${{ hashFiles('cmake/Dependencies.cmake') }}
@@ -269,7 +313,7 @@ jobs:
             -CompressionLevel Fastest -Force
 
       - name: Upload Windows portable package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OpenC3DevToolkit-portable-windows
           path: OpenC3DevToolkit-portable-windows.zip
@@ -294,7 +338,7 @@ jobs:
           }
 
       - name: Upload Windows executable artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: executable-windows
           path: artifacts/windows
