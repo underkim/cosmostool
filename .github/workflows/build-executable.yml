@@ -96,7 +96,7 @@ jobs:
             -exec cp --parents '{}' artifacts/linux/ \;
 
       - name: Upload Linux executable artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: executable-linux
           path: artifacts/linux
@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730 # v4.3.1
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: '6.7.2'
           arch: 'win64_msvc2019_64'
@@ -253,31 +253,31 @@ jobs:
             -QtPath $env:QT_ROOT_DIR -VcVarsAll $vcVarsAll
 
       - name: Attest Windows portable package provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: OpenC3DevToolkit-portable-windows.zip
 
       - name: Attest Windows installer provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: OpenC3DevToolkit-*-Setup.exe
 
       - name: Upload Windows portable package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: OpenC3DevToolkit-portable-windows
           path: OpenC3DevToolkit-portable-windows.zip
           if-no-files-found: error
 
       - name: Upload Windows installer
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: OpenC3DevToolkit-windows-installer
           path: OpenC3DevToolkit-*-Setup.exe
           if-no-files-found: error
 
       - name: Upload Windows package checksums
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: OpenC3DevToolkit-windows-checksums
           path: OpenC3DevToolkit-*-SHA256SUMS.txt
@@ -302,7 +302,7 @@ jobs:
           }
 
       - name: Upload Windows executable artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: executable-windows
           path: artifacts/windows
